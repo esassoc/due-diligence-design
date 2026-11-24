@@ -217,7 +217,7 @@ const shapeAttrs = (s: Shape) => ({
   .geo {
     --geo-side: 264px;
     --geo-w: calc(100vw - var(--geo-side) - 80px);
-    --geo-h: max(640px, calc(100vh - 160px));
+    --geo-h: max(640px, calc(100vh - 230px)) /* ends above the floating pager bar */;
     --geo-inset: 12px;
     position: relative;
     width: var(--geo-w);

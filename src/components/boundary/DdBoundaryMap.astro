@@ -348,9 +348,18 @@ const toggleOptions = JSON.stringify([{ label: 'Map', value: 'map' }, { label: '
       const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
       return [Math.round(p.x), Math.round(p.y)];
     };
+    /** Zoom-out that keeps the whole boundary view visible in a frame of any shape (the svgs slice). */
+    const fitZoom = (): number => {
+      const r = mapEl.getBoundingClientRect();
+      if (!r.width || !r.height) return 1;
+      const sx = r.width / BASE[2];
+      const sy = r.height / BASE[3];
+      return Math.min(sx, sy) / Math.max(sx, sy);
+    };
     const applyView = (): void => {
-      const w = BASE[2] / zoom;
-      const h = BASE[3] / zoom;
+      const z = zoom * fitZoom();
+      const w = BASE[2] / z;
+      const h = BASE[3] / z;
       const vb = `${center[0] - w / 2} ${center[1] - h / 2} ${w} ${h}`;
       svgs.forEach((s) => s.setAttribute('viewBox', vb));
       renderScale();
@@ -821,8 +830,8 @@ const toggleOptions = JSON.stringify([{ label: 'Map', value: 'map' }, { label: '
       if (s.boundary === 'defined' && mode === 'idle') mode = 'view';
       render();
     });
-    new ResizeObserver(() => { renderScale(); renderOverlay(); }).observe(mapEl);
-    renderScale();
+    new ResizeObserver(() => applyView()).observe(mapEl);
+    applyView();
     render();
   }
 </script>
@@ -831,12 +840,20 @@ const toggleOptions = JSON.stringify([{ label: 'Map', value: 'map' }, { label: '
   .dd-bmap {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 356px;
-    height: 600px;
+    /* Full width like Geospatial: the card spans the main column (window minus
+       the side nav and the 40px page gutters), centred on the 1160px well. */
+    --bmap-side: 264px;
+    --bmap-w: calc(100vw - var(--bmap-side) - 80px);
+    --bmap-inset: 12px;
+    width: var(--bmap-w);
+    margin-inline: calc((100% - var(--bmap-w)) / 2);
+    height: max(640px, calc(100vh - 230px)) /* ends above the floating pager bar */;
     background: var(--dd-surface-raised);
     border: 1px solid var(--dd-border-subtle);
     border-radius: 8px;
     overflow: hidden;
   }
+  :global(html[data-dd-sidebar-collapsed]) .dd-bmap { --bmap-side: 0px; }
   .dd-bmap :global([hidden]) { display: none !important; }
 
   /* ---- map ---- */
@@ -882,7 +899,7 @@ const toggleOptions = JSON.stringify([{ label: 'Map', value: 'map' }, { label: '
     box-shadow: var(--dd-shadow-popover);
   }
   .dd-bmap__tools {
-    position: absolute; top: 16px; left: 16px; z-index: 2;
+    position: absolute; top: var(--bmap-inset); left: var(--bmap-inset); z-index: 2;
     display: flex; align-items: center; gap: 2px; padding: 4px;
   }
   .dd-bmap__tools-sep { width: 1px; height: 20px; margin: 0 4px; background: var(--dd-border-subtle); }
@@ -890,8 +907,8 @@ const toggleOptions = JSON.stringify([{ label: 'Map', value: 'map' }, { label: '
   .dd-bmap__tools :global(.esa-button--active .esa-button__native) { background: var(--dd-brand-surface); color: var(--dd-brand-text); }
   .dd-bmap__tools :global(.esa-button__native:disabled) { color: var(--dd-text-subtle); opacity: 0.6; }
 
-  .dd-bmap__find { position: absolute; top: 16px; right: 16px; z-index: 3; width: 232px; display: flex; flex-direction: column; gap: 8px; }
-  .dd-bmap__find.is-left { right: auto; left: 16px; }
+  .dd-bmap__find { position: absolute; top: var(--bmap-inset); right: calc(var(--bmap-inset) + 34px + 8px); z-index: 3; width: 232px; display: flex; flex-direction: column; gap: 8px; }
+  .dd-bmap__find.is-left { right: auto; left: var(--bmap-inset); }
   .dd-bmap__find.is-open { width: 468px; }
   .dd-bmap__find esa-text-field {
     --form-border-color-focus: var(--dd-brand-solid);
@@ -915,20 +932,20 @@ const toggleOptions = JSON.stringify([{ label: 'Map', value: 'map' }, { label: '
   .dd-bmap__results :global(.in-area) { flex: none; padding-right: 4px; color: var(--dd-text-muted); }
   .dd-bmap__results :global(.no-match) { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; }
 
-  .dd-bmap__zoom { position: absolute; top: 64px; right: 16px; z-index: 1; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  .dd-bmap__zoom { position: absolute; top: var(--bmap-inset); right: var(--bmap-inset); z-index: 1; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
   .dd-bmap__zoom :global(.dd-icon-button) { border-radius: 0; }
   .dd-bmap__zoom :global(.dd-icon-button + .dd-icon-button) { border-top: 1px solid var(--dd-border-subtle); }
 
   .dd-bmap__scale {
-    position: absolute; right: 16px; bottom: 60px; z-index: 1;
+    position: absolute; right: var(--bmap-inset); bottom: calc(var(--bmap-inset) + 44px); z-index: 1;
     display: flex; align-items: center; gap: 6px; padding: 2px 6px;
     background: rgb(255 255 255 / 0.72); border-radius: 4px; color: var(--dd-text);
   }
   .dd-bmap__scale-bar { height: 6px; border: 1px solid var(--dd-text); border-top: 0; }
-  .dd-bmap__basemap { position: absolute; right: 16px; bottom: 16px; z-index: 1; }
+  .dd-bmap__basemap { position: absolute; right: var(--bmap-inset); bottom: var(--bmap-inset); z-index: 1; }
 
   .dd-bmap__hint {
-    position: absolute; left: 16px; bottom: 16px; z-index: 2; max-width: calc(100% - 172px);
+    position: absolute; left: var(--bmap-inset); bottom: var(--bmap-inset); z-index: 2; max-width: calc(100% - 172px);
     display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 14px;
   }
   .dd-bmap__hint-text { color: var(--dd-text); margin-right: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
