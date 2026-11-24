@@ -9,7 +9,7 @@ export interface GeoState {
   visible: number[];
   opacity: Record<number, number>;
   selected: number | null;
-  /** The Layers popover is open (open on first load). */
+  /** The Layers popover is open (open on every page load). */
   panelOpen: boolean;
   /** True while the first-visit loading pass runs. */
   loading: boolean;
@@ -30,7 +30,9 @@ const defaults = (): GeoState => ({
 const read = (): GeoState => {
   try {
     const raw = sessionStorage.getItem(KEY);
-    if (raw) return { ...defaults(), ...(JSON.parse(raw) as Partial<GeoState>), loading: false };
+    // The Layers panel opens on every page load (Andy, 2026-11-24); closing it
+    // lasts only until the next visit.
+    if (raw) return { ...defaults(), ...(JSON.parse(raw) as Partial<GeoState>), loading: false, panelOpen: true };
   } catch { /* ignore */ }
   return defaults();
 };
