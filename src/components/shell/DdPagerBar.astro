@@ -35,7 +35,7 @@ const routes = Object.fromEntries(STEPS.map((s) => [s.key, withBase(stepRoute(s.
     <span data-dd-toast-text>Saved</span>
   </div>
   <div class="dd-pager__bar">
-    <span class="dd-pager__grip" aria-hidden="true"><DdIcon name="grip-vertical" size="md" /></span>
+    <span class="dd-pager__grip" role="button" tabindex="0" aria-label="Move Pager" title="Drag to Move. Double-click to Reset." data-dd-grip><DdIcon name="grip-vertical" size="md" /></span>
     <span class="dd-pager__div"></span>
     <a class="dd-pager__btn dd-t-14-medium" href={prev ? routes[prev.key] : withBase('/app/')} data-dd-prev data-step={prev?.key ?? ''}>
       <DdIcon name="arrow-left" size="xs" />Prev
@@ -81,7 +81,12 @@ const routes = Object.fromEntries(STEPS.map((s) => [s.key, withBase(stepRoute(s.
     backdrop-filter: blur(7px);
     color: rgb(255 255 255 / 0.92);
   }
-  .dd-pager__grip { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 36px; color: rgb(255 255 255 / 0.5); cursor: grab; }
+  .dd-pager__grip { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 36px; border-radius: 6px; color: rgb(255 255 255 / 0.5); cursor: grab; touch-action: none; }
+  .dd-pager__grip:hover { color: rgb(255 255 255 / 0.85); background: rgb(255 255 255 / 0.08); }
+  .dd-pager__grip:focus-visible { outline: 2px solid rgb(255 255 255 / 0.7); outline-offset: -2px; }
+  /* Moved by the user: placed by its top-left corner instead of centred. */
+  .dd-pager[data-moved] { left: var(--dd-pager-x); top: var(--dd-pager-y); bottom: auto; transform: none; }
+  .dd-pager[data-dragging], .dd-pager[data-dragging] .dd-pager__grip { cursor: grabbing; user-select: none; }
   .dd-pager__div { width: 1px; height: 24px; background: rgb(255 255 255 / 0.16); }
   .dd-pager__btn {
     display: inline-flex;
@@ -270,6 +275,67 @@ const routes = Object.fromEntries(STEPS.map((s) => [s.key, withBase(stepRoute(s.
     window.setInterval(() => {
       if (!root.querySelector('.dd-pager__menu:not([hidden])')) render(getState());
     }, 1000);
+
+    // Drag the pager by its grip. Position lasts for the tab (sessionStorage),
+    // stays inside the window, and a double-click (or Escape while focused on
+    // the grip) puts it back in the centre. Arrow keys move it 16px.
+    const grip = root.querySelector<HTMLElement>('[data-dd-grip]');
+    const POS_KEY = 'dd-pager-pos';
+    const place = (x: number, y: number, save = true): void => {
+      const w = root.offsetWidth, h = root.offsetHeight;
+      const cx = Math.min(Math.max(8, x), window.innerWidth - w - 8);
+      const cy = Math.min(Math.max(60, y), window.innerHeight - h - 8);
+      root.style.setProperty('--dd-pager-x', `${cx}px`);
+      root.style.setProperty('--dd-pager-y', `${cy}px`);
+      root.setAttribute('data-moved', '');
+      if (save) { try { sessionStorage.setItem(POS_KEY, JSON.stringify({ x: cx, y: cy })); } catch { /* ignore */ } }
+    };
+    const resetPos = (): void => {
+      root.removeAttribute('data-moved');
+      try { sessionStorage.removeItem(POS_KEY); } catch { /* ignore */ }
+    };
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(POS_KEY) ?? 'null') as { x: number; y: number } | null;
+      if (saved) place(saved.x, saved.y, false);
+    } catch { /* ignore */ }
+    if (grip) {
+      let dx = 0, dy = 0;
+      grip.addEventListener('pointerdown', (e) => {
+        const r = root.getBoundingClientRect();
+        dx = e.clientX - r.left; dy = e.clientY - r.top;
+        grip.setPointerCapture(e.pointerId);
+        root.setAttribute('data-dragging', '');
+        close();
+      });
+      grip.addEventListener('pointermove', (e) => {
+        if (!root.hasAttribute('data-dragging')) return;
+        place(e.clientX - dx, e.clientY - dy, false);
+      });
+      const end = (e: PointerEvent): void => {
+        if (!root.hasAttribute('data-dragging')) return;
+        root.removeAttribute('data-dragging');
+        grip.releasePointerCapture(e.pointerId);
+        if (root.hasAttribute('data-moved')) {
+          const r = root.getBoundingClientRect();
+          place(r.left, r.top);
+        }
+      };
+      grip.addEventListener('pointerup', end);
+      grip.addEventListener('pointercancel', end);
+      grip.addEventListener('dblclick', resetPos);
+      grip.addEventListener('keydown', (e) => {
+        const step: Record<string, [number, number]> = { ArrowLeft: [-16, 0], ArrowRight: [16, 0], ArrowUp: [0, -16], ArrowDown: [0, 16] };
+        if (e.key === 'Escape') { resetPos(); return; }
+        const d = step[e.key];
+        if (!d) return;
+        e.preventDefault();
+        const r = root.getBoundingClientRect();
+        place(r.left + d[0], r.top + d[1]);
+      });
+      window.addEventListener('resize', () => {
+        if (root.hasAttribute('data-moved')) { const r = root.getBoundingClientRect(); place(r.left, r.top); }
+      });
+    }
 
     // Toast
     const toast = root.querySelector<HTMLElement>('[data-dd-toast]');
