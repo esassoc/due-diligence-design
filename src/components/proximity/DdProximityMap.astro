@@ -251,7 +251,7 @@ const siteLabel = `${project.ProjectName} · ${dataRings[0].areaLabel}`;
 <style>
   .prox-map {
     position: relative;
-    min-height: 700px;
+    min-height: 100%;
     overflow: hidden;
     background: var(--dd-map-land);
   }
@@ -294,8 +294,8 @@ const siteLabel = `${project.ProjectName} · ${dataRings[0].areaLabel}`;
 
   .prox-map__controls {
     position: absolute;
-    top: 16px;
-    right: 16px;
+    top: 12px;
+    right: 12px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -314,7 +314,7 @@ const siteLabel = `${project.ProjectName} · ${dataRings[0].areaLabel}`;
   .prox-map__legend,
   .prox-map__scale {
     position: absolute;
-    bottom: 16px;
+    bottom: 12px;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -323,8 +323,8 @@ const siteLabel = `${project.ProjectName} · ${dataRings[0].areaLabel}`;
     background: var(--dd-surface-raised);
     color: var(--dd-text-muted);
   }
-  .prox-map__legend { left: 16px; }
-  .prox-map__scale { right: 16px; gap: 8px; }
+  .prox-map__legend { left: 12px; }
+  .prox-map__scale { right: 12px; gap: 8px; }
   .prox-map__key { display: inline-flex; align-items: center; gap: 6px; }
   .prox-map__key-site { width: 10px; height: 10px; border-radius: 2px; background: var(--dd-data-on-site); }
   .prox-map__key-line { width: 14px; height: 0; border-top: 1.5px solid var(--dd-text-muted); }

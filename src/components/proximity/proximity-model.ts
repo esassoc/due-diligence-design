@@ -204,10 +204,11 @@ export const LEGEND_COPY: Record<string, string> = {
 
 export const legendHtml = (miles: number[]): string =>
   bandsFor(miles)
-    .filter((b) => b.swatch === 'site' || LEGEND_COPY[String(b.to)])
-    .map((b) =>
-      `<div class="prox-legend__row"><span class="prox-legend__label dd-t-13">${swatchHtml(b.swatch)}${esc(b.label)}</span>` +
-      `<span class="prox-legend__text dd-t-13">${LEGEND_COPY[b.swatch === 'site' ? 'site' : String(b.to)]}</span></div>`)
+    .map((b) => {
+      const copy = LEGEND_COPY[b.swatch === 'site' ? 'site' : String(b.to)] ?? '';
+      return `<div class="prox-legend__row"><span class="prox-legend__label dd-t-13">${swatchHtml(b.swatch)}${esc(b.label)}</span>` +
+        `<span class="prox-legend__text dd-t-13">${copy}</span></div>`;
+    })
     .join('');
 
 /** Ruler ticks: major stops plus three minor dots between each pair. */

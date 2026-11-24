@@ -23,7 +23,14 @@ const target = `${import.meta.env.BASE_URL}app/cottonwood/site-boundary/`;
 </section>
 
 <style>
+  /* Full width, as Geospatial: the card spans the main column (window minus
+     the side nav and the 40px page gutters), centred on the 1160px well. */
   .prox-setup {
+    --prox-side: 264px;
+    --prox-w: calc(100vw - var(--prox-side) - 80px);
+    width: var(--prox-w);
+    margin-inline: calc((100% - var(--prox-w)) / 2);
+    min-height: max(640px, calc(100vh - 230px));
     display: grid;
     grid-template-columns: minmax(0, 1fr) 418px;
     border: 1px solid var(--dd-border-subtle);
@@ -31,5 +38,6 @@ const target = `${import.meta.env.BASE_URL}app/cottonwood/site-boundary/`;
     background: var(--dd-surface-raised);
     overflow: hidden;
   }
+  :global(html[data-dd-sidebar-collapsed]) .prox-setup { --prox-side: 0px; }
   .prox-setup > :global(.prox-panel) { box-shadow: inset 1px 0 0 var(--dd-border-subtle); /* neutral pane divider */ }
 </style>
