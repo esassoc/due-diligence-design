@@ -41,6 +41,15 @@
 .dd-muted  { color: var(--dd-text-muted); }
 .dd-subtle { color: var(--dd-text-subtle); }
 
+/* esa-button's `icon` prop only takes hub-registry glyphs, so buttons that need
+   another Lucide glyph put a DdIcon in the label slot. The label is plain inline
+   text, so line the icon up with the words the way the prop's own icon sits. */
+.esa-button__label:has(> .dd-icon) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* Visually hidden, for labels the eye does not need */
 .dd-sr-only {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;

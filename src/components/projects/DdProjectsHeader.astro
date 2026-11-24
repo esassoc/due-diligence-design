@@ -7,7 +7,6 @@
 // fluid heading role with a lede. This keeps DdPageTitle's Besley 22 H1 and
 // adds the DdCountBadge next to it, as the Projects frame shows.
 import EsaButton from '@esa/ecology/esa-button.astro';
-import DdIcon from '../common/DdIcon.astro';
 import DdCountBadge from '../common/DdCountBadge.astro';
 
 interface Props {
@@ -21,10 +20,7 @@ const { count } = Astro.props;
     <span class="dd-projects-header__count" data-dd-when-projects><DdCountBadge value={count} label={`${count} projects`} /></span>
   </h1>
   <span data-dd-when-projects>
-    <EsaButton variant="primary" size="sm" data-dd-new-project>
-      <DdIcon name="plus" size="sm" />
-      New Project
-    </EsaButton>
+    <EsaButton variant="primary" icon="plus" data-dd-new-project>New Project</EsaButton>
   </span>
 </header>
 
