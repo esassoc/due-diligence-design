@@ -1,12 +1,17 @@
 ---
 // DdProfileHeader: the Site Profile H1 row (run line, Change Distances, Run
-// Again) and the toolbar (Proximity / Themes / Layers filter popovers, Print,
+// Again) and the toolbar (Proximity / Themes / Layers filter popovers from the
+// Figma, each its own component in a DdProfileFilterPop, then Print and
 // Export menu). The actions and toolbar hide while a run is in progress.
 import DdPageTitle from '../shell/DdPageTitle.astro';
 import DdIcon from '../common/DdIcon.astro';
 import EsaButton from '@esa/ecology/esa-button.astro';
 import { run, rings, themes, progressLayers, mi } from './profile-model';
 import { withBase } from '../../lib/base';
+import DdProfileFilterPop from './DdProfileFilterPop.astro';
+import DdProfileProximityPop from './DdProfileProximityPop.astro';
+import DdProfileThemesPop from './DdProfileThemesPop.astro';
+import DdProfileLayersPop from './DdProfileLayersPop.astro';
 
 const ringOptions = rings.map((r) => ({
   index: r.ringIndex,
@@ -33,38 +38,32 @@ const proximityValue = ringOptions.map((r) => r.label).join(', ');
 
     <div slot="below" class="dd-profile-header__toolbar" data-profile-chrome>
       <div class="dd-profile-header__filters">
-        <esa-popover trigger="click" position="bottom" has-arrow="false" label="Proximity" class="dd-profile-header__pop dd-profile-header__pop--start">
-          <EsaButton variant="secondary" size="sm" iconRight="chevron-down">
+        <DdProfileFilterPop label="Proximity" width={380}>
+          <Fragment slot="trigger">
             <DdIcon name="diameter" size="xs" />
             <span class="dd-profile-header__key">Proximity</span>
             <span class="dd-profile-header__val" data-filter-value="rings">{proximityValue}</span>
-          </EsaButton>
-          <div slot="content" class="dd-profile-header__list" data-filter-list="rings">
-            {ringOptions.map((r) => <esa-checkbox size="sm" label={r.label} checked data-value={r.index}></esa-checkbox>)}
-          </div>
-        </esa-popover>
+          </Fragment>
+          <DdProfileProximityPop />
+        </DdProfileFilterPop>
 
-        <esa-popover trigger="click" position="bottom" has-arrow="false" label="Themes" class="dd-profile-header__pop dd-profile-header__pop--start">
-          <EsaButton variant="secondary" size="sm" iconRight="chevron-down">
+        <DdProfileFilterPop label="Themes" width={320}>
+          <Fragment slot="trigger">
             <DdIcon name="sliders-horizontal" size="xs" />
             <span class="dd-profile-header__key">Themes</span>
             <span class="dd-profile-header__val" data-filter-value="themes">All {themes.length}</span>
-          </EsaButton>
-          <div slot="content" class="dd-profile-header__list" data-filter-list="themes">
-            {themes.map((t) => <esa-checkbox size="sm" label={t.name} checked data-value={t.id}></esa-checkbox>)}
-          </div>
-        </esa-popover>
+          </Fragment>
+          <DdProfileThemesPop />
+        </DdProfileFilterPop>
 
-        <esa-popover trigger="click" position="bottom" has-arrow="false" label="Layers" class="dd-profile-header__pop dd-profile-header__pop--start">
-          <EsaButton variant="secondary" size="sm" iconRight="chevron-down">
+        <DdProfileFilterPop label="Layers" width={420}>
+          <Fragment slot="trigger">
             <DdIcon name="layers" size="xs" />
             <span class="dd-profile-header__key">Layers</span>
             <span class="dd-profile-header__val" data-filter-value="layers">{progressLayers.length}</span>
-          </EsaButton>
-          <div slot="content" class="dd-profile-header__list dd-profile-header__list--scroll" data-filter-list="layers">
-            {progressLayers.map((l) => <esa-checkbox size="sm" label={l.name} checked data-value={l.id}></esa-checkbox>)}
-          </div>
-        </esa-popover>
+          </Fragment>
+          <DdProfileLayersPop />
+        </DdProfileFilterPop>
       </div>
 
       <div class="dd-profile-header__tools">
@@ -84,13 +83,10 @@ const proximityValue = ringOptions.map((r) => r.label).join(', ');
 </div>
 
 <script>
-  import '@esa/ecology/esa-popover';
-  import '@esa/ecology/esa-checkbox';
   import '@esa/ecology/esa-dropdown-menu';
-  import { startRun, runLabel, onState, getState } from '../../lib/dd-store';
-  import { setFilters } from './profile-filters';
-  import { onRingView, ringView, effFinding } from './profile-rings';
-  import { progressLayers, rings, themes, mi } from './profile-model';
+  import { startRun, runLabel, onState, getState, measuredRings } from '../../lib/dd-store';
+  import { ringView, effFinding } from './profile-rings';
+  import { progressLayers, rings, mi } from './profile-model';
 
   const root = document.querySelector<HTMLElement>('.dd-profile-header');
   if (root) {
@@ -122,50 +118,13 @@ const proximityValue = ringOptions.map((r) => r.label).join(', ');
       });
     }
 
-    // Filter lists
-    const checked = (list: string): number[] =>
-      Array.from(root.querySelectorAll<HTMLElement & { checked: boolean }>(`[data-filter-list="${list}"] esa-checkbox`))
-        .filter((c) => c.checked)
-        .map((c) => Number(c.dataset.value));
-
-    const setValue = (list: string, text: string): void => {
-      const el = root.querySelector<HTMLElement>(`[data-filter-value="${list}"]`);
-      if (el) el.textContent = text;
-    };
-
-    root.querySelectorAll<HTMLElement>('[data-filter-list]').forEach((list) => {
-      // esa-popover toggles on any click inside its anchor, panel included; keep it open while ticking boxes.
-      list.addEventListener('click', (e) => e.stopPropagation());
-      list.addEventListener('change', () => {
-        const kind = list.dataset.filterList!;
-        const ids = checked(kind);
-        if (kind === 'themes') {
-          setValue('themes', ids.length === themes.length ? `All ${themes.length}` : `${ids.length} of ${themes.length}`);
-          setFilters({ themes: ids.length === themes.length ? null : ids });
-        } else if (kind === 'layers') {
-          setValue('layers', ids.length === progressLayers.length ? String(progressLayers.length) : `${ids.length} of ${progressLayers.length}`);
-          setFilters({ layers: ids.length === progressLayers.length ? null : ids });
-        } else {
-          paintRings();
-        }
-      });
-    });
-
-    // Proximity lists only the rings the run measured.
+    // Proximity label: On Site plus the rings the latest run measured.
+    const ringsValue = root.querySelector<HTMLElement>('[data-filter-value="rings"]');
     const paintRings = (): void => {
-      const v = ringView();
-      const ids = checked('rings');
-      const labels = rings
-        .filter((r) => v.isShown(r.ringIndex) && ids.includes(r.ringIndex))
-        .map((r) => (r.ringIndex === 0 ? 'On Site' : mi(r.toMiles)));
-      setValue('rings', labels.length ? labels.join(', ') : 'None');
+      if (ringsValue) ringsValue.textContent = ['On Site', ...measuredRings().map(mi)].join(', ');
     };
-    onRingView((v) => {
-      root.querySelectorAll<HTMLElement>('[data-filter-list="rings"] esa-checkbox').forEach((c) => {
-        c.hidden = !v.isShown(Number(c.dataset.value));
-      });
-      paintRings();
-    });
+    paintRings();
+    onState(paintRings);
   }
 
   function downloadCsv(): void {
@@ -212,11 +171,6 @@ const proximityValue = ringOptions.map((r) => r.label).join(', ');
   .dd-profile-header__val { color: var(--dd-text); font-weight: 500; }
 
   /* Popover anchored at the trigger's left edge, as in the Figma. */
-  .dd-profile-header__pop { --popover-max-width: 320px; }
-  .dd-profile-header__list {
-    display: flex; flex-direction: column; gap: 8px; min-width: 200px; padding: 4px 2px;
-  }
-  .dd-profile-header__list--scroll { max-height: 360px; overflow-y: auto; }
 
   @media print { .dd-profile-header__toolbar, .dd-profile-header__actions { display: none; } }
 </style>

@@ -1,0 +1,375 @@
+---
+// DdProfileProximityPop: the Proximity filter popover. A mini map of the site
+// with a buffer per ring (round-joined site outlines), ring tags, zoom, a drag
+// handle on the outer ring, legend chip and scale bar; then the Distances
+// chips (On Site locked, the five stops, up to four custom distances and an
+// add-custom field); then Reset to Defaults and Update Proximity. Edits are a
+// draft until Update Proximity, which saves the rings and starts a run.
+//
+// bcn-lego-checked: no esa- lego draws map overlays or a ring drag handle (the
+// basemap is the shared DdMap, rings come from proximity-model's ringsSvg);
+// the chips are esa-button toggles, the custom field is esa-text-field. The
+// handle is a role=slider span over the SVG.
+import DdMap from '../common/DdMap.astro';
+import DdIcon from '../common/DdIcon.astro';
+import DdIconButton from '../common/DdIconButton.astro';
+import EsaButton from '@esa/ecology/esa-button.astro';
+import { SITE_PATH } from '../../lib/map-geometry';
+import { project } from '../../data/dd';
+import { MAX_CUSTOM, mi } from '../proximity/proximity-model';
+
+const STOPS = [0.25, 0.5, 1, 2, 5];
+const customSlots = Array.from({ length: MAX_CUSTOM }, (_, i) => i);
+---
+<div class="dd-ppop" data-ppop data-stops={JSON.stringify(STOPS)}>
+  <p class="dd-t-14-strong dd-ppop__title">Proximity</p>
+
+  <div class="dd-ppop__map" data-ppop-map>
+    <DdMap view="mini" px={346} class="dd-ppop__svg" label="Map of the Cottonwood site with its search rings">
+      <g data-ppop-rings />
+      <path class="dd-ppop__site" d={SITE_PATH} />
+    </DdMap>
+    <div class="dd-ppop__tags" data-ppop-tags aria-hidden="true"></div>
+    <span class="dd-ppop__handle" data-ppop-handle role="slider" tabindex="0" aria-label="Ring distance" aria-valuemin="0.1" aria-valuemax="5"></span>
+    <span class="dd-ppop__tip dd-t-12" data-ppop-tip aria-hidden="true">Drag to Resize</span>
+    <div class="dd-ppop__zoom">
+      <DdIconButton icon="plus" label="Zoom In" size="sm" data-ppop-zoom="in" />
+      <DdIconButton icon="minus" label="Zoom Out" size="sm" data-ppop-zoom="out" />
+    </div>
+    <span class="dd-ppop__legend dd-t-12"><span class="dd-ppop__legend-dot" aria-hidden="true"></span>{project.ProjectName}</span>
+    <span class="dd-ppop__scale dd-t-12" aria-hidden="true"><span class="dd-ppop__scale-bar" data-ppop-scale-bar></span><span data-ppop-scale-label>1 mi</span></span>
+  </div>
+
+  <p class="dd-t-overline dd-ppop__overline">Distances</p>
+  <div class="dd-ppop__chips" role="group" aria-label="Distances" data-ppop-chips>
+    <EsaButton variant="secondary" size="sm" disabled class="dd-ppop__chip dd-ppop__chip--locked">
+      <DdIcon name="lock" size="xs" />On Site
+    </EsaButton>
+    {STOPS.map((m) => (
+      <EsaButton variant="secondary" size="sm" class="dd-ppop__chip" data-ppop-stop={m} aria-pressed="false">
+        <span class="dd-ppop__check"><DdIcon name="check" size="xs" /></span>{mi(m)}
+      </EsaButton>
+    ))}
+    {customSlots.map((i) => (
+      <EsaButton variant="secondary" size="sm" class="dd-ppop__chip dd-ppop__chip--custom" data-ppop-custom={i} aria-pressed="true">
+        <span class="dd-ppop__check"><DdIcon name="check" size="xs" /></span><span data-ppop-custom-label></span>
+      </EsaButton>
+    ))}
+    <EsaButton variant="secondary" appearance="dashed" size="sm" class="dd-ppop__chip dd-ppop__chip--add" data-ppop-add>
+      <DdIcon name="plus" size="xs" />Custom
+    </EsaButton>
+    <span class="dd-ppop__field" data-ppop-field hidden>
+      <esa-text-field size="sm" type="number" suffix="mi" aria-label="Custom distance in miles" placeholder="1.5" data-ppop-input></esa-text-field>
+    </span>
+  </div>
+
+  <div class="dd-ppop__foot">
+    <EsaButton variant="ghost" size="sm" class="dd-ppop__reset" data-ppop-reset>Reset to Defaults</EsaButton>
+    <EsaButton variant="primary" size="sm" data-ppop-update>Update Proximity</EsaButton>
+  </div>
+</div>
+
+<script>
+  import '@esa/ecology/esa-text-field';
+  import { getState, setState, startRun, DEFAULT_STATE } from '../../lib/dd-store';
+  import { MI } from '../../lib/map-geometry';
+  import { ringsSvg, bufferPoint, siteDistance, normalize, frac, mi, MIN_MILES, MAX_MILES, MAX_CUSTOM } from '../proximity/proximity-model';
+
+  const root = document.querySelector<HTMLElement>('[data-ppop]');
+  const svg = root?.querySelector<SVGSVGElement>('svg[data-dd-map]');
+  const pop = root?.closest<HTMLElement>('[data-fpop]');
+  if (root && svg && pop) {
+    const STOPS: number[] = JSON.parse(root.dataset.stops ?? '[]');
+    const map = root.querySelector<HTMLElement>('[data-ppop-map]')!;
+    const ringsG = root.querySelector<SVGGElement>('[data-ppop-rings]')!;
+    const tags = root.querySelector<HTMLElement>('[data-ppop-tags]')!;
+    const handle = root.querySelector<HTMLElement>('[data-ppop-handle]')!;
+    const tip = root.querySelector<HTMLElement>('[data-ppop-tip]')!;
+    const scaleBar = root.querySelector<HTMLElement>('[data-ppop-scale-bar]')!;
+    const scaleLabel = root.querySelector<HTMLElement>('[data-ppop-scale-label]')!;
+    const field = root.querySelector<HTMLElement>('[data-ppop-field]')!;
+    const input = root.querySelector<HTMLElement & { value: string }>('[data-ppop-input]')!;
+    const addBtn = root.querySelector<HTMLElement>('[data-ppop-add]')!;
+    const base = svg.getAttribute('viewBox')!.split(' ').map(Number);
+    let view = [...base];
+    let draft: number[] = [];
+    let drawn = '';
+    let dragging = false;
+    let handleIdx = -1;
+
+    const isStop = (m: number): boolean => STOPS.includes(m);
+    const wrapOf = (el: HTMLElement): HTMLElement => el.closest<HTMLElement>('.esa-button') ?? el;
+
+    const toPx = (x: number, y: number): [number, number] => {
+      const m = svg.getScreenCTM();
+      const box = map.getBoundingClientRect();
+      if (!m) return [0, 0];
+      return [m.a * x + m.c * y + m.e - box.left, m.b * x + m.d * y + m.f - box.top];
+    };
+    const toSvg = (cx: number, cy: number): [number, number] => {
+      const m = svg.getScreenCTM();
+      if (!m) return [0, 0];
+      const p = new DOMPoint(cx, cy).matrixTransform(m.inverse());
+      return [p.x, p.y];
+    };
+
+    const place = (): void => {
+      const box = map.getBoundingClientRect();
+      tags.innerHTML = '';
+      const placed: [number, number][] = [];
+      [...draft].reverse().forEach((m) => {
+        for (const theta of [-Math.PI / 2, Math.PI, 0.35, Math.PI / 2]) {
+          const [x, y] = toPx(...bufferPoint(m, theta));
+          const clear = placed.every(([px, py]) => Math.hypot(px - x, py - y) > 40);
+          const visible = x > 24 && x < box.width - 24 && y > 12 && y < box.height - 12;
+          if (clear && visible) {
+            placed.push([x, y]);
+            const tag = document.createElement('span');
+            tag.className = 'dd-ppop__tag dd-t-12-strong';
+            tag.textContent = mi(m);
+            tag.style.left = `${x}px`;
+            tag.style.top = `${y}px`;
+            tags.append(tag);
+            break;
+          }
+        }
+      });
+      // The handle sits on the outermost ring that is on the map (east-south-east).
+      let hx = 0;
+      let hy = 0;
+      const inView = (x: number, y: number): boolean => x > 8 && x < box.width - 8 && y > 8 && y < box.height - 8;
+      if (!dragging) {
+        handleIdx = -1;
+        for (let i = draft.length - 1; i >= 0; i--) {
+          const [x, y] = toPx(...bufferPoint(draft[i], 0.35));
+          if (inView(x, y)) { handleIdx = i; break; }
+        }
+      }
+      if (handleIdx >= 0) [hx, hy] = toPx(...bufferPoint(draft[handleIdx], 0.35));
+      const outer = draft[handleIdx];
+      const onMap = handleIdx >= 0 && (dragging || inView(hx, hy));
+      handle.hidden = !onMap;
+      tip.hidden = !onMap;
+      if (onMap) {
+        handle.style.left = `${hx}px`;
+        handle.style.top = `${hy}px`;
+        tip.style.left = `${Math.min(box.width - 52, Math.max(52, hx))}px`;
+        tip.style.top = `${hy + 14}px`;
+        handle.setAttribute('aria-valuenow', String(outer));
+        handle.setAttribute('aria-valuetext', mi(outer));
+      }
+      const m = svg.getScreenCTM();
+      const pxPerM = m ? Math.hypot(m.a, m.b) : 0;
+      const nice = [5, 2, 1, 0.5, 0.25, 0.1].find((d) => d * MI * pxPerM <= 70) ?? 0.1;
+      scaleBar.style.width = `${(nice * MI * pxPerM).toFixed(0)}px`;
+      scaleLabel.textContent = `${frac(nice)} mi`;
+    };
+
+    const setView = (v: number[]): void => {
+      view = v;
+      svg.setAttribute('viewBox', v.map((n) => n.toFixed(0)).join(' '));
+      place();
+    };
+
+    const paintChips = (): void => {
+      root.querySelectorAll<HTMLElement>('[data-ppop-stop]').forEach((b) => {
+        b.setAttribute('aria-pressed', String(draft.includes(Number(b.dataset.ppopStop))));
+      });
+      const customs = draft.filter((m) => !isStop(m));
+      root.querySelectorAll<HTMLElement>('[data-ppop-custom]').forEach((b) => {
+        const m = customs[Number(b.dataset.ppopCustom)];
+        wrapOf(b).hidden = m === undefined;
+        b.dataset.miles = m === undefined ? '' : String(m);
+        b.setAttribute('aria-label', m === undefined ? '' : `Remove ${mi(m)}`);
+        const label = b.querySelector('[data-ppop-custom-label]');
+        if (label) label.textContent = m === undefined ? '' : mi(m);
+      });
+      wrapOf(addBtn).hidden = customs.length >= MAX_CUSTOM || !field.hidden;
+    };
+
+    const render = (): void => {
+      const key = draft.join(',');
+      if (key !== drawn) {
+        ringsG.innerHTML = ringsSvg(draft);
+        drawn = key;
+      }
+      paintChips();
+      place();
+    };
+
+    const setDraft = (next: number[]): void => {
+      draft = normalize(next);
+      render();
+    };
+
+    // Chips
+    root.querySelectorAll<HTMLElement>('[data-ppop-stop]').forEach((b) => b.addEventListener('click', () => {
+      const m = Number(b.dataset.ppopStop);
+      setDraft(draft.includes(m) ? draft.filter((x) => x !== m) : [...draft, m]);
+    }));
+    root.querySelectorAll<HTMLElement>('[data-ppop-custom]').forEach((b) => b.addEventListener('click', () => {
+      const m = Number(b.dataset.miles);
+      setDraft(draft.filter((x) => x !== m));
+    }));
+    const closeField = (): void => {
+      field.hidden = true;
+      input.value = '';
+      paintChips();
+    };
+    addBtn.addEventListener('click', () => {
+      field.hidden = false;
+      paintChips();
+      requestAnimationFrame(() => (input.shadowRoot?.querySelector('input') ?? input).focus());
+    });
+    const commitCustom = (): void => {
+      const v = Number(input.value);
+      if (Number.isFinite(v) && v >= MIN_MILES && v <= MAX_MILES && draft.filter((m) => !isStop(m)).length < MAX_CUSTOM) {
+        setDraft([...draft, v]);
+      }
+      closeField();
+    };
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); commitCustom(); }
+      else if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); closeField(); }
+    });
+    input.addEventListener('focusout', () => { if (!field.hidden) commitCustom(); });
+
+    // Zoom
+    root.querySelectorAll<HTMLElement>('[data-ppop-zoom]').forEach((b) => b.addEventListener('click', () => {
+      const f = b.dataset.ppopZoom === 'in' ? 1 / 1.5 : 1.5;
+      const [x, y, w, h] = view;
+      const nw = Math.max(1600, Math.min(24000, w * f));
+      const nh = (h / w) * nw;
+      setView([x + w / 2 - nw / 2, y + h / 2 - nh / 2, nw, nh]);
+    }));
+
+    // Drag handle: resizes the ring it sits on (0.1 mi steps, between its neighbours).
+    const setOuter = (m: number): void => {
+      const i = handleIdx;
+      if (i < 0) return;
+      const inner = i > 0 ? draft[i - 1] : 0;
+      const outerNext = i < draft.length - 1 ? draft[i + 1] : MAX_MILES + 0.1;
+      const lo = Math.max(MIN_MILES, Math.round((inner + 0.1) * 10) / 10);
+      const hi = Math.min(MAX_MILES, Math.round((outerNext - 0.1) * 10) / 10);
+      const v = Math.min(hi, Math.max(lo, Math.round(m * 10) / 10));
+      if (v !== draft[i]) setDraft(draft.map((x, k) => (k === i ? v : x)));
+    };
+    handle.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      handle.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    handle.addEventListener('pointermove', (e) => {
+      if (dragging) setOuter(siteDistance(toSvg(e.clientX, e.clientY)) / MI);
+    });
+    const endDrag = (): void => { dragging = false; };
+    handle.addEventListener('pointerup', endDrag);
+    handle.addEventListener('pointercancel', endDrag);
+    handle.addEventListener('keydown', (e) => {
+      const cur = draft[handleIdx];
+      if (cur === undefined) return;
+      const steps: Record<string, number> = { ArrowRight: 0.1, ArrowUp: 0.1, ArrowLeft: -0.1, ArrowDown: -0.1 };
+      if (!(e.key in steps)) return;
+      e.preventDefault();
+      setOuter(cur + steps[e.key]);
+    });
+
+    // Footer
+    root.querySelector('[data-ppop-reset]')?.addEventListener('click', () => setDraft([...DEFAULT_STATE.rings]));
+    root.querySelector('[data-ppop-update]')?.addEventListener('click', () => {
+      setState({ rings: draft });
+      pop.dispatchEvent(new CustomEvent('dd-pop:request-close'));
+      startRun();
+      window.scrollTo({ top: 0 });
+    });
+
+    // Each opening starts a fresh draft from the saved rings.
+    pop.addEventListener('dd-pop:open', () => {
+      draft = normalize(getState().rings);
+      drawn = '';
+      field.hidden = true;
+      view = [...base];
+      svg.setAttribute('viewBox', base.join(' '));
+      requestAnimationFrame(render);
+    });
+  }
+</script>
+
+<style>
+  .dd-ppop { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .dd-ppop__title { margin: 0; }
+
+  .dd-ppop__map {
+    position: relative; height: 222px; border-radius: 6px; overflow: hidden;
+    border: 1px solid var(--dd-border-subtle); background: var(--dd-map-land);
+  }
+  .dd-ppop :global(.dd-ppop__svg) { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .dd-ppop :global(.prox-ring) { stroke: var(--dd-data-nearby); stroke-width: 1.25; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  .dd-ppop :global(.prox-ring--inner) { fill: var(--dd-data-nearby); fill-opacity: 0.18; }
+  .dd-ppop :global(.prox-ring--mid) { fill: var(--dd-data-nearby); fill-opacity: 0.1; stroke-opacity: 0.7; }
+  .dd-ppop :global(.prox-ring--outer) { fill: var(--dd-data-nearby); fill-opacity: 0.07; stroke-dasharray: 5 4; }
+  .dd-ppop :global(.prox-ring--custom) { fill: none; stroke-width: 1; stroke-dasharray: 3 3; stroke-opacity: 0.8; }
+  .dd-ppop :global(.dd-ppop__site) { fill: var(--dd-data-on-site); stroke: var(--dd-data-on-site-label); stroke-opacity: 0.35; stroke-width: 1; vector-effect: non-scaling-stroke; }
+
+  .dd-ppop__tags { position: absolute; inset: 0; pointer-events: none; }
+  .dd-ppop :global(.dd-ppop__tag) {
+    position: absolute; transform: translate(-50%, -50%); padding: 1px 6px;
+    border: 1px solid var(--dd-data-nearby); border-radius: 4px;
+    background: var(--dd-surface-raised); color: var(--dd-text); white-space: nowrap;
+  }
+  .dd-ppop__handle {
+    position: absolute; width: 14px; height: 14px; transform: translate(-50%, -50%);
+    border: 2px solid var(--dd-data-nearby); border-radius: 50%; background: var(--dd-surface-raised);
+    cursor: ew-resize; touch-action: none; box-sizing: border-box;
+  }
+  .dd-ppop__handle:focus-visible { outline: 2px solid var(--dd-focus-ring); outline-offset: 2px; }
+  .dd-ppop__tip {
+    position: absolute; transform: translate(-50%, 0); padding: 3px 7px; border-radius: 4px;
+    background: var(--dd-chrome-pager-bg); color: var(--dd-chrome-pager-text); white-space: nowrap; pointer-events: none;
+  }
+  .dd-ppop__handle[hidden], .dd-ppop__tip[hidden] { display: none; }
+
+  .dd-ppop__zoom {
+    position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column;
+    background: var(--dd-surface-raised); border: 1px solid var(--dd-border-subtle); border-radius: 6px; overflow: hidden;
+  }
+  .dd-ppop__zoom > :global(* + *) { border-top: 1px solid var(--dd-border-subtle); }
+  .dd-ppop__zoom :global(.dd-icon-button) { border-radius: 0; width: 24px; height: 24px; }
+
+  .dd-ppop__legend, .dd-ppop__scale {
+    position: absolute; bottom: 8px; display: inline-flex; align-items: center; gap: 6px;
+    padding: 2px 8px; border-radius: 4px; background: var(--dd-surface-raised); color: var(--dd-text-muted);
+  }
+  .dd-ppop__legend { left: 8px; }
+  .dd-ppop__legend-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dd-data-on-site); }
+  .dd-ppop__scale { right: 8px; }
+  .dd-ppop__scale-bar { height: 5px; border: 1px solid var(--dd-text-muted); border-top: 0; }
+
+  .dd-ppop__overline { margin: 4px 0 -4px; color: var(--dd-text-muted); }
+  .dd-ppop__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .dd-ppop :global(.esa-button__label) { display: inline-flex; align-items: center; gap: 4px; }
+  .dd-ppop :global(.esa-button--variant-secondary) {
+    --_accent: var(--dd-surface-raised); --_accent-hover: var(--dd-surface-hover);
+    --_on: var(--dd-text); --_accent-border: var(--dd-border);
+  }
+  .dd-ppop__chips :global(.esa-button__native) { font-size: 13px; font-weight: 400; padding-block: 4px; }
+  .dd-ppop__chips :global(.esa-button__native[aria-pressed='true']) {
+    background: var(--dd-brand-surface); border-color: var(--dd-brand-border); color: var(--dd-brand-text);
+  }
+  .dd-ppop__check { display: none; }
+  .dd-ppop__chips :global([aria-pressed='true'] .dd-ppop__check) { display: inline-flex; }
+  .dd-ppop__chips :global(.dd-ppop__chip--locked .esa-button__native) {
+    background: var(--dd-surface-hover); border-color: var(--dd-surface-hover); color: var(--dd-text-muted); opacity: 1;
+  }
+  .dd-ppop__chips :global(.dd-ppop__chip--add .esa-button__native) { color: var(--dd-text-muted); border-color: var(--dd-border); }
+  .dd-ppop__chips :global([hidden]) { display: none !important; }
+  .dd-ppop__field { width: 96px; }
+
+  .dd-ppop__foot {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 4px -16px -16px; padding: 12px 16px; border-top: 1px solid var(--dd-border-subtle);
+  }
+  .dd-ppop__foot :global(.dd-ppop__reset .esa-button__native) {
+    padding-inline: 0; color: var(--dd-text); text-decoration: underline; text-underline-offset: 3px; background: none;
+  }
+</style>

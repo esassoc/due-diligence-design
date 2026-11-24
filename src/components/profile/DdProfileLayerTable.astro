@@ -180,6 +180,7 @@ const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
   import { applyFilters, onFilters, SHOW_THEME_EVENT } from './profile-filters';
   import { onRingView, effKey, effRing, effFinding, layerOf, type RingView } from './profile-rings';
   import { layers } from './profile-model';
+  import { onThemeOrder, themeOrderIds } from './profile-order';
 
   type Mode = 'theme' | 'distance';
   const root = document.querySelector<HTMLElement>('.dd-layers');
@@ -191,6 +192,7 @@ const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
     const toggle = root.querySelector('[data-groupby]') as (HTMLElement & { options: unknown[]; value: string }) | null;
 
     let mode: Mode = 'theme';
+    let order: number[] = themeOrderIds();
     let chip: string | null = null;
     const collapsed = new Set<string>();
 
@@ -200,11 +202,14 @@ const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
     const render = (): void => {
       const prefix = mode === 'theme' ? 'theme:' : 'dist:';
       const active = groups.filter((g) => g.dataset.group!.startsWith(prefix));
+      if (mode === 'theme') active.sort((a, b) => order.indexOf(Number(a.dataset.group!.slice(6))) - order.indexOf(Number(b.dataset.group!.slice(6))));
+      const ordered = (list: HTMLElement[]): HTMLElement[] => mode === 'theme' ? list
+        : [...list].sort((a, b) => order.indexOf(Number(a.dataset.theme)) - order.indexOf(Number(b.dataset.theme)) || Number(a.dataset.n) - Number(b.dataset.n));
       groups.forEach((g) => { g.hidden = !active.includes(g); });
 
       for (const g of active) {
         const id = g.dataset.group!;
-        const members = rows.filter((r) => groupOf(r) === id);
+        const members = ordered(rows.filter((r) => groupOf(r) === id));
         body.appendChild(g);
         members.forEach((r) => body.appendChild(r));
 
@@ -334,6 +339,7 @@ const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
     applyFilters(root);
     onRingView(applyRings);
+    onThemeOrder((ids) => { order = ids; render(); });
     onFilters((f) => { applyFilters(root, f); render(); });
   }
 </script>

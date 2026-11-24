@@ -1,0 +1,87 @@
+---
+// DdProfileFilterPop: a toolbar trigger with its popover panel anchored under
+// the trigger's left edge (the Figma filter popovers). Opens on click, closes
+// on outside click and Esc, moves focus into the panel and back to the trigger.
+// The panel emits `dd-pop:open` / `dd-pop:close` on its root.
+//
+// bcn-lego-checked: esa-popover centres its panel under the trigger and toggles
+// closed on any click inside its own panel (the anchor owns the click handler),
+// which breaks checkbox lists, drag reordering and text fields; esa-dropdown-menu
+// takes only an items array. This is the smallest anchored disclosure that
+// holds arbitrary interactive content.
+import EsaButton from '@esa/ecology/esa-button.astro';
+
+interface Props {
+  /** Accessible name of the panel ("Proximity"). */
+  label: string;
+  /** Panel width in px. */
+  width: number;
+}
+const { label, width } = Astro.props;
+---
+<div class="dd-fpop" data-fpop>
+  <EsaButton variant="secondary" size="sm" iconRight="chevron-down" aria-haspopup="dialog" aria-expanded="false" data-fpop-trigger>
+    <slot name="trigger" />
+  </EsaButton>
+  <div class="dd-fpop__panel" role="dialog" aria-label={label} style={`width:${width}px`} hidden data-fpop-panel tabindex="-1">
+    <slot />
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-fpop]').forEach((root) => {
+    if (root.dataset.fpopReady) return;
+    root.dataset.fpopReady = '1';
+    const trigger = root.querySelector<HTMLElement>('[data-fpop-trigger]')!;
+    const panel = root.querySelector<HTMLElement>('[data-fpop-panel]')!;
+
+    const onDoc = (e: Event): void => {
+      if (!root.contains(e.target as Node)) close(false);
+    };
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') { e.preventDefault(); close(true); }
+    };
+    const open = (): void => {
+      // One filter popover at a time.
+      document.querySelectorAll<HTMLElement>('[data-fpop]').forEach((other) => {
+        if (other !== root) other.dispatchEvent(new CustomEvent('dd-pop:request-close'));
+      });
+      panel.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+      document.addEventListener('pointerdown', onDoc, true);
+      document.addEventListener('keydown', onKey, true);
+      root.dispatchEvent(new CustomEvent('dd-pop:open'));
+      panel.focus({ preventScroll: true });
+    };
+    function close(returnFocus: boolean): void {
+      if (panel.hidden) return;
+      panel.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('pointerdown', onDoc, true);
+      document.removeEventListener('keydown', onKey, true);
+      root.dispatchEvent(new CustomEvent('dd-pop:close'));
+      if (returnFocus) trigger.focus();
+    }
+    trigger.addEventListener('click', () => (panel.hidden ? open() : close(true)));
+    root.addEventListener('dd-pop:request-close', () => close(false));
+  });
+</script>
+
+<style>
+  .dd-fpop { position: relative; display: inline-block; }
+  .dd-fpop__panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 60;
+    max-width: calc(100vw - 32px);
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+    box-shadow: var(--dd-shadow-popover);
+    color: var(--dd-text);
+    text-align: left;
+    outline: none;
+  }
+  .dd-fpop__panel[hidden] { display: none; }
+</style>

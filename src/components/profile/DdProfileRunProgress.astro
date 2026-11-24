@@ -88,7 +88,7 @@ const segClass = (key: string): string =>
     </div>
     <ul class="dd-run__themes">
       {groups.map((g) => (
-        <li class="dd-run__theme" data-run-theme data-first={g.layers[0]?.index ?? 0} data-count={g.layers.length} data-state="waiting">
+        <li class="dd-run__theme" data-run-theme data-theme-id={g.theme.id} data-first={g.layers[0]?.index ?? 0} data-count={g.layers.length} data-state="waiting">
           <span class="dd-run__ticon">
             <span data-when-theme="done"><DdIcon name="circle-check" size="sm" /></span>
             <span data-when-theme="measuring" class="dd-run__spin"><DdIcon name="loader-circle" size="sm" /></span>
@@ -112,6 +112,7 @@ const segClass = (key: string): string =>
 <script>
   import { getState, runStatus, runProgress, startRun, toast, onState } from '../../lib/dd-store';
   import { withBase } from '../../lib/base';
+  import { onThemeOrder } from './profile-order';
 
   // Locked by URL: no area yet, or never run. The shell redirects too; this is a harmless second guard.
   {
@@ -192,6 +193,15 @@ const segClass = (key: string): string =>
 
     // Phase and clock derive from getState().runStartedAt on every tick (runStatus/runProgress),
     // so a throttled timer only delays a repaint, never the run itself.
+    // Theme Order: rows follow the saved order.
+    onThemeOrder((ids) => {
+      const list = root.querySelector<HTMLElement>('.dd-run__themes');
+      ids.forEach((id) => {
+        const li = root.querySelector<HTMLElement>(`[data-theme-id="${id}"]`);
+        if (list && li) list.appendChild(li);
+      });
+    });
+
     tick();
     window.setInterval(tick, 500);
     onState(tick);

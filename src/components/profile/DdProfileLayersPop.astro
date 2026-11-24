@@ -1,0 +1,203 @@
+---
+// DdProfileLayersPop: the Layers filter popover. Search, a status filter (All /
+// On Site / Nearby / Not Found / No Data Yet) and the theme tree in Theme
+// Order: a tri-state checkbox per theme, one row per layer with its checkbox,
+// status dot and name. Unchecking hides the layer across the page.
+// The Figma's "Show Reference Layers" toggle is left out: the QA data has no
+// reference layers.
+//
+// bcn-lego-checked: no esa- lego draws a checkable tree (esa-checkbox-group is
+// flat); rows are built at runtime with esa-checkbox (indeterminate for the
+// theme), the status filter is esa-button-toggle with dot icons, search is
+// esa-text-field. The expand chevron is a role=button span (tabindex 0,
+// Enter/Space, aria-expanded); the checkboxes carry the keyboard otherwise.
+import EsaButton from '@esa/ecology/esa-button.astro';
+import { layers } from './profile-model';
+---
+<div class="dd-lpop" data-lpop>
+  <div class="dd-lpop__head">
+    <p class="dd-t-14-strong">Layers</p>
+    <EsaButton variant="ghost" size="sm" class="dd-lpop__link" data-lpop-all>Select All</EsaButton>
+  </div>
+  <div class="dd-lpop__controls">
+    <esa-text-field size="sm" type="text" aria-label="Search layers" placeholder={`Search ${layers.length} Layers`} data-lpop-search></esa-text-field>
+    <esa-button-toggle size="xs" value="all" aria-label="Layer status" data-lpop-status></esa-button-toggle>
+  </div>
+  <div class="dd-lpop__tree" data-lpop-tree role="list" aria-label="Layers by theme"></div>
+</div>
+
+<script>
+  import '@esa/ecology/esa-checkbox';
+  import '@esa/ecology/esa-text-field';
+  import '@esa/ecology/esa-button-toggle';
+  import { iconSvg } from '../../lib/icons';
+  import { onState } from '../../lib/dd-store';
+  import { themes, layers, layersForTheme, byNearest } from './profile-model';
+  import { onThemeOrder, themeOrderIds } from './profile-order';
+  import { getFilters, setFilters } from './profile-filters';
+  import { ringView, effKey } from './profile-rings';
+
+  type Status = 'all' | 'site' | 'nearby' | 'none' | 'nodata';
+  const root = document.querySelector<HTMLElement>('[data-lpop]');
+  if (root) {
+    const tree = root.querySelector<HTMLElement>('[data-lpop-tree]')!;
+    const search = root.querySelector<HTMLElement & { value: string }>('[data-lpop-search]')!;
+    const statusCtl = root.querySelector('[data-lpop-status]') as (HTMLElement & { options: unknown[]; value: string }) | null;
+    const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const chev = iconSvg('chevron-right', 14, 1.5);
+    const allIds = layers.map((l) => l.id);
+    const open = new Set<number>(themeOrderIds().slice(0, 2));
+    let query = '';
+    let status: Status = 'all';
+
+    const dot = (style: string): string => `<circle cx="12" cy="12" r="5" style="${style}"></circle>`;
+    if (statusCtl) {
+      statusCtl.options = [
+        { label: 'All', value: 'all' },
+        { label: 'On Site', value: 'site', icon: dot('fill: var(--dd-data-on-site); stroke: none') },
+        { label: 'Nearby', value: 'nearby', icon: dot('fill: var(--dd-data-nearby); stroke: none') },
+        { label: 'Not Found', value: 'none', icon: dot('fill: none; stroke: var(--dd-text-muted); stroke-width: 2.5') },
+        { label: 'No Data Yet', value: 'nodata', icon: dot('fill: none; stroke: var(--dd-border-strong); stroke-width: 2.5; stroke-dasharray: 3 2') },
+      ];
+      statusCtl.value = 'all';
+      statusCtl.addEventListener('change', (e) => {
+        status = ((e as CustomEvent<{ value: string }>).detail.value as Status) ?? 'all';
+        paint();
+      });
+    }
+
+    const shown = (): Set<number> => new Set(getFilters().layers ?? allIds);
+    const statusOf = (key: string): Status => (key === '0' ? 'site' : /^\d+$/.test(key) ? 'nearby' : key === 'nodata' ? 'nodata' : 'none');
+
+    const render = (): void => {
+      const v = ringView();
+      const on = shown();
+      tree.innerHTML = themeOrderIds().map((tid) => {
+        const t = themes.find((x) => x.id === tid)!;
+        const ls = [...layersForTheme(tid)].sort(byNearest);
+        const n = ls.filter((l) => on.has(l.id)).length;
+        const isOpen = open.has(tid);
+        const rows = ls.map((l) => {
+          const st = statusOf(effKey(l, v));
+          return `<div class="dd-lpop__layer" role="listitem" data-layer="${l.id}" data-status="${st}" data-name="${esc(l.name.toLowerCase())}">`
+            + `<esa-checkbox size="sm" aria-label="${esc(l.name)}" ${on.has(l.id) ? 'checked' : ''} data-layer-box="${l.id}"></esa-checkbox>`
+            + `<span class="dd-lpop__dot dd-lpop__dot--${st}" aria-hidden="true"></span>`
+            + `<span class="dd-lpop__name dd-t-13">${esc(l.name)}</span></div>`;
+        }).join('');
+        return `<div class="dd-lpop__theme" role="listitem" data-theme="${tid}">`
+          + '<div class="dd-lpop__trow">'
+          + `<span class="dd-lpop__chev" role="button" tabindex="0" aria-expanded="${isOpen}" aria-label="${esc(t.name)} layers" data-chev="${tid}">${chev}</span>`
+          + `<esa-checkbox size="sm" label="${esc(t.name)}" ${n === ls.length ? 'checked' : ''} ${n > 0 && n < ls.length ? 'indeterminate' : ''} data-theme-box="${tid}"></esa-checkbox>`
+          + `</div><div class="dd-lpop__layers" role="list">${rows}</div></div>`;
+      }).join('');
+      paint();
+    };
+
+    /** Search and status filter: hide rows, open matching themes while filtering. */
+    const paint = (): void => {
+      const filtering = Boolean(query) || status !== 'all';
+      tree.querySelectorAll<HTMLElement>('.dd-lpop__theme').forEach((th) => {
+        let any = false;
+        th.querySelectorAll<HTMLElement>('.dd-lpop__layer').forEach((r) => {
+          const hit = (!query || r.dataset.name!.includes(query)) && (status === 'all' || r.dataset.status === status);
+          r.hidden = !hit;
+          any ||= hit;
+        });
+        th.hidden = !any;
+        const isOpen = filtering || open.has(Number(th.dataset.theme));
+        th.toggleAttribute('data-open', isOpen);
+        th.querySelector('[data-chev]')?.setAttribute('aria-expanded', String(isOpen));
+      });
+    };
+
+    const paintLabel = (): void => {
+      const n = shown().size;
+      const el = document.querySelector('[data-filter-value="layers"]');
+      if (el) el.textContent = n === allIds.length ? String(allIds.length) : `${n} of ${allIds.length}`;
+    };
+
+    const commit = (ids: Set<number>): void => {
+      const list = allIds.filter((id) => ids.has(id));
+      setFilters({ layers: list.length === allIds.length ? null : list });
+      paintLabel();
+      render();
+    };
+
+    tree.addEventListener('change', (e) => {
+      const box = (e.target as HTMLElement).closest<HTMLElement & { checked: boolean }>('esa-checkbox');
+      if (!box) return;
+      const ids = shown();
+      if (box.dataset.layerBox) {
+        const id = Number(box.dataset.layerBox);
+        if (box.checked) ids.add(id); else ids.delete(id);
+      } else if (box.dataset.themeBox) {
+        layersForTheme(Number(box.dataset.themeBox)).forEach((l) => (box.checked ? ids.add(l.id) : ids.delete(l.id)));
+      }
+      commit(ids);
+      tree.querySelector<HTMLElement>(box.dataset.layerBox ? `[data-layer-box="${box.dataset.layerBox}"]` : `[data-theme-box="${box.dataset.themeBox}"]`)?.focus();
+    });
+    tree.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const c = target.closest<HTMLElement>('[data-chev]');
+      if (c) {
+        const id = Number(c.dataset.chev);
+        if (open.has(id)) open.delete(id); else open.add(id);
+        paint();
+        return;
+      }
+      if (target.closest('esa-checkbox')) return;
+      // Clicking a layer's name toggles it, like a label.
+      const row = target.closest<HTMLElement>('.dd-lpop__layer');
+      if (row) {
+        const ids = shown();
+        const id = Number(row.dataset.layer);
+        if (ids.has(id)) ids.delete(id); else ids.add(id);
+        commit(ids);
+      }
+    });
+    tree.addEventListener('keydown', (e) => {
+      const c = (e.target as HTMLElement).closest<HTMLElement>('[data-chev]');
+      if (c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); c.click(); }
+    });
+
+    search.addEventListener('change', () => {
+      query = (search.value ?? '').trim().toLowerCase();
+      paint();
+    });
+    root.querySelector('[data-lpop-all]')?.addEventListener('click', () => commit(new Set(allIds)));
+
+    onThemeOrder(render);
+    onState(render);
+  }
+</script>
+
+<style>
+  .dd-lpop { display: flex; flex-direction: column; max-height: min(640px, calc(100vh - 220px)); }
+  .dd-lpop__head { display: flex; align-items: center; justify-content: space-between; padding: 12px 8px 4px 16px; }
+  .dd-lpop__head p { margin: 0; }
+  .dd-lpop :global(.dd-lpop__link .esa-button__native) { color: var(--dd-brand-text); font-weight: 500; font-size: 13px; }
+  .dd-lpop__controls { display: flex; flex-direction: column; gap: 8px; padding: 6px 12px 12px; border-bottom: 1px solid var(--dd-border-subtle); }
+  .dd-lpop__controls esa-button-toggle { display: block; white-space: nowrap; }
+
+  .dd-lpop__tree { overflow-y: auto; padding: 8px 6px 10px; }
+  .dd-lpop :global(.dd-lpop__theme[hidden]), .dd-lpop :global(.dd-lpop__layer[hidden]) { display: none; }
+  .dd-lpop :global(.dd-lpop__trow) { display: flex; align-items: center; gap: 4px; padding: 4px 6px 4px 2px; border-radius: 6px; }
+  .dd-lpop :global(.dd-lpop__chev) {
+    display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
+    border-radius: 4px; color: var(--dd-text-muted); cursor: pointer; transition: transform 150ms ease;
+  }
+  .dd-lpop :global(.dd-lpop__chev:focus-visible) { outline: 2px solid var(--dd-focus-ring); outline-offset: 1px; }
+  .dd-lpop :global(.dd-lpop__theme[data-open] .dd-lpop__chev) { transform: rotate(90deg); }
+  .dd-lpop :global(.dd-lpop__layers) { display: none; }
+  .dd-lpop :global(.dd-lpop__theme[data-open] .dd-lpop__layers) { display: flex; flex-direction: column; }
+  .dd-lpop :global(.dd-lpop__layer) {
+    display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 26px; border-radius: 6px; cursor: pointer;
+  }
+  .dd-lpop :global(.dd-lpop__layer:hover), .dd-lpop :global(.dd-lpop__trow:hover) { background: var(--dd-surface-hover); }
+  .dd-lpop :global(.dd-lpop__layer:has(esa-checkbox:not([checked])) .dd-lpop__name) { color: var(--dd-text-muted); }
+  .dd-lpop :global(.dd-lpop__dot) { width: 7px; height: 7px; border-radius: 50%; flex: none; box-sizing: border-box; }
+  .dd-lpop :global(.dd-lpop__dot--site) { background: var(--dd-data-on-site); }
+  .dd-lpop :global(.dd-lpop__dot--nearby) { background: var(--dd-data-nearby); }
+  .dd-lpop :global(.dd-lpop__dot--none) { border: 1.5px solid var(--dd-text-muted); }
+  .dd-lpop :global(.dd-lpop__dot--nodata) { border: 1.5px dotted var(--dd-border-strong); }
+</style>

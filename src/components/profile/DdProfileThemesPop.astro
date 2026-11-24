@@ -1,0 +1,163 @@
+---
+// DdProfileThemesPop: the Themes filter popover. Themes in the project's Theme
+// Order, the first three under "Listed First for a <project type>", the rest
+// under Other Themes. Each row: drag grip, checkbox, name. Dragging a row (or
+// Alt+Arrow on a focused row) reorders the themes for the whole page and saves;
+// unchecking hides the theme everywhere. Select All checks every theme.
+//
+// bcn-lego-checked: no esa- lego reorders a list (esa-tab-layout and
+// esa-sidebar-nav are static); rows are built at runtime from the order in
+// state with esa-checkbox, the grip is a pointer and keyboard handle. Select
+// All is an esa-button ghost link.
+import DdIcon from '../common/DdIcon.astro';
+import EsaButton from '@esa/ecology/esa-button.astro';
+---
+<div class="dd-tpop" data-tpop>
+  <div class="dd-tpop__head">
+    <p class="dd-t-14-strong">Themes</p>
+    <EsaButton variant="ghost" size="sm" class="dd-tpop__link" data-tpop-all>Select All</EsaButton>
+  </div>
+  <div class="dd-tpop__list" data-tpop-list role="list" aria-label="Themes in Site Profile order"></div>
+  <p class="dd-tpop__foot dd-t-12"><DdIcon name="grip-vertical" size="xs" />Drag to Change the Order in the Site Profile</p>
+</div>
+
+<script>
+  import '@esa/ecology/esa-checkbox';
+  import { getState, setState, toast } from '../../lib/dd-store';
+  import { iconSvg } from '../../lib/icons';
+  import { themes } from './profile-model';
+  import { themeOrderIds, onThemeOrder } from './profile-order';
+  import { getFilters, setFilters } from './profile-filters';
+
+  const root = document.querySelector<HTMLElement>('[data-tpop]');
+  if (root) {
+    const list = root.querySelector<HTMLElement>('[data-tpop-list]')!;
+    const nameOf = (id: number): string => themes.find((t) => t.id === id)?.name ?? '';
+    const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const grip = iconSvg('grip-vertical', 14, 1.5);
+    const LISTED = 3;
+
+    const shown = (): number[] => getFilters().themes ?? themes.map((t) => t.id);
+    const projectType = (): string => getState().details.projectType || 'Data Center';
+
+    const header = (text: string, cls = ''): string =>
+      `<p class="dd-tpop__group dd-t-overline ${cls}" role="presentation">${esc(text)}</p>`;
+    const row = (id: number): string => {
+      const on = shown().includes(id);
+      return `<div class="dd-tpop__row" role="listitem" tabindex="0" data-id="${id}" aria-label="${esc(nameOf(id))}, Alt+Arrow keys move it">`
+        + `<span class="dd-tpop__grip" data-grip aria-hidden="true">${grip}</span>`
+        + `<esa-checkbox size="sm" label="${esc(nameOf(id))}" ${on ? 'checked' : ''} data-id="${id}"></esa-checkbox>`
+        + '</div>';
+    };
+
+    const render = (ids: number[]): void => {
+      list.innerHTML = header(`Listed First for a ${projectType()}`)
+        + ids.slice(0, LISTED).map(row).join('')
+        + header('Other Themes', 'dd-tpop__group--other')
+        + ids.slice(LISTED).map(row).join('');
+    };
+    const rows = (): HTMLElement[] => Array.from(list.querySelectorAll<HTMLElement>('.dd-tpop__row'));
+    /** Keep "Other Themes" after the third row while rows move. */
+    const fixHeader = (): void => {
+      const other = list.querySelector('.dd-tpop__group--other');
+      const fourth = rows()[LISTED];
+      if (other && fourth) list.insertBefore(other, fourth);
+    };
+    const saveOrder = (): void => {
+      setState({ themeOrder: rows().map((r) => Number(r.dataset.id)) });
+      toast('Saved');
+    };
+    const paintLabel = (): void => {
+      const n = shown().length;
+      const el = document.querySelector('[data-filter-value="themes"]');
+      if (el) el.textContent = n === themes.length ? `All ${themes.length}` : `${n} of ${themes.length}`;
+    };
+
+    onThemeOrder(render);
+
+    // Check / uncheck
+    list.addEventListener('change', (e) => {
+      const box = (e.target as HTMLElement).closest<HTMLElement & { checked: boolean }>('esa-checkbox');
+      if (!box) return;
+      const id = Number(box.dataset.id);
+      const cur = new Set(shown());
+      if (box.checked) cur.add(id); else cur.delete(id);
+      const ids = themeOrderIds().filter((x) => cur.has(x));
+      setFilters({ themes: ids.length === themes.length ? null : ids });
+      paintLabel();
+    });
+    root.querySelector('[data-tpop-all]')?.addEventListener('click', () => {
+      setFilters({ themes: null });
+      list.querySelectorAll<HTMLElement & { checked: boolean }>('esa-checkbox').forEach((c) => { c.checked = true; });
+      paintLabel();
+    });
+
+    // Drag to reorder
+    let dragged: HTMLElement | null = null;
+    list.addEventListener('pointerdown', (e) => {
+      const g = (e.target as HTMLElement).closest<HTMLElement>('[data-grip]');
+      if (!g) return;
+      dragged = g.closest<HTMLElement>('.dd-tpop__row');
+      dragged?.classList.add('is-dragging');
+      list.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    list.addEventListener('pointermove', (e) => {
+      if (!dragged) return;
+      const others = rows().filter((r) => r !== dragged);
+      const before = others.find((r) => {
+        const b = r.getBoundingClientRect();
+        return e.clientY < b.top + b.height / 2;
+      });
+      if (before) list.insertBefore(dragged, before);
+      else list.appendChild(dragged);
+      fixHeader();
+    });
+    const drop = (): void => {
+      if (!dragged) return;
+      dragged.classList.remove('is-dragging');
+      dragged = null;
+      saveOrder();
+    };
+    list.addEventListener('pointerup', drop);
+    list.addEventListener('pointercancel', drop);
+
+    // Keyboard: Alt+ArrowUp / Alt+ArrowDown on a focused row
+    list.addEventListener('keydown', (e) => {
+      const r = (e.target as HTMLElement).closest<HTMLElement>('.dd-tpop__row');
+      if (!r || !e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+      e.preventDefault();
+      const all = rows();
+      const i = all.indexOf(r);
+      const j = e.key === 'ArrowUp' ? i - 1 : i + 1;
+      if (j < 0 || j >= all.length) return;
+      const ids = all.map((x) => Number(x.dataset.id));
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+      setState({ themeOrder: ids });
+      toast('Saved');
+      list.querySelector<HTMLElement>(`.dd-tpop__row[data-id="${ids[j]}"]`)?.focus();
+    });
+  }
+</script>
+
+<style>
+  .dd-tpop { display: flex; flex-direction: column; }
+  .dd-tpop__head { display: flex; align-items: center; justify-content: space-between; padding: 12px 8px 4px 16px; }
+  .dd-tpop__head p { margin: 0; }
+  .dd-tpop :global(.dd-tpop__link .esa-button__native) { color: var(--dd-brand-text); font-weight: 500; font-size: 13px; }
+
+  .dd-tpop__list { display: flex; flex-direction: column; padding: 4px 6px 8px; }
+  .dd-tpop :global(.dd-tpop__group) { margin: 8px 10px 4px; color: var(--dd-text-muted); }
+  .dd-tpop :global(.dd-tpop__group--other) { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--dd-border-subtle); }
+  .dd-tpop :global(.dd-tpop__row) { display: flex; align-items: center; gap: 6px; padding: 5px 10px 5px 4px; border-radius: 6px; }
+  .dd-tpop :global(.dd-tpop__row:hover), .dd-tpop :global(.dd-tpop__row.is-dragging) { background: var(--dd-surface-hover); }
+  .dd-tpop :global(.dd-tpop__row:focus-visible) { outline: 2px solid var(--dd-focus-ring); outline-offset: -2px; }
+  .dd-tpop :global(.dd-tpop__grip) { display: inline-flex; color: var(--dd-border-strong); cursor: grab; touch-action: none; }
+  .dd-tpop :global(.dd-tpop__row:hover .dd-tpop__grip) { color: var(--dd-text-muted); }
+  .dd-tpop :global(.dd-tpop__row.is-dragging .dd-tpop__grip) { cursor: grabbing; }
+
+  .dd-tpop__foot {
+    display: flex; align-items: center; gap: 6px; margin: 0; padding: 10px 16px;
+    border-top: 1px solid var(--dd-border-subtle); color: var(--dd-text-muted);
+  }
+</style>

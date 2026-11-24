@@ -155,6 +155,7 @@ const nodataLabel = legendLabel('pkx');
   import { applyFilters, onFilters } from './profile-filters';
   import { onRingView, effRing, effKey, layerOf, type RingView } from './profile-rings';
   import { outerRings, layers, mi } from './profile-model';
+  import { onThemeOrder } from './profile-order';
 
   const root = document.querySelector<HTMLElement>('.dd-summary');
   if (root) {
@@ -202,9 +203,35 @@ const nodataLabel = legendLabel('pkx');
       });
     };
 
+    // Theme Order: each theme's grid items keep their row offsets inside the
+    // block; blocks restack in the saved order.
+    const blocks = new Map<number, { items: HTMLElement[]; rel: number[]; rows: number }>();
+    grid.querySelectorAll<HTMLElement>(':scope > [data-filter-theme]').forEach((el) => {
+      const id = Number(el.dataset.filterTheme);
+      const b = blocks.get(id) ?? { items: [], rel: [], rows: 0 };
+      b.items.push(el);
+      blocks.set(id, b);
+    });
+    blocks.forEach((b) => {
+      const starts = b.items.map((el) => parseInt(el.style.gridRowStart, 10));
+      const first = Math.min(...starts);
+      b.rel = starts.map((n) => n - first);
+      b.rows = Math.max(...b.rel) + 1;
+    });
+    const applyOrder = (ids: number[]): void => {
+      let cursor = 2;
+      ids.forEach((id) => {
+        const b = blocks.get(id);
+        if (!b) return;
+        b.items.forEach((el, i) => { el.style.gridRowStart = String(cursor + b.rel[i]); });
+        cursor += b.rows;
+      });
+    };
+
     applyFilters(root);
     onFilters((f) => applyFilters(root, f));
     onRingView(applyRings);
+    onThemeOrder(applyOrder);
   }
 </script>
 

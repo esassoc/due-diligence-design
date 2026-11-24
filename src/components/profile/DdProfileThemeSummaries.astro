@@ -179,6 +179,7 @@ const cards = themes.map((t, i) => {
   import { applyFilters, onFilters, SHOW_THEME_EVENT } from './profile-filters';
   import { onRingView, effKey, effFinding, shownLanePos, layerOf, type RingView } from './profile-rings';
   import { outerRings, valueText } from './profile-model';
+  import { onThemeOrder } from './profile-order';
 
   const root = document.querySelector<HTMLElement>('.dd-themes');
   if (root) {
@@ -225,6 +226,11 @@ const cards = themes.map((t, i) => {
       root.querySelectorAll<HTMLElement>('[data-comp-row="1"]').forEach((r) => { r.hidden = !v.isShown(lastData); });
     };
     onRingView(applyRings);
+    // Theme Order: restack the cards.
+    onThemeOrder((ids) => ids.forEach((id) => {
+      const card = root.querySelector<HTMLElement>(`.dd-tcard[data-filter-theme="${id}"]`);
+      if (card) root.appendChild(card);
+    }));
 
     applyFilters(root);
     onFilters((f) => applyFilters(root, f));
