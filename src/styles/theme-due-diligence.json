@@ -109,7 +109,8 @@
     "--dd-shadow-pager": "0 10px 28px rgb(39 42 48 / 0.28)",
     "--dd-font-display": "var(--typography-font-family-display)",
     "--dd-font-sans": "var(--typography-font-family-sans)",
-    "--dd-font-mono": "var(--typography-font-family-mono)"
+    "--dd-font-mono": "var(--typography-font-family-mono)",
+    "--color-background-field": "#ffffff"
   },
   "pinnedDark": {
     "--color-content-default": "var(--dd-neutral-12)",
@@ -130,6 +131,7 @@
     "--color-background-utility-info-muted": "#0d2847",
     "--color-content-utility-info": "#70b8ff",
     "--color-background-utility-warning-muted": "#302008",
-    "--color-content-utility-warning": "#ffca16"
+    "--color-content-utility-warning": "#ffca16",
+    "--color-background-field": "var(--dd-neutral-2)"
   }
 }
