@@ -40,10 +40,7 @@ const routes = Object.fromEntries(STEPS.map((s) => [s.key, withBase(stepRoute(s.
     <a class="dd-pager__btn dd-t-14-medium" href={prev ? routes[prev.key] : withBase('/app/')} data-dd-prev data-step={prev?.key ?? ''}>
       <DdIcon name="arrow-left" size="xs" />Prev
     </a>
-    <span class="dd-pager__menuwrap">
-      <button type="button" class="dd-pager__caret" aria-label="Previous Steps" aria-haspopup="menu" aria-expanded="false" data-dd-caret="prev"><DdIcon name="chevron-up" size="xs" /></button>
-      <div class="dd-pager__menu dd-pager__menu--start" role="menu" hidden data-dd-menu="prev"></div>
-    </span>
+    <button type="button" class="dd-pager__caret" aria-label="Previous Steps" aria-haspopup="menu" aria-expanded="false" data-dd-caret="prev"><DdIcon name="chevron-up" size="xs" /></button>
     <span class="dd-pager__div"></span>
     <a class="dd-pager__mark" href={withBase('/app/')} aria-label="Projects">
       <img src={`${import.meta.env.BASE_URL}brand/dd-mark-pager.svg`} width="22" height="22" alt="" />
@@ -52,10 +49,9 @@ const routes = Object.fromEntries(STEPS.map((s) => [s.key, withBase(stepRoute(s.
     <a class="dd-pager__btn dd-pager__btn--next dd-t-14-medium" href={next ? routes[next.key] : '#'} data-dd-next data-step={next?.key ?? ''} data-needs={next?.needs ?? 'none'}>
       Next<DdIcon name="arrow-right" size="xs" />
     </a>
-    <span class="dd-pager__menuwrap">
-      <button type="button" class="dd-pager__caret" aria-label="Next Steps" aria-haspopup="menu" aria-expanded="false" data-dd-caret="next"><DdIcon name="chevron-up" size="xs" /></button>
-      <div class="dd-pager__menu dd-pager__menu--end" role="menu" hidden data-dd-menu="next"></div>
-    </span>
+    <button type="button" class="dd-pager__caret" aria-label="Next Steps" aria-haspopup="menu" aria-expanded="false" data-dd-caret="next"><DdIcon name="chevron-up" size="xs" /></button>
+    <div class="dd-pager__menu dd-pager__menu--prev" role="menu" aria-label="Previous Steps" hidden data-dd-menu="prev"></div>
+    <div class="dd-pager__menu dd-pager__menu--next" role="menu" aria-label="Next Steps" hidden data-dd-menu="next"></div>
   </div>
 </div>
 
@@ -110,43 +106,44 @@ const routes = Object.fromEntries(STEPS.map((s) => [s.key, withBase(stepRoute(s.
   }
   .dd-pager__caret :global(svg) { width: 10px; height: 10px; }
   .dd-pager__mark { display: inline-flex; align-items: center; height: 36px; padding: 0 10px; border-radius: 8px; }
-  .dd-pager__menuwrap { position: relative; display: inline-flex; }
+  /* Step menus (Figma "2d · Pager Menu Open" 51:1276): open up, 8px above the
+     bar, hanging outward from the bar's outer edge (Next to the right, Prev to
+     the left), 31px of overlap with the bar. */
+  .dd-pager__bar { position: relative; overflow: visible; }
   .dd-pager__caret[aria-expanded='true'] { background: rgb(255 255 255 / 0.12); color: #fff; }
+  .dd-pager__caret:disabled { opacity: 0.35; pointer-events: none; }
   .dd-pager__menu {
     position: absolute;
-    bottom: calc(100% + 14px);
-    width: 248px;
+    bottom: calc(100% + 8px);
+    width: 220px;
     padding: 6px;
-    background: rgb(39 42 48 / 0.94);
+    background: rgb(39 42 48 / 0.82);
     border: 1px solid rgb(255 255 255 / 0.1);
-    border-radius: 10px;
+    border-radius: 12px;
     box-shadow: 0 8px 24px rgb(0 0 0 / 0.3);
-    backdrop-filter: blur(7px);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     color: rgb(255 255 255 / 0.92);
   }
   .dd-pager__menu[hidden] { display: none; }
-  .dd-pager__menu--start { left: -44px; }
-  .dd-pager__menu--end { right: -10px; }
+  .dd-pager__menu--next { left: calc(100% - 31px); }
+  .dd-pager__menu--prev { right: calc(100% - 31px); }
   .dd-pager__menu :global(.dd-pmenu__head) {
-    display: flex; align-items: center; gap: 8px;
-    padding: 6px 8px 8px; color: rgb(255 255 255 / 0.55);
-  }
-  .dd-pager__menu :global(.dd-pmenu__num) {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 16px; height: 16px; border: 1px solid rgb(255 255 255 / 0.3); border-radius: 4px;
+    padding: 8px 8px 3px;
+    font: 600 10px/14px var(--dd-font-sans);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.45);
   }
   .dd-pager__menu :global(.dd-pmenu__item) {
-    display: flex; align-items: flex-start; gap: 10px; width: 100%;
-    padding: 7px 8px; border-radius: 6px; color: inherit; text-align: left; text-decoration: none;
+    display: flex; align-items: center; gap: 10px;
+    height: 34px; padding: 0 8px; border-radius: 7px;
+    font: 500 13px/18px var(--dd-font-sans);
+    color: rgb(255 255 255 / 0.92); text-decoration: none; outline: none;
   }
-  .dd-pager__menu :global(a.dd-pmenu__item:hover), .dd-pager__menu :global(a.dd-pmenu__item:focus-visible) { background: rgb(255 255 255 / 0.08); outline: none; }
-  .dd-pager__menu :global(.dd-pmenu__item[aria-current='page']) { background: rgb(255 255 255 / 0.1); }
-  .dd-pager__menu :global(.dd-pmenu__item[aria-disabled='true']) { color: rgb(255 255 255 / 0.45); }
-  .dd-pager__menu :global(.dd-pmenu__node) { flex: none; display: inline-flex; width: 14px; height: 14px; margin-top: 2px; color: rgb(255 255 255 / 0.5); }
-  .dd-pager__menu :global(.dd-pmenu__node--done) { color: #9db6f2; }
-  .dd-pager__menu :global(.dd-pmenu__node--current) { color: #fff; }
-  .dd-pager__menu :global(.dd-pmenu__text) { display: flex; flex-direction: column; gap: 1px; }
-  .dd-pager__menu :global(.dd-pmenu__sub) { color: rgb(255 255 255 / 0.5); }
+  .dd-pager__menu :global(a.dd-pmenu__item:hover), .dd-pager__menu :global(a.dd-pmenu__item:focus-visible) { background: rgb(255 255 255 / 0.1); }
+  .dd-pager__menu :global(.dd-pmenu__item[aria-disabled='true']) { color: rgb(255 255 255 / 0.45); cursor: default; }
+  .dd-pager__menu :global(.dd-pmenu__item svg) { flex: none; }
 
   .dd-pager__toast {
     display: inline-flex;
@@ -180,14 +177,11 @@ const routes = Object.fromEntries(STEPS.map((s) => [s.key, withBase(stepRoute(s.
     const steps: Step[] = JSON.parse(root.dataset.steps ?? '[]');
     const current = root.dataset.current ?? '';
     const idx = steps.findIndex((s) => s.key === current);
-    const phases = [...new Set(steps.map((s) => s.phase))];
-    const nextEl = root.querySelector<HTMLAnchorElement>('[data-dd-next]');
+        const nextEl = root.querySelector<HTMLAnchorElement>('[data-dd-next]');
 
-    /** Each caret shows one phase group: the group holding the step it would go to. */
-    const groupFor = (dir: 'prev' | 'next'): string | null => {
-      const target = steps[dir === 'next' ? idx + 1 : idx - 1];
-      return target ? target.phase : null;
-    };
+    /** Next lists the steps after the current one, Prev the steps before it, in flow order. */
+    const listFor = (dir: 'prev' | 'next'): Step[] =>
+      dir === 'next' ? steps.slice(idx + 1) : steps.slice(0, Math.max(idx, 0));
 
     const done = (st: Step, s: DdState): boolean => {
       const status = runStatus(s);
@@ -203,22 +197,24 @@ const routes = Object.fromEntries(STEPS.map((s) => [s.key, withBase(stepRoute(s.
     const renderMenu = (dir: 'prev' | 'next', s: DdState): void => {
       const menu = root.querySelector<HTMLElement>(`[data-dd-menu="${dir}"]`);
       const caret = root.querySelector<HTMLButtonElement>(`[data-dd-caret="${dir}"]`);
-      const phase = groupFor(dir);
+      const list = listFor(dir);
       if (!menu || !caret) return;
-      caret.disabled = !phase;
-      if (!phase) { menu.innerHTML = ''; return; }
-      const items = steps.filter((st) => st.phase === phase).map((st) => {
+      caret.disabled = list.length === 0;
+      let html = '';
+      let phase = '';
+      for (const st of list) {
+        if (st.phase !== phase) {
+          phase = st.phase;
+          html += `<div class="dd-pmenu__head" role="presentation">${esc(phase)}</div>`;
+        }
         const reason = lockReason(st.needs, s);
-        const isCur = st.key === current;
-        const state = isCur ? 'current' : reason ? 'locked' : done(st, s) ? 'done' : 'upcoming';
-        const icon = state === 'locked' ? 'lock' : state === 'done' ? 'circle-check' : state === 'current' ? 'circle-dot' : 'circle';
-        const sub = state === 'locked' ? `<span class="dd-pmenu__sub dd-t-12">${esc(reason ?? '')}</span>` : '';
-        const inner = `<span class="dd-pmenu__node dd-pmenu__node--${state}">${iconSvg(icon, 14)}</span><span class="dd-pmenu__text"><span class="dd-t-13">${esc(st.label)}</span>${sub}</span>`;
-        if (state === 'locked') return `<span class="dd-pmenu__item" role="menuitem" aria-disabled="true">${inner}</span>`;
-        return `<a class="dd-pmenu__item" role="menuitem" href="${routes[st.key]}"${isCur ? ' aria-current="page"' : ''}>${inner}</a>`;
-      }).join('');
-      const n = phases.indexOf(phase) + 1;
-      menu.innerHTML = `<div class="dd-pmenu__head dd-t-12-strong"><span class="dd-pmenu__num dd-t-label-sm">${n}</span>${esc(phase)}</div>${items}`;
+        if (reason) {
+          html += `<span class="dd-pmenu__item" role="menuitem" aria-disabled="true" title="${esc(reason)}">${iconSvg('lock', 14)}<span>${esc(st.label)}</span></span>`;
+        } else {
+          html += `<a class="dd-pmenu__item" role="menuitem" tabindex="-1" href="${routes[st.key]}">${iconSvg(done(st, s) ? 'circle-check' : 'circle', 14)}<span>${esc(st.label)}</span></a>`;
+        }
+      }
+      menu.innerHTML = html;
     };
 
     const render = (s: DdState): void => {
@@ -245,12 +241,28 @@ const routes = Object.fromEntries(STEPS.map((s) => [s.key, withBase(stepRoute(s.
         if (menu && open) {
           menu.hidden = false;
           caret.setAttribute('aria-expanded', 'true');
-          menu.querySelector<HTMLElement>('a.dd-pmenu__item:not([aria-current])')?.focus();
+          menu.querySelector<HTMLElement>('a.dd-pmenu__item')?.focus();
         }
       });
     });
     document.addEventListener('click', (e) => { if (!(e.target as Element).closest('.dd-pager__menu')) close(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+    document.addEventListener('keydown', (e) => {
+      const open = root.querySelector<HTMLElement>('.dd-pager__menu:not([hidden])');
+      if (!open) return;
+      if (e.key === 'Escape') {
+        const caret = root.querySelector<HTMLButtonElement>(`[data-dd-caret="${open.dataset.ddMenu}"]`);
+        close();
+        caret?.focus();
+        return;
+      }
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      e.preventDefault();
+      const items = [...open.querySelectorAll<HTMLElement>('a.dd-pmenu__item')];
+      if (!items.length) return;
+      const i = items.indexOf(document.activeElement as HTMLElement);
+      const n = e.key === 'ArrowDown' ? (i + 1) % items.length : (i - 1 + items.length) % items.length;
+      items[n].focus();
+    });
 
     render(getState());
     onState(render);
