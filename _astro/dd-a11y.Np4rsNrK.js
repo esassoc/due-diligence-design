@@ -1,0 +1,1 @@
+async function i(l=document){const n=[...l.querySelectorAll("esa-text-field[aria-label], esa-select[aria-label], esa-textarea[aria-label]")];await Promise.all(n.map(async e=>{await customElements.whenDefined(e.localName),await e.updateComplete;const a=e.shadowRoot?.querySelector(".input"),t=e.getAttribute("aria-label");a&&t&&a.setAttribute("aria-label",t)}))}export{i as n};
