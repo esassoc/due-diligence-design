@@ -100,7 +100,9 @@ const { value, label = 'Project Stage', compact = false, id } = Astro.props;
     background: var(--dd-brand-solid);
     box-shadow: 0 0 0 3px var(--dd-brand-surface);
   }
-  .dd-stage-stepper__name { color: var(--dd-text-muted); }
+  /* One line, as in the Gold: the selected label turns semibold and must not
+     reflow to two lines. Columns are fixed, so a long label runs past its own. */
+  .dd-stage-stepper__name { color: var(--dd-text-muted); white-space: nowrap; }
   .dd-stage-stepper__stop[aria-checked='true'] .dd-stage-stepper__name { color: var(--dd-text); font-weight: 600; }
 </style>
 
