@@ -11,10 +11,12 @@ interface Props {
   label?: string;
   /** "brand" for the count on a selected filter chip. */
   tone?: 'neutral' | 'brand';
+  /** "sm" for a status word set inline after a row's text (e.g. No Data Yet). */
+  size?: 'md' | 'sm';
 }
-const { value, label, tone = 'neutral' } = Astro.props;
+const { value, label, tone = 'neutral', size = 'md' } = Astro.props;
 ---
-<span class:list={['dd-count-badge', `dd-count-badge--${tone}`]} data-dd-count><EsaBadge value={value} size="xs" label={label} /></span>
+<span class:list={['dd-count-badge', `dd-count-badge--${tone}`, `dd-count-badge--${size}`]} data-dd-count><EsaBadge value={value} size="xs" label={label} /></span>
 
 <style>
   .dd-count-badge {
@@ -22,6 +24,11 @@ const { value, label, tone = 'neutral' } = Astro.props;
     --badge-bg: var(--dd-border-subtle);
     --badge-text-color: var(--dd-text-muted);
     --badge-border-color: transparent;
+  }
+  .dd-count-badge.dd-count-badge--sm :global(.esa-badge) {
+    font: 600 11px/14px var(--dd-font-sans);
+    padding: 0 5px;
+    min-width: 0;
   }
   .dd-count-badge--brand {
     --badge-bg: var(--dd-brand-border);

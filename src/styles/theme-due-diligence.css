@@ -6,7 +6,7 @@
  * the recipe's "pinned" map — pins are applied last and survive regeneration.
  *
  * Brand seed #2f5fd0 (curve: Radix indigo), neutral cool (Radix slate),
- * corners soft, 115 pinned value(s).
+ * corners soft, 119 pinned value(s).
  *
  * The brand hex sits EXACTLY on step 9 of the spoke ramp below; every other step
  * is interpolated along the reference curve. Verify with:
@@ -107,8 +107,8 @@
   --color-content-utility-danger:             #ce2c31;
   --color-border-utility-danger:              #fdbdbe;
   --radius-xs:                                var(--radius-050);
-  --radius-sm:                                var(--radius-100);
-  --radius-md:                                var(--radius-200);
+  --radius-sm:                                0.375rem;
+  --radius-md:                                0.375rem;
   --radius-lg:                                var(--radius-400);
   --radius-chip:                              var(--radius-100);
   --typography-font-family-sans:              'DM Sans', system-ui, sans-serif;
@@ -387,6 +387,8 @@ html[data-scheme="dark"][data-theme="due-diligence"] {
   --dd-font-sans:                             var(--typography-font-family-sans);
   --dd-font-mono:                             var(--typography-font-family-mono);
   --color-background-field:                   var(--dd-neutral-2);
+  --radius-sm:                                0.375rem;
+  --radius-md:                                0.375rem;
   --color-background-dataviz-categorical-1:   #4064d8;
   --color-background-dataviz-categorical-2:   #4ba65b;
   --color-background-dataviz-categorical-3:   #1890fa;

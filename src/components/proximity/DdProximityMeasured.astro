@@ -51,8 +51,8 @@ for (const t of themes) {
                 <ul class="prox-measured__layers" role="list">
                   {ls.map((l) => (
                     <li class="prox-measured__layer dd-t-13">
-                      <span>{l.name}</span>
-                      {l.result.status === 'no_data_for_county' && <DdCountBadge value="No Data Yet" />}
+                      {l.name}
+                      {l.result.status === 'no_data_for_county' && <DdCountBadge value="No Data Yet" size="sm" />}
                     </li>
                   ))}
                 </ul>
@@ -138,12 +138,6 @@ for (const t of themes) {
   .prox-measured__theme { display: flex; flex-direction: column; gap: 6px; }
   .prox-measured__theme-name { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--dd-text); }
   .prox-measured__layers { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
-  .prox-measured__layer {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 8px;
-    color: var(--dd-text-muted);
-  }
-  .prox-measured__layer > :global(.dd-count-badge) { flex: none; }
+  .prox-measured__layer { color: var(--dd-text-muted); }
+  .prox-measured__layer > :global(.dd-count-badge) { margin-left: 6px; vertical-align: 1px; white-space: nowrap; }
 </style>
