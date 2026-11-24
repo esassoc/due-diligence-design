@@ -9,6 +9,8 @@ export interface GeoState {
   visible: number[];
   opacity: Record<number, number>;
   selected: number | null;
+  /** The Layers popover is open (open on first load). */
+  panelOpen: boolean;
   /** True while the first-visit loading pass runs. */
   loading: boolean;
 }
@@ -21,6 +23,7 @@ const defaults = (): GeoState => ({
   visible: [...DEFAULT_VISIBLE],
   opacity: Object.fromEntries(clientLayers.map((l) => [l.id, l.opacity])),
   selected: 10,
+  panelOpen: true,
   loading: false,
 });
 
@@ -66,7 +69,8 @@ export function setOpacity(id: number, value: number): void {
 export type GeoRequest =
   | { kind: 'info'; id: number; anchor: DOMRect }
   | { kind: 'tip'; text: string; anchor: DOMRect }
-  | { kind: 'close-floaters' };
+  | { kind: 'close-floaters' }
+  | { kind: 'close-all' };
 
 const requestListeners = new Set<(r: GeoRequest) => void>();
 export const requestGeo = (r: GeoRequest): void => requestListeners.forEach((fn) => fn(r));

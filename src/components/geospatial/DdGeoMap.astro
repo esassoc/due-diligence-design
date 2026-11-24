@@ -62,7 +62,7 @@ const shapeAttrs = (s: Shape) => ({
 });
 ---
 <section class="geo" data-geo aria-label="Geospatial Map">
-  <div class="geo__map" data-map-wrap>
+  <div class="geo__map" data-map-wrap tabindex="0" role="application" aria-label="Map. Drag or use the arrow keys to pan, scroll to zoom.">
     <DdMap view="geospatial" px={1060} label={`Map of the ${siteLabel} site and its layers`}>
       <defs>
         {ringData.map((r, i) => (
@@ -136,16 +136,16 @@ const shapeAttrs = (s: Shape) => ({
     <span class="geo-ring-chip geo-measure-chip dd-t-12-strong" data-measure-label hidden></span>
   </div>
 
-  <DdGeoPanel />
-
-  <div class="geo-search">
-    <span class="geo-search__icon"><DdIcon name="search" size="sm" /></span>
-    <esa-text-field size="sm" prefix=" " placeholder="Search Places and Addresses" aria-label="Search Places and Addresses" data-place-search></esa-text-field>
-  </div>
-
-  <div class="geo-loading dd-t-13-medium" data-loading hidden>
-    <span class="geo-loading__spin"><DdIcon name="loader-circle" size="sm" /></span>
-    Loading Layers <span class="geo-loading__count dd-t-12-strong" data-loading-count></span>
+  <div class="geo-top-left">
+    <DdGeoPanel />
+    <div class="geo-search">
+      <span class="geo-search__icon"><DdIcon name="search" size="sm" /></span>
+      <esa-text-field size="sm" prefix=" " placeholder="Search Places and Addresses" aria-label="Search Places and Addresses" data-place-search></esa-text-field>
+    </div>
+    <div class="geo-loading dd-t-13-medium" data-loading hidden>
+      <span class="geo-loading__spin"><DdIcon name="loader-circle" size="sm" /></span>
+      Loading Layers <span class="geo-loading__count dd-t-12-strong" data-loading-count></span>
+    </div>
   </div>
 
   <div class="geo-controls">
@@ -212,17 +212,29 @@ const shapeAttrs = (s: Shape) => ({
 </section>
 
 <style>
+  /* Full width, not full bleed: the card spans the main column (window minus
+     the side nav and the 40px page gutters), centred on the 1160px well. */
   .geo {
+    --geo-side: 264px;
+    --geo-w: calc(100vw - var(--geo-side) - 80px);
+    --geo-h: max(640px, calc(100vh - 160px));
+    --geo-inset: 12px;
     position: relative;
-    height: 840px;
+    width: var(--geo-w);
+    margin-inline: calc((100% - var(--geo-w)) / 2);
+    height: var(--geo-h);
     border: 1px solid var(--dd-border-subtle);
     border-radius: 8px;
     overflow: hidden;
     background: var(--dd-map-land);
     isolation: isolate;
   }
-  .geo__map { position: absolute; inset: 0; }
+  :global(html[data-dd-sidebar-collapsed]) .geo { --geo-side: 0px; }
+  .geo__map { position: absolute; inset: 0; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; }
+  .geo__map:focus-visible { outline: 2px solid var(--dd-focus-ring); outline-offset: -2px; }
   .geo__map[data-tool='measure'] { cursor: crosshair; }
+  .geo__map[data-dragging],
+  .geo__map[data-dragging] .geo-shape[data-feature] { cursor: grabbing; }
   .geo__map[data-tool='identify'] .geo-shape[data-feature] { cursor: pointer; }
 
   /* ---- Overlays (inside DdMap's svg; my own scope) ---- */
@@ -266,7 +278,19 @@ const shapeAttrs = (s: Shape) => ({
   .geo-measure-chip { border-color: var(--dd-brand-solid); color: var(--dd-brand-text); }
 
   /* ---- Floating chrome ---- */
-  .geo-search { position: absolute; top: 16px; left: 404px; width: 320px; z-index: 2; }
+  .geo-top-left {
+    position: absolute;
+    top: var(--geo-inset);
+    left: var(--geo-inset);
+    right: calc(var(--geo-inset) + 58px + 298px + 8px);
+    z-index: 4;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .geo-top-left > :global(*) { pointer-events: auto; }
+  .geo-search { position: relative; width: 320px; flex: 0 1 320px; min-width: 200px; }
   .geo-search esa-text-field {
     display: block;
     --form-affix-bg: transparent;
@@ -277,12 +301,8 @@ const shapeAttrs = (s: Shape) => ({
   .geo-search__icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--dd-text-muted); z-index: 1; display: inline-flex; pointer-events: none; }
 
   .geo-loading {
-    position: absolute;
-    top: 60px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 2;
     display: inline-flex;
+    flex: none;
     align-items: center;
     gap: 8px;
     height: 30px;
@@ -300,8 +320,9 @@ const shapeAttrs = (s: Shape) => ({
 
   .geo-controls {
     position: absolute;
-    top: 16px;
-    right: 326px;
+    top: var(--geo-inset);
+    right: var(--geo-inset);
+    align-items: flex-end;
     z-index: 2;
     display: flex;
     flex-direction: column;
@@ -329,7 +350,8 @@ const shapeAttrs = (s: Shape) => ({
   }
   .geo-card[hidden] { display: none; }
 
-  .geo-identify { top: 16px; right: 16px; width: 298px; }
+  /* Left of the tool column (38px stack + 8px gap), never under it. */
+  .geo-identify { top: var(--geo-inset); right: calc(var(--geo-inset) + 46px); width: 298px; }
   .geo-identify__top { position: relative; padding: 14px 14px 14px; border-bottom: 1px solid var(--dd-border-subtle); }
   .geo-identify__top :global(.geo-identify__close) { position: absolute; top: 8px; right: 8px; color: var(--dd-text-muted); }
   .geo-identify__layer { display: flex; align-items: center; gap: 8px; padding-right: 28px; color: var(--dd-text-muted); }
@@ -374,7 +396,7 @@ const shapeAttrs = (s: Shape) => ({
   }
   .geo-tip[hidden] { display: none; }
 
-  .geo-bottom-left { position: absolute; left: 16px; bottom: 16px; z-index: 2; display: flex; align-items: flex-end; gap: 10px; }
+  .geo-bottom-left { position: absolute; left: var(--geo-inset); bottom: var(--geo-inset); z-index: 2; display: flex; align-items: flex-end; gap: 10px; }
   .geo-imagery {
     position: relative;
     width: 54px;
@@ -414,8 +436,8 @@ const shapeAttrs = (s: Shape) => ({
 
   .geo-zoomto {
     position: absolute;
-    right: 16px;
-    bottom: 16px;
+    right: var(--geo-inset);
+    bottom: var(--geo-inset);
     z-index: 2;
     display: inline-flex;
     align-items: center;
@@ -549,11 +571,95 @@ const shapeAttrs = (s: Shape) => ({
       b.addEventListener('click', () => {
         mpp = Math.min(60, Math.max(1.2, mpp * (b.dataset.zoom === 'in' ? 1 / 1.5 : 1.5)));
         if (zoomTo) zoomTo.value = '';
+        clampCenter();
         applyView();
       }),
     );
     $('[data-fit]')?.addEventListener('click', () => setZoom('site'));
     new ResizeObserver(() => applyView()).observe(wrap);
+
+    // ---- Pan and zoom by pointer, wheel and keyboard ------------------------------
+    // Keep part of the site (its bbox) in view: the centre may not drift more than
+    // half a view past the site's edges, less an 80px margin.
+    const SITE_BOX = { x0: -787, x1: 644, y0: -621, y1: 628 };
+    function clampCenter(): void {
+      const hw = (wrap.clientWidth / 2) * mpp;
+      const hh = (wrap.clientHeight / 2) * mpp;
+      const m = 80 * mpp;
+      cx = Math.min(Math.max(cx, SITE_BOX.x0 - hw + m), SITE_BOX.x1 + hw - m);
+      cy = Math.min(Math.max(cy, SITE_BOX.y0 - hh + m), SITE_BOX.y1 + hh - m);
+    }
+    function panBy(dxPx: number, dyPx: number): void {
+      cx -= dxPx * mpp;
+      cy -= dyPx * mpp;
+      clampCenter();
+      if (zoomTo) zoomTo.value = '';
+      applyView();
+    }
+
+    let drag: { id: number; x: number; y: number; moved: boolean } | null = null;
+    let suppressClick = false;
+    svg.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false };
+    });
+    svg.addEventListener('pointermove', (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x;
+      const dy = e.clientY - drag.y;
+      if (!drag.moved) {
+        if (Math.hypot(dx, dy) < 4) return;
+        drag.moved = true;
+        // Capture only once it is a drag, so a plain click keeps its real target.
+        svg.setPointerCapture(e.pointerId);
+        wrap.dataset.dragging = '';
+      }
+      drag.x = e.clientX;
+      drag.y = e.clientY;
+      panBy(dx, dy);
+    });
+    const endDrag = (e: PointerEvent): void => {
+      if (!drag || e.pointerId !== drag.id) return;
+      if (drag.moved) suppressClick = true;
+      drag = null;
+      delete wrap.dataset.dragging;
+    };
+    svg.addEventListener('pointerup', endDrag);
+    svg.addEventListener('pointercancel', endDrag);
+    // A drag ends in a click: swallow it before Identify, Measure or the
+    // Layers popover's outside-click close can see it.
+    wrap.addEventListener('click', (e) => {
+      if (!suppressClick) return;
+      suppressClick = false;
+      e.stopImmediatePropagation();
+      e.stopPropagation();
+    }, true);
+
+    wrap.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const r = wrap.getBoundingClientRect();
+      const px = e.clientX - r.left;
+      const py = e.clientY - r.top;
+      const [mx, my] = unproject(px, py);
+      const k = Math.exp(e.deltaY * (e.ctrlKey ? 0.01 : 0.0015));
+      mpp = Math.min(60, Math.max(1.2, mpp * k));
+      cx = mx - (px - wrap.clientWidth / 2) * mpp;
+      cy = my - (py - wrap.clientHeight / 2) * mpp;
+      clampCenter();
+      if (zoomTo) zoomTo.value = '';
+      applyView();
+    }, { passive: false });
+
+    wrap.addEventListener('keydown', (e) => {
+      const step = 80;
+      const moves: Record<string, [number, number]> = {
+        ArrowLeft: [step, 0], ArrowRight: [-step, 0], ArrowUp: [0, step], ArrowDown: [0, -step],
+      };
+      const mv = moves[e.key];
+      if (!mv) return;
+      e.preventDefault();
+      panBy(mv[0], mv[1]);
+    });
 
     // ---- Imagery ---------------------------------------------------------------
     const bg = svg.querySelector<SVGRectElement>(':scope > rect');
@@ -670,8 +776,9 @@ const shapeAttrs = (s: Shape) => ({
     const panel = $('[data-geo-panel]');
     onGeoRequest((req) => {
       const box = root!.getBoundingClientRect();
-      if (req.kind === 'close-floaters') {
+      if (req.kind === 'close-floaters' || req.kind === 'close-all') {
         tip.hidden = true;
+        if (req.kind === 'close-all') info.hidden = true;
         return;
       }
       if (req.kind === 'tip') {

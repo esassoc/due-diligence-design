@@ -44,15 +44,21 @@ const ringItems: LegendItem[] = run.miles.map((m, i) => ({
 }));
 const legendLayers = themes.flatMap((t) => layersForTheme(t.id)).filter(hasData);
 ---
-<section class="geo-panel" data-geo-panel aria-label="Layers">
+<div class="geo-layers" data-geo-layers>
+<button type="button" class="geo-layers__trigger" aria-expanded="true" aria-controls="geo-layers-panel" data-panel-open>
+  <DdIcon name="layers" size="sm" />
+  <span class="dd-t-14-medium">Layers</span>
+  <span data-visible-count><DdCountBadge value={visible.size} label="Layers shown" /></span>
+</button>
+<section class="geo-panel" id="geo-layers-panel" data-geo-panel aria-label="Layers">
   <header class="geo-panel__head">
     <div class="geo-panel__tabs" role="tablist">
       <button type="button" role="tab" class="geo-panel__tab dd-t-14-medium" aria-selected="true" data-tab="layers">Layers</button>
       <button type="button" role="tab" class="geo-panel__tab dd-t-14-medium" aria-selected="false" data-tab="legend">
-        Legend <span data-legend-count><DdCountBadge value={visible.size} label="Layers shown" /></span>
+        Legend <span data-visible-count><DdCountBadge value={visible.size} label="Layers shown" /></span>
       </button>
     </div>
-    <DdIconButton icon="panel-left" label="Hide Panel" size="sm" data-panel-collapse />
+    <DdIconButton icon="x" label="Close Layers" size="sm" data-panel-collapse />
   </header>
 
   <div class="geo-panel__body" data-tabpanel="layers">
@@ -139,18 +145,17 @@ const legendLayers = themes.flatMap((t) => layersForTheme(t.id)).filter(hasData)
     ))}
   </div>
 </section>
-
-<button type="button" class="geo-panel-open" aria-label="Show Layers" data-panel-open hidden>
-  <DdIcon name="layers" size="sm" />
-  <span class="dd-t-14-medium">Layers</span>
-</button>
+</div>
 
 <style>
+  .geo-layers { position: relative; flex: none; }
+  /* Popover anchored under the Layers button; scrolls inside, never taller
+     than the map frame minus its insets (--geo-h / --geo-inset from DdGeoMap). */
   .geo-panel {
     position: absolute;
-    top: 16px;
-    left: 16px;
-    bottom: 82px;
+    top: calc(100% + 6px);
+    left: 0;
+    max-height: calc(var(--geo-h, 840px) - 2 * var(--geo-inset, 12px) - 42px);
     width: 370px;
     display: flex;
     flex-direction: column;
@@ -187,7 +192,7 @@ const legendLayers = themes.flatMap((t) => layersForTheme(t.id)).filter(hasData)
   .geo-panel__tab[aria-selected='true'] { color: var(--dd-text); border-bottom-color: var(--dd-brand-solid); }
   .geo-panel__tab:focus-visible { outline: 2px solid var(--dd-focus-ring); outline-offset: -2px; }
 
-  .geo-panel__body { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+  .geo-panel__body { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
   .geo-panel__body[hidden] { display: none; }
   .geo-panel__tools {
     display: flex;
@@ -330,16 +335,12 @@ const legendLayers = themes.flatMap((t) => layersForTheme(t.id)).filter(hasData)
   .geo-swatch--dash { width: 14px; height: 0; border-top: 2px dashed var(--c); }
   .geo-swatch--point { width: 8px; height: 8px; border-radius: 50%; background: var(--c); margin: 0 3px; }
 
-  .geo-panel-open {
-    position: absolute;
-    top: 16px;
-    left: 16px;
-    z-index: 3;
+  .geo-layers__trigger {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    height: 36px;
-    padding: 0 14px 0 12px;
+    height: 34px;
+    padding: 0 8px 0 10px;
     background: var(--dd-surface-raised);
     border: 1px solid var(--dd-border-subtle);
     border-radius: 8px;
@@ -347,7 +348,8 @@ const legendLayers = themes.flatMap((t) => layersForTheme(t.id)).filter(hasData)
     color: var(--dd-text);
     cursor: pointer;
   }
-  .geo-panel-open[hidden] { display: none; }
+  .geo-layers__trigger[aria-expanded='true'] { border-color: var(--dd-brand-border); }
+  .geo-layers__trigger:focus-visible { outline: 2px solid var(--dd-focus-ring); outline-offset: 2px; }
 </style>
 
 <script>
@@ -461,9 +463,11 @@ const legendLayers = themes.flatMap((t) => layersForTheme(t.id)).filter(hasData)
       });
     });
 
-    const countEl = panel.querySelector<HTMLElement>('[data-legend-count] .esa-badge__text');
+    const root = panel.closest<HTMLElement>('[data-geo-layers]') ?? panel;
+    const countEls = [...root.querySelectorAll<HTMLElement>('[data-visible-count] .esa-badge__text')];
     const legendGroups = [...panel.querySelectorAll<HTMLElement>('[data-legend-layer]')];
 
+    const opener = root.querySelector<HTMLButtonElement>('[data-panel-open]');
     const render = (s: GeoState): void => {
       const vis = new Set(s.visible);
       layerEls.forEach((row) => {
@@ -486,7 +490,9 @@ const legendLayers = themes.flatMap((t) => layersForTheme(t.id)).filter(hasData)
         cb.checked = on === ids.length;
         cb.indeterminate = on > 0 && on < ids.length;
       });
-      if (countEl) countEl.textContent = String(s.visible.length);
+      countEls.forEach((el) => { el.textContent = String(s.visible.length); });
+      panel.hidden = !s.panelOpen;
+      opener?.setAttribute('aria-expanded', String(s.panelOpen));
       legendGroups.forEach((g) => { g.hidden = !vis.has(Number(g.dataset.legendLayer)); });
     };
     onGeo(render);
@@ -509,17 +515,30 @@ const legendLayers = themes.flatMap((t) => layersForTheme(t.id)).filter(hasData)
       });
     });
 
-    // ---- Collapse ------------------------------------------------------------------
-    const opener = document.querySelector<HTMLButtonElement>('[data-panel-open]');
-    panel.querySelector('[data-panel-collapse]')?.addEventListener('click', () => {
-      panel.hidden = true;
-      if (opener) { opener.hidden = false; opener.focus(); }
-      requestGeo({ kind: 'close-floaters' });
-    });
+    // ---- Open / close (popover on the Layers button) ------------------------------
+    const close = (): void => {
+      if (!geo().panelOpen) return;
+      setGeo({ panelOpen: false });
+      requestGeo({ kind: 'close-all' });
+    };
+    panel.querySelector('[data-panel-collapse]')?.addEventListener('click', () => { close(); opener?.focus(); });
     opener?.addEventListener('click', () => {
-      panel.hidden = false;
-      opener.hidden = true;
+      if (geo().panelOpen) close();
+      else setGeo({ panelOpen: true });
     });
+    document.addEventListener('click', (e) => {
+      const t = e.target as Element;
+      if (!geo().panelOpen || root.contains(t) || t.closest('[data-info]')) return;
+      close();
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !geo().panelOpen) return;
+      const info = document.querySelector<HTMLElement>('[data-info]');
+      if (info && !info.hidden) return;
+      e.stopImmediatePropagation();
+      close();
+      opener?.focus();
+    }, true);
 
     panel.querySelector('[data-tree]')?.addEventListener('scroll', () => requestGeo({ kind: 'close-floaters' }), { passive: true });
   }
