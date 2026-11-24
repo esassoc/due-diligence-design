@@ -22,7 +22,7 @@ export const LOADED_KEY = 'dd-geo-loaded';
 const defaults = (): GeoState => ({
   visible: [...DEFAULT_VISIBLE],
   opacity: Object.fromEntries(clientLayers.map((l) => [l.id, l.opacity])),
-  selected: 10,
+  selected: null,
   panelOpen: true,
   loading: false,
 });

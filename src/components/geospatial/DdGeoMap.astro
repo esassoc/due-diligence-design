@@ -826,9 +826,9 @@ const shapeAttrs = (s: Shape) => ({
     setZoom(DEFAULT_ZOOM);
     render(geo());
 
-    const openDefault = (): void => {
-      if (geo().visible.includes(10)) openIdentify('nwi-0');
-    };
+    // The map loads with nothing selected and no identify card (Andy,
+    // 2026-11-24); both appear only when the user clicks a layer or feature.
+    const openDefault = (): void => {};
     const stamp = String(getState().runStartedAt ?? 'preset');
     let visited = false;
     try { visited = sessionStorage.getItem(LOADED_KEY) === stamp; } catch { /* ignore */ }
