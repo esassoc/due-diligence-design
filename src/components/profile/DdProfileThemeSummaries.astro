@@ -136,6 +136,38 @@ const cards = themes.map((t, i) => {
             </div>
           </div>
         )}
+
+        {c.allNoData && (
+          <div class="dd-tcard__body dd-tcard__body--nodata">
+            <ul class="dd-tcard__srcs" role="list">
+              {c.ls.map((l) => (
+                <li class="dd-tcard__src">
+                  <span class="dd-t-13-medium">{l.name}</span>
+                  <dl class="dd-tcard__srcmeta dd-t-12">
+                    <div><dt>Source</dt><dd>{l.sourceAgency}</dd></div>
+                    {l.updateFrequency && <div><dt>Updates</dt><dd>{l.updateFrequency}</dd></div>}
+                  </dl>
+                </li>
+              ))}
+            </ul>
+
+            <div class="dd-lanes" style={`--rings:${R}`}>
+              <div class="dd-lanes__row dd-lanes__row--head dd-t-12 dd-muted" aria-hidden="true">
+                <span />
+                <span class="dd-lanes__h">On Site</span>
+                {outerRings.map((r) => <span class="dd-lanes__h" data-ring={r.ringIndex} data-short={laneShort(r, false)} data-full={laneShort(r, true)}>{laneShort(r, r.ringIndex === R)}</span>)}
+                <span />
+              </div>
+              {c.ls.map((l) => (
+                <div class="dd-lanes__row dd-lanes__row--nodata" data-filter-layer={l.id}>
+                  <span class="dd-lanes__name dd-t-13">{l.name}</span>
+                  <span class="dd-lanes__nodata" aria-hidden="true" />
+                  <span class="dd-lanes__val"><DdCountBadge value="No Data Yet" size="sm" /></span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </details>
       <a class="dd-tcard__link dd-t-13" href="#dd-layers" data-show-theme={c.theme.id}>See {c.ls.length} in the Table</a>
     </div>
@@ -252,6 +284,23 @@ const cards = themes.map((t, i) => {
   .dd-tcard__legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 4px 0 0 84px; padding: 0; list-style: none; color: var(--dd-text-muted); }
   .dd-tcard__legend li { display: inline-flex; align-items: center; gap: 6px; }
   .dd-tcard__sw { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+
+  /* No Data Yet card: each layer's source on the left, the lanes hatched across
+     every ring on the right (the Screening Summary's hatched bar, per layer). */
+  .dd-tcard__srcs { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; }
+  .dd-tcard__src { display: flex; flex-direction: column; gap: 4px; }
+  .dd-tcard__srcmeta { display: flex; flex-wrap: wrap; gap: 2px 16px; margin: 0; color: var(--dd-text-muted); }
+  .dd-tcard__srcmeta div { display: flex; gap: 6px; }
+  .dd-tcard__srcmeta dt { color: var(--dd-text-subtle); }
+  .dd-tcard__srcmeta dd { margin: 0; }
+  .dd-lanes__row--nodata { min-height: 30px; }
+  .dd-lanes__nodata {
+    grid-column: 2 / -2;
+    margin: 4px 0;
+    border: 1px solid var(--dd-border);
+    border-radius: 4px;
+    background: repeating-linear-gradient(135deg, var(--dd-border) 0 1px, var(--dd-surface-raised) 1px 6px);
+  }
 
   /* Distance-lane mini chart: every row is the same grid, so the lane washes line up. */
   .dd-lanes { container-type: inline-size; align-self: start; }
