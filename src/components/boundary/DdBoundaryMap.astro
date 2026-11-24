@@ -1,0 +1,1025 @@
+---
+// DdBoundaryMap: the Site Boundary map card. Map on the left (tool group, find,
+// zoom, scale, Map/Imagery), the area's side panel on the right. One client
+// controller drives every state off getState().boundary plus a local mode:
+//   view     Defined, no handles
+//   edit     Defined + Edit Corners (default): drag corners and midpoints
+//   draw     Draw New / Draw Area: click corners, close on the first or Enter
+//   parcels  Select Parcels: click county parcels to add or remove
+//   preview  an uploaded file, waiting for Use This Boundary
+//   idle     Not Defined: the chooser of ways in
+//
+// bcn-lego-checked: no esa- lego is a map editor. Controls are legos
+// (esa-button for tools and hint actions, DdIconButton for glyph-only tools,
+// esa-text-field for Find, esa-select for County, esa-button-toggle for
+// Map/Imagery, esa-badge for state and impact badges, DdCountBadge for counts).
+// The floating tool group, the find results list (grouped rows with an action
+// per row), the chooser of ways in (icon + title + line rows, a menu shown
+// open on the map rather than from a trigger, so not esa-dropdown-menu), the
+// hint bar and the side panel rows have no esa- equivalent: esa-popover and
+// esa-dropdown-menu need a trigger and take flat items; esa-empty-state has a
+// single action. They are plain markup in this one component.
+import EsaButton from '@esa/ecology/esa-button.astro';
+import EsaBadge from '@esa/ecology/esa-badge.astro';
+import DdMap from '../common/DdMap.astro';
+import DdIcon from '../common/DdIcon.astro';
+import DdIconButton from '../common/DdIconButton.astro';
+import DdCountBadge from '../common/DdCountBadge.astro';
+import { project, enums, uiCopy } from '../../data/dd';
+import { PARCELS, NEIGHBOR_PARCELS, VIEWS, type Pt } from '../../lib/map-geometry';
+
+interface Props {
+  /** Perimeter of the saved site, in miles (Figma value; not in the mock bundle). */
+  perimeterMi?: number;
+}
+const { perimeterMi = 3.4 } = Astro.props;
+
+export interface BoundaryParcel {
+  apn: string;
+  short: string;
+  acres: number;
+  inSite: boolean;
+  situs: string | null;
+  pts: Pt[];
+  label: Pt;
+}
+
+const setup = uiCopy.setup as Record<string, string>;
+const shortApn = (apn: string): string => apn.replace(/-0000$/, '');
+const parcels: BoundaryParcel[] = [
+  ...PARCELS.map((p) => {
+    const d = project.Parcels.find((x) => x.apn === p.apn)!;
+    return { apn: p.apn, short: shortApn(p.apn), acres: d.acres, inSite: true, situs: d.situsAddress, pts: p.pts, label: p.label };
+  }),
+  ...NEIGHBOR_PARCELS.map((p) => ({ apn: p.apn, short: shortApn(p.apn), acres: p.acres, inSite: false, situs: null, pts: p.pts, label: p.label })),
+];
+const siteParcels = parcels.filter((p) => p.inSite);
+
+const county = enums.counties.find((c) => c.name === project.County);
+const loaded = county
+  ? new Date(county.parcelLoadDate).toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles', month: 'numeric', day: 'numeric', year: 'numeric' })
+  : '';
+const parcelData = county ? `${county.parcelCount.toLocaleString('en-US')} loaded ${loaded}` : '';
+const countyOptions = enums.counties.map((c) => ({ label: c.name, value: c.name }));
+const fmtAc = (a: number): string => `${a.toFixed(1)} ac`;
+
+const model = {
+  acres: project.Acres,
+  perimeterMi,
+  county: project.County,
+  parcels,
+  view: VIEWS.boundary,
+  otherCounty: 'In Alameda County, not Sacramento County',
+};
+
+const affects = [
+  { icon: 'radar', label: 'Proximity', badge: 'Rings Redraw', tone: 'info' as const },
+  { icon: 'file-chart-column', label: 'Site Profile', badge: 'Report Goes Stale', tone: 'warning' as const },
+  { icon: 'file-text', label: 'Final Report', badge: 'Draft Goes Stale', tone: 'warning' as const },
+];
+const toggleOptions = JSON.stringify([{ label: 'Map', value: 'map' }, { label: 'Imagery', value: 'imagery' }]);
+---
+<section class="dd-bmap" data-dd-bmap data-model={JSON.stringify(model)} data-mode="edit" aria-label="Site Boundary">
+  <div class="dd-bmap__map" data-map>
+    <div class="dd-bmap__base" data-base="map"><DdMap view="boundary" px={800} /></div>
+    <div class="dd-bmap__base" data-base="imagery" hidden><DdMap view="boundary" px={800} imagery /></div>
+    <svg class="dd-bmap__overlay" data-overlay viewBox={model.view.join(' ')} preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+
+    <div class="dd-bmap__tools" data-tools role="toolbar" aria-label="Boundary Tools">
+      <EsaButton variant="ghost" size="sm" data-tool="edit"><DdIcon name="mouse-pointer-2" size="sm" /> Edit Corners</EsaButton>
+      <EsaButton variant="ghost" size="sm" data-tool="draw"><DdIcon name="pen-tool" size="sm" /> <span data-draw-label>Draw New</span></EsaButton>
+      <EsaButton variant="ghost" size="sm" data-tool="parcels"><DdIcon name="grid-2x2" size="sm" /> Select Parcels</EsaButton>
+      <span class="dd-bmap__tools-sep" aria-hidden="true"></span>
+      <DdIconButton icon="undo-2" label="Undo" data-act="undo" />
+      <DdIconButton icon="redo-2" label="Redo" data-act="redo" />
+      <DdIconButton icon="trash-2" label="Delete Area" data-act="delete" />
+    </div>
+
+    <div class="dd-bmap__find" data-find>
+      <esa-text-field data-find-input size="sm" aria-label="Find an Address or APN" placeholder="Find an Address or APN"></esa-text-field>
+      <div class="dd-bmap__results" data-results hidden></div>
+    </div>
+
+    <div class="dd-bmap__zoom">
+      <DdIconButton icon="plus" label="Zoom In" data-act="zoom-in" />
+      <DdIconButton icon="minus" label="Zoom Out" data-act="zoom-out" />
+      <DdIconButton icon="scan" label="Fit to Area" data-act="fit" />
+    </div>
+
+    <div class="dd-bmap__scale" aria-hidden="true"><span class="dd-bmap__scale-bar" data-scale-bar></span><span class="dd-t-12" data-scale-label>2,000 ft</span></div>
+    <div class="dd-bmap__basemap"><esa-button-toggle data-basemap size="sm" value="map" options={toggleOptions} aria-label="Basemap"></esa-button-toggle></div>
+
+    <!-- hint bars, one per editing mode -->
+    <div class="dd-bmap__hint" data-hint="edit" hidden>
+      <span class="dd-t-13 dd-bmap__hint-text">Drag a corner or a midpoint to reshape.</span>
+      <EsaButton variant="secondary" size="sm" data-act="cancel">Cancel</EsaButton>
+      <EsaButton variant="primary" size="sm" data-act="done">Done</EsaButton>
+    </div>
+    <div class="dd-bmap__hint" data-hint="draw" hidden>
+      <span class="dd-t-13 dd-bmap__hint-text">{setup.drawHint}</span>
+      <EsaButton variant="secondary" size="sm" data-act="cancel">Cancel</EsaButton>
+      <EsaButton variant="primary" size="sm" data-act="done">Done</EsaButton>
+    </div>
+    <div class="dd-bmap__hint" data-hint="parcels" hidden>
+      <span class="dd-t-13 dd-bmap__hint-text">{setup.parcelHint}</span>
+      <EsaButton variant="secondary" size="sm" data-act="cancel">Cancel</EsaButton>
+      <EsaButton variant="primary" size="sm" data-act="done">Done</EsaButton>
+    </div>
+    <div class="dd-bmap__hint" data-hint="preview" hidden>
+      <DdIcon name="file" size="sm" />
+      <span class="dd-bmap__hint-file">
+        <span class="dd-t-14" data-preview-name>cottonwood_boundary.kml</span>
+        <span class="dd-t-12 dd-bmap__muted">1 polygon · {Math.round(project.Acres)} ac · {project.County}</span>
+      </span>
+      <EsaButton variant="secondary" size="sm" data-act="cancel">Cancel</EsaButton>
+      <EsaButton variant="primary" size="sm" data-act="done">Use This Boundary</EsaButton>
+    </div>
+
+    <!-- Not Defined: the ways in -->
+    <div class="dd-bmap__chooser" data-chooser hidden>
+      <div class="dd-bmap__chooser-error" data-chooser-error hidden>
+        <DdIcon name="circle-alert" size="sm" />
+        <span>
+          <span class="dd-t-14 dd-bmap__error-title" data-error-title></span>
+          <span class="dd-t-13" data-error-text></span>
+        </span>
+      </div>
+      <button type="button" class="dd-bmap__way" data-way="draw">
+        <span class="dd-bmap__way-icon"><DdIcon name="pen-tool" size="sm" /></span>
+        <span><span class="dd-t-14-medium">Draw Area</span><span class="dd-t-12 dd-bmap__muted">Click corners on the map</span></span>
+      </button>
+      <button type="button" class="dd-bmap__way" data-way="parcels">
+        <span class="dd-bmap__way-icon"><DdIcon name="mouse-pointer-click" size="sm" /></span>
+        <span><span class="dd-t-14-medium">Select Parcels</span><span class="dd-t-12 dd-bmap__muted">Click county parcels to add them</span></span>
+      </button>
+      <button type="button" class="dd-bmap__way" data-way="upload">
+        <span class="dd-bmap__way-icon"><DdIcon name="upload" size="sm" /></span>
+        <span><span class="dd-t-14-medium">Upload Boundary File</span><span class="dd-t-12 dd-bmap__muted">GeoJSON, KML, Shapefile or File Geodatabase</span></span>
+      </button>
+      <button type="button" class="dd-bmap__way" data-way="sample">
+        <span class="dd-bmap__way-icon"><DdIcon name="map" size="sm" /></span>
+        <span><span class="dd-t-14-medium">Use Sample Area</span><span class="dd-t-12 dd-bmap__muted">A ready-made area in this county</span></span>
+      </button>
+      <p class="dd-t-13 dd-bmap__chooser-foot">Or drop a boundary file anywhere on the map.</p>
+    </div>
+
+    <div class="dd-bmap__tip dd-t-12" data-tip hidden></div>
+  </div>
+
+  <aside class="dd-bmap__panel" aria-label="Site Area">
+    <div class="dd-bmap__head">
+      <h2 class="dd-t-14-strong dd-bmap__h">Site Area</h2>
+      <span class="dd-bmap__state" data-badge="none" hidden><EsaBadge value="Not Defined" size="xs" /></span>
+      <span class="dd-bmap__state dd-bmap__state--brand" data-badge="editing" hidden><EsaBadge value="Editing" size="xs" variant="info" /></span>
+      <span class="dd-bmap__state dd-bmap__state--brand" data-badge="preview" hidden><EsaBadge value="Preview" size="xs" variant="info" /></span>
+    </div>
+
+    <div class="dd-bmap__stat" data-p-stat>
+      <span class="dd-t-stat" data-stat-ac>{Math.round(project.Acres)} ac</span>
+      <span class="dd-t-13 dd-bmap__muted" data-stat-sqmi>{(project.Acres / 640).toFixed(2)} sq mi</span>
+    </div>
+    <div class="dd-bmap__empty" data-p-empty hidden>
+      <span class="dd-t-14" data-empty-title>No area drawn yet</span>
+      <span class="dd-t-12 dd-bmap__muted" data-empty-sub></span>
+    </div>
+
+    <dl class="dd-bmap__rows">
+      <div class="dd-bmap__row">
+        <dt class="dd-t-13 dd-bmap__muted">County</dt>
+        <dd class="dd-t-13" data-county-locked title={project.countyLockedNote}>
+          <span class="dd-bmap__locked"><DdIcon name="lock" size="xs" /> {project.County}</span>
+        </dd>
+        <dd data-county-select hidden>
+          <esa-select size="sm" aria-label="County" value={project.County} options={JSON.stringify(countyOptions)} data-county></esa-select>
+        </dd>
+      </div>
+      <div class="dd-bmap__row">
+        <dt class="dd-t-13 dd-bmap__muted">Parcel Data</dt>
+        <dd class="dd-t-13">{parcelData}</dd>
+      </div>
+      <div class="dd-bmap__row" data-p-perimeter>
+        <dt class="dd-t-13 dd-bmap__muted">Perimeter</dt>
+        <dd class="dd-t-13" data-perimeter>{perimeterMi.toFixed(1)} mi</dd>
+      </div>
+    </dl>
+
+    <div class="dd-bmap__group" data-p-crossed>
+      <h3 class="dd-t-14-strong dd-bmap__group-h">Parcels Crossed <DdCountBadge value={siteParcels.length} /></h3>
+      <ol class="dd-bmap__list">
+        {siteParcels.map((p, i) => (
+          <li class="dd-bmap__parcel">
+            <span class="dd-bmap__num dd-t-12-strong">{i + 1}</span>
+            <span class="dd-bmap__parcel-text">
+              <span class="dd-t-mono">{p.short}</span>
+              <span class="dd-t-12 dd-bmap__muted">All of parcel</span>
+            </span>
+            <span class="dd-t-13">{fmtAc(p.acres)}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+
+    <div class="dd-bmap__group" data-p-selected hidden>
+      <h3 class="dd-t-14-strong dd-bmap__group-h">Selected Parcels <span data-selected-count></span></h3>
+      <ol class="dd-bmap__list" data-selected-list></ol>
+    </div>
+
+    <div class="dd-bmap__group" data-p-affects hidden>
+      <h3 class="dd-t-14-strong dd-bmap__group-h">This Change Affects</h3>
+      <ul class="dd-bmap__affects">
+        {affects.map((a) => (
+          <li class="dd-bmap__affect">
+            <DdIcon name={a.icon} size="sm" />
+            <span class="dd-t-13">{a.label}</span>
+            <span class="dd-bmap__impact"><EsaBadge value={a.badge} size="xs" variant={a.tone} /></span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </aside>
+
+  <esa-confirm-dialog
+    data-confirm-clear
+    heading="Clear the Site Boundary?"
+    message="Proximity and the report go out of date until you define it again."
+    variant="danger"
+    confirm-label="Clear Boundary"
+    cancel-label="Cancel"
+  ></esa-confirm-dialog>
+
+  <!-- runtime clones keep the legos' scoped styles -->
+  <template data-tpl-count><DdCountBadge value="0" /></template>
+  <template data-tpl-remove><DdIconButton icon="x" label="Remove" size="sm" /></template>
+  <template data-tpl-add><EsaButton variant="secondary" size="sm">Add This Parcel to the Area</EsaButton></template>
+</section>
+
+<script>
+  import '@esa/ecology/esa-text-field';
+  import '@esa/ecology/esa-select';
+  import '@esa/ecology/esa-button-toggle';
+  import '@esa/ecology/esa-confirm-dialog';
+  import { getState, setState, onState, markStale, toast } from '../../lib/dd-store';
+  import { iconSvg } from '../../lib/icons';
+  import { SITE, polyPath, linePath, type Pt } from '../../lib/map-geometry';
+  import {
+    readBoundaryFile, emitBoundaryFile, BOUNDARY_FILE_EVENT, BOUNDARY_CURRENT_EVENT, BOUNDARY_BROWSE_EVENT,
+    type BoundaryFileResult,
+  } from './boundary-file';
+
+  interface ParcelModel {
+    apn: string; short: string; acres: number; inSite: boolean; situs: string | null; pts: Pt[]; label: Pt;
+  }
+  interface Model {
+    acres: number; perimeterMi: number; county: string; parcels: ParcelModel[];
+    view: [number, number, number, number]; otherCounty: string;
+  }
+  type Mode = 'idle' | 'view' | 'edit' | 'draw' | 'parcels' | 'preview';
+  interface Snap { poly: Pt[]; drawPts: Pt[]; drawClosed: boolean; sel: string[] }
+
+  const root = document.querySelector<HTMLElement>('[data-dd-bmap]');
+  if (root) init(root);
+
+  function init(root: HTMLElement): void {
+    const model = JSON.parse(root.dataset.model ?? '{}') as Model;
+    const $ = <T extends Element = HTMLElement>(sel: string): T => root.querySelector<T>(sel)!;
+    const $$ = <T extends Element = HTMLElement>(sel: string): T[] => Array.from(root.querySelectorAll<T>(sel));
+
+    const mapEl = $('[data-map]');
+    const overlay = $<SVGSVGElement>('[data-overlay]');
+    const tip = $('[data-tip]');
+    const findWrap = $('[data-find]');
+    const findInput = $<HTMLElement & { value: string; placeholder: string }>('[data-find-input]');
+    const results = $('[data-results]');
+    const uploadHint = (document.querySelector<HTMLElement>('[data-dd-bupload]')?.dataset.uploadHint) ?? '';
+
+    // ---- geometry ----------------------------------------------------------
+    const clone = (p: Pt[]): Pt[] => p.map(([x, y]) => [x, y] as Pt);
+    const areaM2 = (p: Pt[]): number => Math.abs(p.reduce((a, [x1, y1], i) => {
+      const [x2, y2] = p[(i + 1) % p.length];
+      return a + x1 * y2 - x2 * y1;
+    }, 0)) / 2;
+    const perim = (p: Pt[]): number => p.reduce((a, [x1, y1], i) => {
+      const [x2, y2] = p[(i + 1) % p.length];
+      return a + Math.hypot(x2 - x1, y2 - y1);
+    }, 0);
+    const SITE_AREA = areaM2(SITE);
+    const SITE_PERIM = perim(SITE);
+    // Scaled to the site's recorded acres and perimeter so the untouched site reads exactly.
+    const acresOf = (p: Pt[]): number => (p.length < 3 ? 0 : model.acres * areaM2(p) / SITE_AREA);
+    const milesOf = (p: Pt[]): number => model.perimeterMi * perim(p) / SITE_PERIM;
+    const parcelBy = (apn: string): ParcelModel => model.parcels.find((p) => p.apn === apn)!;
+    const siteApns = model.parcels.filter((p) => p.inSite).map((p) => p.apn);
+
+    // ---- state -------------------------------------------------------------
+    let mode: Mode = getState().boundary === 'defined' ? 'edit' : 'idle';
+    let saved: Pt[] = clone(SITE);
+    let poly: Pt[] = clone(saved);
+    let drawPts: Pt[] = [];
+    let drawClosed = false;
+    let pointer: Pt | null = null;
+    let sel: string[] = [];
+    let dragIdx: number | null = null;
+    let findApn: string | null = null;
+    let pin: Pt | null = null;
+    let previewName = '';
+    let chooserError: { name: string; message: string } | null = null;
+
+    let snaps: Snap[] = [];
+    let sIdx = 0;
+    const snap = (): Snap => ({ poly: clone(poly), drawPts: clone(drawPts), drawClosed, sel: [...sel] });
+    const resetHist = (): void => { snaps = [snap()]; sIdx = 0; };
+    const commit = (): void => { snaps = snaps.slice(0, sIdx + 1); snaps.push(snap()); sIdx = snaps.length - 1; };
+    const restore = (s: Snap): void => { poly = clone(s.poly); drawPts = clone(s.drawPts); drawClosed = s.drawClosed; sel = [...s.sel]; };
+    resetHist();
+
+    const defined = (): boolean => getState().boundary === 'defined';
+    const resting = (): Mode => (defined() ? 'view' : 'idle');
+
+    // ---- view (zoom) -------------------------------------------------------
+    const BASE = model.view;
+    const HOME: Pt = [BASE[0] + BASE[2] / 2, BASE[1] + BASE[3] / 2];
+    let zoom = 1;
+    let center: Pt = [...HOME];
+    const svgs = $$<SVGSVGElement>('svg[data-dd-map], svg[data-overlay]');
+    const unit = (): number => { const m = overlay.getScreenCTM(); return m && m.a ? 1 / m.a : 4; };
+    const toSvg = (e: MouseEvent): Pt => {
+      const m = overlay.getScreenCTM();
+      if (!m) return [0, 0];
+      const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+      return [Math.round(p.x), Math.round(p.y)];
+    };
+    const applyView = (): void => {
+      const w = BASE[2] / zoom;
+      const h = BASE[3] / zoom;
+      const vb = `${center[0] - w / 2} ${center[1] - h / 2} ${w} ${h}`;
+      svgs.forEach((s) => s.setAttribute('viewBox', vb));
+      renderScale();
+      renderOverlay();
+    };
+    const renderScale = (): void => {
+      const ftPerPx = unit() * 3.28084;
+      const steps = [100, 200, 500, 1000, 2000, 5000, 10000, 20000];
+      const ft = steps.filter((s) => s / ftPerPx <= 96).pop() ?? steps[0];
+      $('[data-scale-bar]').style.width = `${Math.round(ft / ftPerPx)}px`;
+      $('[data-scale-label]').textContent = `${ft.toLocaleString('en-US')} ft`;
+    };
+
+    // ---- overlay -----------------------------------------------------------
+    const num = (p: Pt, n: number | string, u: number, cls = ''): string =>
+      `<g class="num ${cls}"><circle cx="${p[0]}" cy="${p[1]}" r="${9 * u}"/><text x="${p[0]}" y="${p[1]}" font-size="${11 * u}" dy="0.36em" text-anchor="middle">${n}</text></g>`;
+
+    function renderOverlay(): void {
+      const u = unit();
+      let s = '';
+      if (mode === 'parcels') {
+        model.parcels.forEach((p) => {
+          s += `<path class="pc${sel.includes(p.apn) ? ' is-sel' : ''}" data-apn="${p.apn}" d="${polyPath(p.pts)}"/>`;
+        });
+        sel.forEach((apn, i) => { s += num(parcelBy(apn).label, i + 1, u); });
+      }
+      if (findApn) {
+        const p = parcelBy(findApn);
+        s += `<path class="find" d="${polyPath(p.pts)}"/>`;
+        s += `<g class="pin" transform="translate(${p.label[0] - 12 * u} ${p.label[1] - 22 * u}) scale(${u})">${iconSvg('map-pin', 24, 1.75)}</g>`;
+      }
+      if (pin) {
+        s += `<g class="pin" transform="translate(${pin[0] - 12 * u} ${pin[1] - 22 * u}) scale(${u})">${iconSvg('map-pin', 24, 1.75)}</g>`;
+      }
+      if (mode === 'view' || mode === 'edit') {
+        s += `<path class="site" d="${polyPath(poly)}"/>`;
+        model.parcels.filter((p) => p.inSite).forEach((p, i) => { s += num(p.label, i + 1, u); });
+      }
+      if (mode === 'preview') s += `<path class="site site--preview" d="${polyPath(SITE)}"/>`;
+      if (mode === 'edit') {
+        poly.forEach(([x1, y1], i) => {
+          const [x2, y2] = poly[(i + 1) % poly.length];
+          s += `<circle class="mid" data-mid="${i}" cx="${(x1 + x2) / 2}" cy="${(y1 + y2) / 2}" r="${3.5 * u}"/>`;
+        });
+        poly.forEach(([x, y], i) => { s += `<circle class="vtx" data-vtx="${i}" cx="${x}" cy="${y}" r="${5 * u}"/>`; });
+      }
+      if (mode === 'draw') {
+        if (drawClosed) {
+          s += `<path class="site" d="${polyPath(drawPts)}"/>`;
+        } else {
+          const last = drawPts[drawPts.length - 1];
+          if (pointer && drawPts.length >= 2) s += `<path class="draw-fill" d="${polyPath([...drawPts, pointer])}"/>`;
+          if (drawPts.length >= 2) s += `<path class="draw-line" d="${linePath(drawPts)}"/>`;
+          if (pointer && last) {
+            s += `<path class="draw-band" d="${linePath([last, pointer])}"/>`;
+            if (drawPts.length >= 2) s += `<path class="draw-band draw-band--faint" d="${linePath([pointer, drawPts[0]])}"/>`;
+          }
+        }
+        drawPts.forEach(([x, y], i) => {
+          s += `<circle class="vtx${i === 0 && !drawClosed ? ' vtx--first' : ''}" cx="${x}" cy="${y}" r="${(i === 0 && !drawClosed ? 6 : 4.5) * u}"/>`;
+        });
+      }
+      overlay.innerHTML = s;
+    }
+
+    // ---- chrome ------------------------------------------------------------
+    const toolBtn = (t: string): HTMLButtonElement => $<HTMLButtonElement>(`[data-tool="${t}"]`);
+    const setPressed = (b: HTMLButtonElement, on: boolean): void => {
+      b.setAttribute('aria-pressed', String(on));
+      b.closest('.esa-button')?.classList.toggle('esa-button--active', on);
+    };
+    const setDisabled = (b: HTMLButtonElement | null, off: boolean): void => {
+      if (!b) return;
+      b.disabled = off;
+      b.closest('.esa-button')?.classList.toggle('esa-button--disabled', off);
+    };
+
+    function renderChrome(): void {
+      const isDef = defined();
+      root.dataset.mode = mode;
+      const showTools = (isDef && mode !== 'preview') || mode === 'draw' || mode === 'parcels';
+      $('[data-tools]').hidden = !showTools || mode === 'idle';
+      setPressed(toolBtn('edit'), mode === 'edit');
+      setPressed(toolBtn('draw'), mode === 'draw');
+      setPressed(toolBtn('parcels'), mode === 'parcels');
+      setDisabled(toolBtn('edit'), !isDef);
+      $('[data-draw-label]').textContent = isDef ? 'Draw New' : 'Draw Area';
+      const histMode = mode === 'edit' || mode === 'draw' || mode === 'parcels';
+      setDisabled($<HTMLButtonElement>('[data-act="undo"]'), !histMode || sIdx === 0);
+      setDisabled($<HTMLButtonElement>('[data-act="redo"]'), !histMode || sIdx >= snaps.length - 1);
+      setDisabled($<HTMLButtonElement>('[data-act="delete"]'), !(isDef && (mode === 'view' || mode === 'edit')));
+
+      findWrap.classList.toggle('is-left', mode === 'idle' || mode === 'preview');
+
+      $$('[data-hint]').forEach((h) => { h.hidden = h.dataset.hint !== mode; });
+      const drawDone = root.querySelector<HTMLButtonElement>('[data-hint="draw"] [data-act="done"]');
+      const drawDoneWrap = drawDone?.closest<HTMLElement>('.esa-button');
+      if (drawDoneWrap) drawDoneWrap.hidden = !drawClosed;
+      setDisabled(root.querySelector<HTMLButtonElement>('[data-hint="parcels"] [data-act="done"]'), sel.length === 0);
+      $('[data-preview-name]').textContent = previewName;
+
+      $('[data-chooser]').hidden = mode !== 'idle';
+      $('[data-chooser-error]').hidden = !chooserError;
+      if (chooserError) {
+        $('[data-error-title]').textContent = `Couldn't read ${chooserError.name}`;
+        $('[data-error-text]').textContent = chooserError.message;
+      }
+    }
+
+    // ---- side panel --------------------------------------------------------
+    const countBadge = (n: number): Node => {
+      const frag = ($<HTMLTemplateElement>('[data-tpl-count]')).content.cloneNode(true) as DocumentFragment;
+      const t = frag.querySelector('.esa-badge__text');
+      if (t) t.textContent = String(n);
+      return frag;
+    };
+
+    function renderPanel(): void {
+      const isDef = defined();
+      const badge = mode === 'idle' ? 'none' : mode === 'draw' || mode === 'parcels' ? 'editing' : mode === 'preview' ? 'preview' : '';
+      $$('[data-badge]').forEach((b) => { b.hidden = b.dataset.badge !== badge; });
+
+      let ac: number | null = null;
+      let mi: number | null = null;
+      let decimals = 0;
+      let empty: [string, string] | null = null;
+      if (mode === 'view' || mode === 'edit') { ac = acresOf(poly); mi = milesOf(poly); }
+      if (mode === 'preview') { ac = model.acres; mi = model.perimeterMi; }
+      if (mode === 'draw') {
+        if (drawClosed) { ac = acresOf(drawPts); mi = milesOf(drawPts); }
+        else empty = ['No area drawn yet', drawPts.length ? `${drawPts.length} ${drawPts.length === 1 ? 'corner' : 'corners'}` : ''];
+      }
+      if (mode === 'parcels') {
+        if (sel.length) { ac = sel.reduce((a, apn) => a + parcelBy(apn).acres, 0); decimals = 1; }
+        else empty = ['No parcels selected yet', ''];
+      }
+      $('[data-p-stat]').hidden = ac === null;
+      if (ac !== null) {
+        $('[data-stat-ac]').textContent = `${ac.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })} ac`;
+        $('[data-stat-sqmi]').textContent = `${(ac / 640).toFixed(2)} sq mi`;
+      }
+      $('[data-p-empty]').hidden = !empty;
+      if (empty) {
+        $('[data-empty-title]').textContent = empty[0];
+        $('[data-empty-sub]').textContent = empty[1];
+        $('[data-empty-sub]').hidden = !empty[1];
+      }
+
+      $('[data-county-locked]').hidden = !isDef;
+      $('[data-county-select]').hidden = isDef;
+      $('[data-p-perimeter]').hidden = mi === null;
+      if (mi !== null) $('[data-perimeter]').textContent = `${mi.toFixed(1)} mi`;
+
+      $('[data-p-crossed]').hidden = !(mode === 'view' || mode === 'edit');
+      $('[data-p-affects]').hidden = mode !== 'edit';
+
+      const selGroup = $('[data-p-selected]');
+      selGroup.hidden = !(mode === 'parcels' && sel.length > 0);
+      if (!selGroup.hidden) {
+        const c = $('[data-selected-count]');
+        c.replaceChildren(countBadge(sel.length));
+        const list = $('[data-selected-list]');
+        list.replaceChildren(...sel.map((apn, i) => {
+          const p = parcelBy(apn);
+          const li = document.createElement('li');
+          li.className = 'dd-bmap__sel';
+          li.innerHTML = `<span class="dd-bmap__num dd-bmap__num--brand dd-t-12-strong">${i + 1}</span><span class="dd-t-mono dd-bmap__sel-apn">${p.short}</span><span class="dd-t-13">${p.acres.toFixed(1)} ac</span>`;
+          const rm = ($<HTMLTemplateElement>('[data-tpl-remove]')).content.cloneNode(true) as DocumentFragment;
+          const btn = rm.querySelector('button');
+          if (btn) { btn.setAttribute('aria-label', `Remove ${p.short}`); btn.title = `Remove ${p.short}`; btn.dataset.remove = apn; }
+          li.append(rm);
+          return li;
+        }));
+      }
+    }
+
+    function render(): void { renderOverlay(); renderChrome(); renderPanel(); }
+
+    // ---- modes -------------------------------------------------------------
+    const go = (m: Mode): void => { mode = m; findApn = null; render(); };
+    const enterEdit = (): void => { poly = clone(saved); resetHist(); go('edit'); };
+    const enterDraw = (): void => { drawPts = []; drawClosed = false; pointer = null; resetHist(); go('draw'); };
+    const enterParcels = (initial: string[]): void => { sel = [...initial]; resetHist(); go('parcels'); };
+
+    const saveBoundary = (shape: Pt[]): void => {
+      saved = clone(shape);
+      poly = clone(shape);
+      chooserError = null;
+      mode = 'view';
+      resetFind();
+      setState({ boundary: 'defined' });
+      markStale('boundary');
+      toast('Saved');
+      render();
+    };
+
+    const confirmClear = $<HTMLElement & { open: boolean }>('[data-confirm-clear]');
+    confirmClear.addEventListener('confirm', () => {
+      confirmClear.open = false;
+      mode = 'idle'; chooserError = null;
+      resetFind();
+      setState({ boundary: 'none' });
+      toast('Saved');
+      render();
+    });
+
+    const done = (): void => {
+      if (mode === 'edit') saveBoundary(poly);
+      else if (mode === 'draw' && drawClosed) saveBoundary(SITE);
+      else if (mode === 'parcels' && sel.length) saveBoundary(SITE);
+      else if (mode === 'preview') {
+        window.dispatchEvent(new CustomEvent(BOUNDARY_CURRENT_EVENT, { detail: { name: previewName } }));
+        saveBoundary(SITE);
+      }
+    };
+    const cancel = (): void => {
+      if (mode === 'edit') poly = clone(saved);
+      go(resting());
+    };
+
+    const undo = (): void => { if (sIdx > 0) { sIdx -= 1; restore(snaps[sIdx]); render(); } };
+    const redo = (): void => { if (sIdx < snaps.length - 1) { sIdx += 1; restore(snaps[sIdx]); render(); } };
+
+    root.addEventListener('click', (e) => {
+      const t = e.target as Element;
+      const tool = t.closest<HTMLElement>('[data-tool]')?.dataset.tool;
+      if (tool === 'edit') return enterEdit();
+      if (tool === 'draw') return enterDraw();
+      if (tool === 'parcels') return enterParcels(defined() ? siteApns : []);
+      const way = t.closest<HTMLElement>('[data-way]')?.dataset.way;
+      if (way === 'draw') return enterDraw();
+      if (way === 'parcels') return enterParcels([]);
+      if (way === 'upload') { window.dispatchEvent(new CustomEvent(BOUNDARY_BROWSE_EVENT)); return; }
+      if (way === 'sample') return saveBoundary(SITE);
+      const remove = t.closest<HTMLElement>('[data-remove]')?.dataset.remove;
+      if (remove) { sel = sel.filter((a) => a !== remove); commit(); render(); return; }
+      const act = t.closest<HTMLElement>('[data-act]')?.dataset.act;
+      switch (act) {
+        case 'undo': return undo();
+        case 'redo': return redo();
+        case 'delete':
+          confirmClear.open = true;
+          return;
+        case 'zoom-in': zoom = Math.min(6, zoom * 1.5); return applyView();
+        case 'zoom-out': zoom = Math.max(0.67, zoom / 1.5); return applyView();
+        case 'fit': zoom = 1; center = [...HOME]; return applyView();
+        case 'cancel': return cancel();
+        case 'done': return done();
+      }
+    });
+
+    // ---- map pointer -------------------------------------------------------
+    const showTip = (e: MouseEvent, html: string): void => {
+      const r = mapEl.getBoundingClientRect();
+      tip.innerHTML = html;
+      tip.style.left = `${e.clientX - r.left + 14}px`;
+      tip.style.top = `${e.clientY - r.top + 14}px`;
+      tip.hidden = false;
+    };
+    const hideTip = (): void => { tip.hidden = true; };
+
+    overlay.addEventListener('pointerdown', (e) => {
+      if (mode !== 'edit') return;
+      const t = e.target as Element;
+      const v = t.closest<SVGElement>('[data-vtx]');
+      const m = t.closest<SVGElement>('[data-mid]');
+      if (!v && !m) return;
+      e.preventDefault();
+      if (v) dragIdx = Number(v.dataset.vtx);
+      else if (m) {
+        const i = Number(m.dataset.mid);
+        poly.splice(i + 1, 0, toSvg(e));
+        dragIdx = i + 1;
+      }
+      overlay.setPointerCapture(e.pointerId);
+      hideTip();
+      renderOverlay();
+    });
+
+    overlay.addEventListener('pointermove', (e) => {
+      const t = e.target as Element;
+      if (mode === 'edit') {
+        if (dragIdx !== null) {
+          poly[dragIdx] = toSvg(e);
+          renderOverlay();
+          renderPanel();
+          return;
+        }
+        if (t.closest('[data-vtx], [data-mid]')) showTip(e, 'Drag to Move'); else hideTip();
+        return;
+      }
+      if (mode === 'draw' && !drawClosed) {
+        pointer = toSvg(e);
+        renderOverlay();
+        const last = drawPts[drawPts.length - 1];
+        if (last) {
+          const ft = Math.round((Math.hypot(pointer[0] - last[0], pointer[1] - last[1]) * 3.28084) / 10) * 10;
+          showTip(e, `${ft.toLocaleString('en-US')} ft`);
+        } else hideTip();
+        return;
+      }
+      if (mode === 'parcels') {
+        const apn = t.closest<SVGElement>('[data-apn]')?.dataset.apn;
+        if (apn) {
+          const p = parcelBy(apn);
+          showTip(e, `<span class="dd-t-mono">${p.short}</span> <span class="dd-bmap__tip-sub">${p.acres.toFixed(1)} ac</span>`);
+        } else hideTip();
+      }
+    });
+
+    overlay.addEventListener('pointerup', (e) => {
+      if (dragIdx === null) return;
+      dragIdx = null;
+      overlay.releasePointerCapture(e.pointerId);
+      commit();
+      render();
+    });
+
+    overlay.addEventListener('pointerleave', () => {
+      hideTip();
+      if (mode === 'draw' && pointer) { pointer = null; renderOverlay(); }
+    });
+
+    const closeDraw = (): void => {
+      if (drawPts.length < 3 || drawClosed) return;
+      drawClosed = true; pointer = null; hideTip(); commit(); render();
+    };
+
+    overlay.addEventListener('click', (e) => {
+      if (mode === 'draw' && !drawClosed) {
+        const p = toSvg(e);
+        const first = drawPts[0];
+        if (first && drawPts.length >= 3 && Math.hypot(p[0] - first[0], p[1] - first[1]) / unit() < 10) return closeDraw();
+        drawPts.push(p);
+        commit();
+        render();
+        return;
+      }
+      if (mode === 'parcels') {
+        const apn = (e.target as Element).closest<SVGElement>('[data-apn]')?.dataset.apn;
+        if (!apn) return;
+        sel = sel.includes(apn) ? sel.filter((a) => a !== apn) : [...sel, apn];
+        commit();
+        render();
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (mode === 'draw' && e.key === 'Enter') closeDraw();
+    });
+
+    // ---- files -------------------------------------------------------------
+    mapEl.addEventListener('dragover', (e) => { e.preventDefault(); });
+    mapEl.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const f = e.dataTransfer?.files?.[0];
+      if (f) emitBoundaryFile(readBoundaryFile(f, uploadHint));
+    });
+    window.addEventListener(BOUNDARY_FILE_EVENT, (e) => {
+      const r = (e as CustomEvent<BoundaryFileResult>).detail;
+      if (r.ok) { chooserError = null; previewName = r.name; go('preview'); return; }
+      if (!defined()) { chooserError = { name: r.name, message: r.message }; go('idle'); }
+    });
+
+    // ---- find --------------------------------------------------------------
+    const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+    const closeResults = (): void => { results.hidden = true; findWrap.classList.remove('is-open'); };
+    function resetFind(): void {
+      findInput.value = '';
+      findInput.placeholder = 'Find an Address or APN';
+      findApn = null;
+      pin = null;
+      closeResults();
+    }
+
+    function runFind(raw: string): void {
+      const q = raw.trim();
+      findApn = null;
+      if (!q) { pin = null; closeResults(); renderOverlay(); return; }
+      const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+      const alpha = words.filter((w) => /[a-z]/.test(w));
+      const digits = words.filter((w) => !/[a-z]/.test(w)).join('').replace(/\D/g, '');
+      const houseNo = words.find((w) => /^\d+$/.test(w));
+      const hits = model.parcels.filter((p) => {
+        if (alpha.length) {
+          const situs = p.situs?.toLowerCase() ?? '';
+          return !!situs && alpha.every((w) => situs.includes(w)) && (!houseNo || situs.startsWith(`${houseNo} `));
+        }
+        return digits.length >= 3 && p.apn.replace(/\D/g, '').includes(digits);
+      });
+      const street = 'grant line rd';
+      const addrHit = alpha.length > 0 && alpha.every((w) => street.includes(w));
+      const addr = `${houseNo ? `${houseNo} ` : ''}Grant Line Rd`;
+
+      let html = '';
+      if (!hits.length && !addrHit) {
+        const example = model.parcels.find((p) => p.inSite)?.short ?? '';
+        html = `<div class="no-match"><span class="dd-t-14-medium">No parcel or address matched</span><span class="dd-t-13 dd-bmap__muted">Check the spelling, or search by APN, like ${example}.</span></div>`;
+      } else {
+        if (hits.length) {
+          html += `<div class="group-h dd-t-13-medium">Parcels <span data-count="${hits.length}"></span></div>`;
+          html += hits.map((p) => `<div class="hit" data-hit-apn="${p.apn}">${iconSvg('layers', 16)}<span class="hit-text"><span class="dd-t-mono">${p.short}</span><span class="dd-t-12 dd-bmap__muted">${p.situs ? `${esc(p.situs)} · ` : ''}${p.acres.toFixed(1)} ac</span></span><span data-add-slot></span></div>`).join('');
+        }
+        if (addrHit) {
+          html += `<div class="group-h dd-t-13-medium">Addresses <span data-count="2"></span></div>`;
+          html += `<button type="button" class="hit hit--addr" data-addr>${iconSvg('map-pin', 16)}<span class="hit-text"><span class="dd-t-14">${esc(addr)}, Elk Grove, CA</span><span class="dd-t-12 dd-bmap__muted">Not in the county's parcel data: shows the spot on the map</span></span></button>`;
+          html += `<div class="hit hit--off">${iconSvg('map-pin', 16)}<span class="hit-text"><span class="dd-t-14">${esc(addr)}, Livermore, CA</span><span class="dd-t-12">${esc(model.otherCounty)}</span></span></div>`;
+        }
+      }
+      results.innerHTML = html;
+      results.querySelectorAll<HTMLElement>('[data-count]').forEach((c) => c.replaceWith(countBadge(Number(c.dataset.count))));
+      results.querySelectorAll<HTMLElement>('[data-hit-apn]').forEach((row) => {
+        const slot = row.querySelector('[data-add-slot]')!;
+        if (defined() && siteApns.includes(row.dataset.hitApn!) && mode !== 'parcels' || (mode === 'parcels' && sel.includes(row.dataset.hitApn!))) {
+          slot.replaceWith(Object.assign(document.createElement('span'), { className: 'in-area dd-t-13', textContent: 'In the Area' }));
+          return;
+        }
+        const frag = ($<HTMLTemplateElement>('[data-tpl-add]')).content.cloneNode(true) as DocumentFragment;
+        frag.querySelector('button')?.setAttribute('data-add', row.dataset.hitApn!);
+        slot.replaceWith(frag);
+      });
+      results.hidden = false;
+      findWrap.classList.add('is-open');
+      findApn = hits[0]?.apn ?? null;
+      renderOverlay();
+    }
+
+    findInput.addEventListener('change', (e) => runFind((e as CustomEvent<{ value: string }>).detail?.value ?? findInput.value));
+    findInput.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Escape') { closeResults(); findApn = null; renderOverlay(); } });
+    findInput.addEventListener('focusin', () => { if (findInput.value?.trim()) runFind(findInput.value); });
+    results.addEventListener('pointerover', (e) => {
+      const apn = (e.target as Element).closest<HTMLElement>('[data-hit-apn]')?.dataset.hitApn;
+      if (apn && apn !== findApn) { findApn = apn; renderOverlay(); }
+    });
+    results.addEventListener('click', (e) => {
+      const t = e.target as Element;
+      const add = t.closest<HTMLElement>('[data-add]')?.dataset.add;
+      if (add) {
+        const base = mode === 'parcels' ? sel : defined() ? siteApns : [];
+        closeResults();
+        pin = null;
+        enterParcels(base.includes(add) ? base : [...base, add]);
+        return;
+      }
+      if (t.closest('[data-addr]')) {
+        pin = [1050, -300];
+        findApn = null;
+        closeResults();
+        renderOverlay();
+      }
+    });
+    document.addEventListener('pointerdown', (e) => {
+      if (!results.hidden && !findWrap.contains(e.target as Node)) { closeResults(); findApn = null; renderOverlay(); }
+    });
+
+    // ---- basemap, county ---------------------------------------------------
+    $('[data-basemap]').addEventListener('change', (e) => {
+      const v = (e as CustomEvent<{ value: string }>).detail.value;
+      $$('[data-base]').forEach((b) => { b.hidden = b.dataset.base !== v; });
+    });
+    const countySel = $<HTMLElement & { value: string | string[] | null }>('[data-county]');
+    customElements.whenDefined('esa-select').then(() => { countySel.value = model.county; });
+    countySel.addEventListener('change', () => toast('Saved'));
+
+    // ---- shared state ------------------------------------------------------
+    onState((s) => {
+      if (s.boundary === 'none' && (mode === 'view' || mode === 'edit')) mode = 'idle';
+      if (s.boundary === 'defined' && mode === 'idle') mode = 'view';
+      render();
+    });
+    new ResizeObserver(() => { renderScale(); renderOverlay(); }).observe(mapEl);
+    renderScale();
+    render();
+  }
+</script>
+
+<style>
+  .dd-bmap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 356px;
+    height: 600px;
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .dd-bmap :global([hidden]) { display: none !important; }
+
+  /* ---- map ---- */
+  .dd-bmap__map { position: relative; overflow: hidden; min-width: 0; }
+  .dd-bmap__base { position: absolute; inset: 0; }
+  /* Both basemaps share pattern ids; a display:none svg stops its patterns
+     painting for the other, so the inactive one is transparent, not removed. */
+  .dd-bmap .dd-bmap__base[hidden] { display: block !important; opacity: 0; pointer-events: none; }
+  .dd-bmap__overlay { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .dd-bmap[data-mode='draw'] .dd-bmap__overlay { cursor: crosshair; }
+  .dd-bmap[data-mode='parcels'] .dd-bmap__overlay { cursor: pointer; }
+
+  .dd-bmap__overlay :global(*) { vector-effect: non-scaling-stroke; }
+  .dd-bmap__overlay :global(.site) { fill: rgb(255 122 89 / 0.55); stroke: var(--dd-brand-solid); stroke-width: 1.5; stroke-linejoin: round; }
+  .dd-bmap__overlay :global(.site--preview) { fill: rgb(63 104 207 / 0.12); stroke-dasharray: 6 4; }
+  .dd-bmap__overlay :global(.pc) { fill: rgb(255 255 255 / 0.01); stroke: var(--dd-brand-solid); stroke-width: 1; stroke-opacity: 0.55; }
+  .dd-bmap__overlay :global(.pc:hover) { fill: rgb(39 42 48 / 0.08); stroke-opacity: 1; stroke-width: 1.5; }
+  .dd-bmap__overlay :global(.pc.is-sel) { fill: rgb(255 122 89 / 0.55); stroke-opacity: 1; stroke-width: 1.5; }
+  .dd-bmap__overlay :global(.find) { fill: rgb(63 104 207 / 0.16); stroke: var(--dd-brand-solid); stroke-width: 1.5; stroke-dasharray: 5 4; pointer-events: none; }
+  .dd-bmap__overlay :global(.pin) { color: var(--dd-brand-solid); pointer-events: none; }
+  .dd-bmap__overlay :global(.pin svg) { overflow: visible; }
+  .dd-bmap__overlay :global(.pin path) { fill: var(--dd-surface-raised); }
+  .dd-bmap__overlay :global(.num) { pointer-events: none; }
+  .dd-bmap__overlay :global(.num circle) { fill: var(--dd-surface-raised); stroke: var(--dd-data-on-site-label); stroke-width: 1; }
+  .dd-bmap__overlay :global(.num text) { fill: var(--dd-data-on-site-label); font-family: var(--dd-font-sans); font-weight: 600; }
+  .dd-bmap__overlay :global(.vtx) { fill: var(--dd-surface-raised); stroke: var(--dd-brand-solid); stroke-width: 1.5; cursor: grab; }
+  .dd-bmap__overlay :global(.vtx--first) { stroke-width: 2; cursor: pointer; }
+  .dd-bmap__overlay :global(.mid) { fill: var(--dd-surface-raised); stroke: var(--dd-brand-solid); stroke-width: 1; cursor: grab; }
+  .dd-bmap__overlay :global(.draw-fill) { fill: rgb(63 104 207 / 0.14); stroke: none; pointer-events: none; }
+  .dd-bmap__overlay :global(.draw-line) { fill: none; stroke: var(--dd-brand-solid); stroke-width: 1.5; pointer-events: none; }
+  .dd-bmap__overlay :global(.draw-band) { fill: none; stroke: var(--dd-brand-solid); stroke-width: 1.5; stroke-dasharray: 4 4; pointer-events: none; }
+  .dd-bmap__overlay :global(.draw-band--faint) { stroke-opacity: 0.4; }
+
+  /* floating chrome */
+  .dd-bmap__tools,
+  .dd-bmap__zoom,
+  .dd-bmap__hint,
+  .dd-bmap__chooser,
+  .dd-bmap__results {
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+    box-shadow: var(--dd-shadow-popover);
+  }
+  .dd-bmap__tools {
+    position: absolute; top: 16px; left: 16px; z-index: 2;
+    display: flex; align-items: center; gap: 2px; padding: 4px;
+  }
+  .dd-bmap__tools-sep { width: 1px; height: 20px; margin: 0 4px; background: var(--dd-border-subtle); }
+  .dd-bmap__tools :global(.esa-button__label) { display: inline-flex; align-items: center; gap: 6px; }
+  .dd-bmap__tools :global(.esa-button--active .esa-button__native) { background: var(--dd-brand-surface); color: var(--dd-brand-text); }
+  .dd-bmap__tools :global(.esa-button__native:disabled) { color: var(--dd-text-subtle); opacity: 0.6; }
+
+  .dd-bmap__find { position: absolute; top: 16px; right: 16px; z-index: 3; width: 232px; display: flex; flex-direction: column; gap: 8px; }
+  .dd-bmap__find.is-left { right: auto; left: 16px; }
+  .dd-bmap__find.is-open { width: 468px; }
+  .dd-bmap__find esa-text-field {
+    --form-border-color-focus: var(--dd-brand-solid);
+    --form-border-color: var(--dd-border-subtle);
+    --color-background-field: var(--dd-surface-raised);
+    border-radius: 8px;
+    box-shadow: var(--dd-shadow-popover);
+  }
+  .dd-bmap__results { padding: 4px 0; max-height: 360px; overflow-y: auto; }
+  .dd-bmap__results :global(.group-h) { display: flex; align-items: center; gap: 6px; padding: 8px 12px 4px; color: var(--dd-text-muted); }
+  .dd-bmap__results :global(.hit) {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 8px 12px; border: 0; background: none; text-align: left; color: var(--dd-text); font: inherit;
+  }
+  .dd-bmap__results :global(.hit > svg) { flex: none; color: var(--dd-text-muted); }
+  .dd-bmap__results :global(.hit:hover) { background: var(--dd-surface-hover); }
+  .dd-bmap__results :global(.hit--addr) { cursor: pointer; }
+  .dd-bmap__results :global(.hit--off) { color: var(--dd-text-subtle); }
+  .dd-bmap__results :global(.hit--off:hover) { background: none; }
+  .dd-bmap__results :global(.hit-text) { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .dd-bmap__results :global(.in-area) { flex: none; padding-right: 4px; color: var(--dd-text-muted); }
+  .dd-bmap__results :global(.no-match) { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; }
+
+  .dd-bmap__zoom { position: absolute; top: 64px; right: 16px; z-index: 1; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  .dd-bmap__zoom :global(.dd-icon-button) { border-radius: 0; }
+  .dd-bmap__zoom :global(.dd-icon-button + .dd-icon-button) { border-top: 1px solid var(--dd-border-subtle); }
+
+  .dd-bmap__scale {
+    position: absolute; right: 16px; bottom: 60px; z-index: 1;
+    display: flex; align-items: center; gap: 6px; padding: 2px 6px;
+    background: rgb(255 255 255 / 0.72); border-radius: 4px; color: var(--dd-text);
+  }
+  .dd-bmap__scale-bar { height: 6px; border: 1px solid var(--dd-text); border-top: 0; }
+  .dd-bmap__basemap { position: absolute; right: 16px; bottom: 16px; z-index: 1; }
+
+  .dd-bmap__hint {
+    position: absolute; left: 16px; bottom: 16px; z-index: 2; max-width: calc(100% - 172px);
+    display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 14px;
+  }
+  .dd-bmap__hint-text { color: var(--dd-text); margin-right: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dd-bmap__hint-file { display: flex; flex-direction: column; margin-right: 24px; color: var(--dd-text); }
+
+  .dd-bmap__chooser {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2;
+    width: 360px; padding: 8px; display: flex; flex-direction: column;
+  }
+  .dd-bmap__way {
+    display: flex; align-items: center; gap: 14px; padding: 10px 12px;
+    border: 0; border-radius: 6px; background: none; text-align: left; color: var(--dd-text); cursor: pointer; font: inherit;
+  }
+  .dd-bmap__way:hover, .dd-bmap__way:focus-visible { background: var(--dd-surface-hover); }
+  .dd-bmap__way > span:last-child { display: flex; flex-direction: column; }
+  .dd-bmap__way-icon {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 32px; height: 32px; border-radius: 6px; background: var(--dd-brand-surface); color: var(--dd-brand-text);
+  }
+  .dd-bmap__chooser-foot { margin: 4px 0 0; padding: 10px 12px 4px; border-top: 1px solid var(--dd-border-subtle); color: var(--dd-text-muted); }
+  .dd-bmap__chooser-error {
+    display: flex; gap: 10px; align-items: flex-start; padding: 12px; margin-bottom: 4px;
+    border-radius: 6px; background: var(--dd-danger-surface); color: var(--dd-danger-text);
+  }
+  .dd-bmap__chooser-error > span:last-child { display: flex; flex-direction: column; gap: 2px; }
+  .dd-bmap__chooser-error [data-error-text] { color: var(--dd-text); }
+
+  .dd-bmap__tip {
+    position: absolute; z-index: 4; pointer-events: none; white-space: nowrap;
+    padding: 4px 8px; border-radius: 4px; background: var(--dd-text); color: var(--dd-on-brand);
+  }
+  .dd-bmap__tip :global(.dd-bmap__tip-sub) { opacity: 0.75; margin-left: 4px; }
+
+  /* ---- side panel ---- */
+  .dd-bmap__panel {
+    /* neutral pane divider between map and panel, not a status indicator */
+    box-shadow: inset 1px 0 0 var(--dd-border-subtle);
+    padding: 20px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 0;
+  }
+  .dd-bmap__head { display: flex; align-items: center; gap: 8px; }
+  .dd-bmap__h { margin: 0; color: var(--dd-text); }
+  .dd-bmap__state { display: inline-flex; }
+  .dd-bmap__state :global(.esa-badge),
+  .dd-bmap__impact :global(.esa-badge),
+  .dd-bmap__group-h :global(.esa-badge) { border-radius: 4px; border-color: transparent; padding: 1px 6px; }
+  .dd-bmap__state :global(.esa-badge--neutral) { --badge-bg: var(--dd-border-subtle); --badge-text-color: var(--dd-text-muted); --badge-border-color: transparent; }
+  .dd-bmap__state--brand :global(.esa-badge),
+  .dd-bmap__impact :global(.esa-badge--info) { --_badge-bg: var(--dd-brand-surface); --_badge-text: var(--dd-brand-text); --_badge-border: transparent; }
+  .dd-bmap__impact :global(.esa-badge--warning) { --_badge-bg: var(--dd-warning-surface); --_badge-text: var(--dd-warning-text); --_badge-border: transparent; }
+
+  .dd-bmap__stat { display: flex; align-items: baseline; gap: 8px; padding: 8px 0 10px; border-bottom: 1px solid var(--dd-border-subtle); color: var(--dd-text); }
+  .dd-bmap__empty { display: flex; flex-direction: column; gap: 2px; padding: 10px 0 14px; border-bottom: 1px solid var(--dd-border-subtle); color: var(--dd-text); }
+  .dd-bmap__muted { color: var(--dd-text-muted); }
+
+  .dd-bmap__rows { margin: 0; }
+  .dd-bmap__row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    min-height: 37px; padding: 4px 0; border-bottom: 1px solid var(--dd-border-subtle);
+  }
+  .dd-bmap__row dd { margin: 0; color: var(--dd-text); text-align: right; }
+  .dd-bmap__row esa-select { display: block; min-width: 186px; }
+  .dd-bmap__locked { display: inline-flex; align-items: center; gap: 6px; }
+
+  .dd-bmap__group { padding-top: 16px; }
+  .dd-bmap__group-h { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; color: var(--dd-text); }
+  .dd-bmap__list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--dd-border-subtle); }
+  .dd-bmap__parcel {
+    display: flex; align-items: center; gap: 10px; padding: 6px 0;
+    border-bottom: 1px solid var(--dd-border-subtle); color: var(--dd-text);
+  }
+  .dd-bmap__parcel:last-child { border-bottom: 0; }
+  .dd-bmap__parcel-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .dd-bmap__num {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--dd-data-on-site-label);
+    color: var(--dd-data-on-site-label); background: var(--dd-surface-raised);
+  }
+  .dd-bmap__list :global(.dd-bmap__sel) {
+    display: flex; align-items: center; gap: 10px; padding: 6px 0;
+    border-bottom: 1px solid var(--dd-border-subtle); color: var(--dd-text);
+  }
+  .dd-bmap__list :global(.dd-bmap__sel-apn) { flex: 1; }
+  .dd-bmap__list :global(.dd-bmap__num) {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--dd-data-on-site-label);
+    color: var(--dd-data-on-site-label); background: var(--dd-surface-raised);
+  }
+
+  .dd-bmap__affects { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .dd-bmap__affect { display: flex; align-items: center; gap: 10px; color: var(--dd-text); }
+  .dd-bmap__affect > :global(.dd-icon) { color: var(--dd-text-muted); }
+  .dd-bmap__impact { margin-left: auto; display: inline-flex; }
+</style>

@@ -1,0 +1,744 @@
+---
+// DdGeoMap: the Geospatial step's one map card. DdMap fills the card; the site
+// (coral) and its distance rings sit under the layer overlays the panel turns
+// on and off. Floating over it: the Layers / Legend panel, the place search,
+// zoom / identify / measure / fit controls, the Identify card, the imagery
+// toggle with a scale bar, and Zoom To.
+//
+// bcn-lego-checked: no esa- lego is a map or map chrome. Controls are legos
+// (esa-text-field, esa-button-toggle, DdIconButton); the floating cards
+// (Identify, layer info, reload tip) are positioned in the card by script
+// because esa-popover / esa-tooltip anchor inside their trigger's box and the
+// trigger sits in the panel's scrolling tree, which clips them. The imagery
+// toggle is a thumbnail button (two DdMap thumbs), which no lego draws.
+import DdMap from '../common/DdMap.astro';
+import DdIcon from '../common/DdIcon.astro';
+import DdIconButton from '../common/DdIconButton.astro';
+import DdGeoPanel from './DdGeoPanel.astro';
+import { SITE_PATH, MI } from '../../lib/map-geometry';
+import { layers, run, project } from '../../data/dd';
+import { milesLabel } from '../../lib/dd-store';
+import {
+  LAYER_DRAW, DEFAULT_VISIBLE, defaultOpacity, type Shape, type ShapeRole,
+} from './geo-config';
+
+interface Props {
+  /** Site name drawn on the parcel. */
+  siteLabel?: string;
+}
+const { siteLabel = project.ProjectName } = Astro.props;
+
+const LOWER: ShapeRole[] = ['area', 'outline', 'band'];
+const visible = new Set(DEFAULT_VISIBLE);
+const drawn = layers.filter((l) => LAYER_DRAW[l.id]);
+const groupsFor = (lower: boolean) =>
+  drawn
+    .map((l) => ({
+      layer: l,
+      shapes: LAYER_DRAW[l.id].shapes.filter((s) => LOWER.includes(s.role) === lower),
+    }))
+    .filter((g) => g.shapes.length > 0);
+const lowerGroups = groupsFor(true);
+const upperGroups = groupsFor(false);
+
+// Rings: stroke the site path by 2 × d (metres); outline drawn through a mask.
+const U0 = 8.3; // metres per screen px at the default 1 mi zoom
+const ringData = run.miles.map((m, i) => ({
+  miles: m,
+  label: milesLabel(m),
+  w: 2 * m * MI,
+  o: (i === 0 ? 1.5 : 1.25) * U0,
+  inner: i === 0,
+}));
+const SITE_TOP = -621;
+const BIG = 40000;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const profileHref = `${base}/app/cottonwood/site-profile/`;
+
+const shapeAttrs = (s: Shape) => ({
+  d: s.d,
+  style: `--c: ${s.color}`,
+  'data-feature': s.feature,
+});
+---
+<section class="geo" data-geo aria-label="Geospatial Map">
+  <div class="geo__map" data-map-wrap>
+    <DdMap view="geospatial" px={1060} label={`Map of the ${siteLabel} site and its layers`}>
+      <defs>
+        {ringData.map((r, i) => (
+          <mask id={`geo-ring-${i}`} maskUnits="userSpaceOnUse" x={-BIG} y={-BIG} width={2 * BIG} height={2 * BIG}>
+            <path d={SITE_PATH} fill="white" stroke="white" stroke-linejoin="round" stroke-width={r.w + 2 * r.o} data-ring-outer={r.w} data-ring-o={i === 0 ? 1.5 : 1.25} />
+            <path d={SITE_PATH} fill="black" stroke="black" stroke-linejoin="round" stroke-width={r.w} />
+          </mask>
+        ))}
+      </defs>
+
+      <g class="geo-lower">
+        {lowerGroups.map(({ layer, shapes }) => (
+          <g class="geo-g" data-layer-g={layer.id} style={`opacity: ${defaultOpacity(layer) / 100}`} display={visible.has(layer.id) ? undefined : 'none'}>
+            {shapes.map((s) => (
+              s.role === 'band'
+                ? <path class="geo-shape geo-shape--band" stroke-width={s.bandWidth} {...shapeAttrs(s)} />
+                : <path class={`geo-shape geo-shape--${s.role}`} {...shapeAttrs(s)} />
+            ))}
+          </g>
+        ))}
+      </g>
+
+      <g class="geo-rings">
+        {ringData.filter((r) => r.inner).map((r) => (
+          <path class="geo-ring-fill" d={SITE_PATH} stroke-width={r.w} />
+        ))}
+        {ringData.map((r, i) => (
+          <rect class:list={['geo-ring-line', { 'geo-ring-line--inner': r.inner }]} x={-BIG} y={-BIG} width={2 * BIG} height={2 * BIG} mask={`url(#geo-ring-${i})`} />
+        ))}
+      </g>
+
+      <path class="geo-site" d={SITE_PATH} />
+
+      <g class="geo-upper">
+        {upperGroups.map(({ layer, shapes }) => (
+          <g class="geo-g" data-layer-g={layer.id} style={`opacity: ${defaultOpacity(layer) / 100}`} display={visible.has(layer.id) ? undefined : 'none'}>
+            {shapes.map((s) => (
+              s.role === 'rail' ? (
+                <>
+                  <path class="geo-shape geo-shape--rail" {...shapeAttrs(s)} />
+                  <path class="geo-shape geo-shape--rail-ties" d={s.d} style={`--c: ${s.color}`} />
+                </>
+              ) : s.role === 'point' ? (
+                <>
+                  <path class="geo-shape geo-shape--point-halo" d={s.d} />
+                  <path class="geo-shape geo-shape--point" {...shapeAttrs(s)} />
+                </>
+              ) : (
+                <>
+                  <path class="geo-shape geo-shape--hit" d={s.d} data-feature={s.feature} />
+                  <path class={`geo-shape geo-shape--${s.role}`} {...shapeAttrs(s)} />
+                </>
+              )
+            ))}
+          </g>
+        ))}
+      </g>
+
+      <g class="geo-measure" data-measure-g display="none">
+        <path class="geo-measure__line" data-measure-line d="" />
+        <path class="geo-measure__pt" data-measure-pts d="" />
+      </g>
+    </DdMap>
+  </div>
+
+  <div class="geo__labels" aria-hidden="true">
+    <span class="geo-site-label dd-t-12-strong" data-at={`-60,40`}>{siteLabel}</span>
+    {ringData.map((r) => (
+      <span class="geo-ring-chip dd-t-12-strong" data-at={`-60,${SITE_TOP - r.miles * MI}`}>{r.label}</span>
+    ))}
+    <span class="geo-ring-chip geo-measure-chip dd-t-12-strong" data-measure-label hidden></span>
+  </div>
+
+  <DdGeoPanel />
+
+  <div class="geo-search">
+    <span class="geo-search__icon"><DdIcon name="search" size="sm" /></span>
+    <esa-text-field size="sm" prefix=" " placeholder="Search Places and Addresses" aria-label="Search Places and Addresses" data-place-search></esa-text-field>
+  </div>
+
+  <div class="geo-loading dd-t-13-medium" data-loading hidden>
+    <span class="geo-loading__spin"><DdIcon name="loader-circle" size="sm" /></span>
+    Loading Layers <span class="geo-loading__count dd-t-12-strong" data-loading-count></span>
+  </div>
+
+  <div class="geo-controls">
+    <div class="geo-controls__stack">
+      <DdIconButton icon="plus" label="Zoom In" data-zoom="in" />
+      <DdIconButton icon="minus" label="Zoom Out" data-zoom="out" />
+    </div>
+    <div class="geo-controls__stack" role="group" aria-label="Map Tools">
+      <DdIconButton icon="mouse-pointer-click" label="Identify" pressed={true} data-tool="identify" />
+      <DdIconButton icon="ruler" label="Measure" pressed={false} data-tool="measure" />
+    </div>
+    <div class="geo-controls__stack">
+      <DdIconButton icon="scan" label="Fit to Site" data-fit />
+    </div>
+  </div>
+
+  <aside class="geo-card geo-identify" data-identify aria-label="Identify" hidden>
+    <div class="geo-identify__top">
+      <div class="geo-identify__layer dd-t-12-strong">
+        <span class="geo-identify__swatch" data-id-swatch></span>
+        <span data-id-layer></span>
+      </div>
+      <h3 class="dd-t-16-strong geo-identify__name" data-id-name></h3>
+      <p class="dd-t-mono geo-identify__code" data-id-code></p>
+      <div class="geo-identify__share" data-id-share>
+        <div class="geo-identify__share-row dd-t-13">
+          <span><strong class="dd-t-14-strong" data-id-acres></strong> on site</span>
+          <span class="geo-identify__muted" data-id-total></span>
+        </div>
+        <div class="geo-identify__bar"><span data-id-bar></span></div>
+      </div>
+      <DdIconButton icon="x" label="Close" size="sm" class="geo-identify__close" data-id-close />
+    </div>
+    <dl class="geo-identify__rows dd-t-13" data-id-rows></dl>
+    <footer class="geo-identify__foot">
+      <a class="geo-link dd-t-13-medium" href={profileHref} data-id-link>Show in Site Profile <DdIcon name="arrow-right" size="xs" /></a>
+    </footer>
+  </aside>
+
+  <aside class="geo-card geo-info" data-info aria-label="Layer Information" hidden>
+    <h3 class="dd-t-14-strong geo-info__title" data-info-title></h3>
+    <dl class="geo-identify__rows dd-t-13" data-info-rows></dl>
+    <a class="geo-link dd-t-13-medium" href={profileHref} data-info-link>Show in Site Profile <DdIcon name="arrow-right" size="xs" /></a>
+  </aside>
+
+  <div class="geo-tip dd-t-12" role="tooltip" data-tip hidden></div>
+
+  <div class="geo-bottom-left">
+    <button type="button" class="geo-imagery" aria-pressed="false" data-imagery>
+      <span class="geo-imagery__thumb" data-thumb="imagery"><DdMap view="thumb" px={52} imagery={true} labels={false} label="Imagery" /></span>
+      <span class="geo-imagery__thumb" data-thumb="map" hidden><DdMap view="thumb" px={52} labels={false} label="Map" /></span>
+      <span class="geo-imagery__label dd-t-12-strong" data-imagery-label>Imagery</span>
+    </button>
+    <div class="geo-scale dd-t-12">
+      <span class="geo-scale__bar" data-scale-bar></span>
+      <span data-scale-label>½ mi</span>
+    </div>
+  </div>
+
+  <div class="geo-zoomto">
+    <span class="dd-t-12 geo-zoomto__label">Zoom To</span>
+    <esa-button-toggle size="xs" value="1" aria-label="Zoom To" data-zoom-to></esa-button-toggle>
+  </div>
+</section>
+
+<style>
+  .geo {
+    position: relative;
+    height: 840px;
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--dd-map-land);
+    isolation: isolate;
+  }
+  .geo__map { position: absolute; inset: 0; }
+  .geo__map[data-tool='measure'] { cursor: crosshair; }
+  .geo__map[data-tool='identify'] .geo-shape[data-feature] { cursor: pointer; }
+
+  /* ---- Overlays (inside DdMap's svg; my own scope) ---- */
+  .geo-g.is-loading { display: none; }
+  .geo-shape { vector-effect: non-scaling-stroke; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+  .geo-shape--area { fill: var(--c); fill-opacity: 0.32; stroke: var(--c); stroke-width: 1; }
+  .geo-shape--outline { stroke: var(--c); stroke-width: 1.5; stroke-dasharray: 8 5; }
+  .geo-shape--band { vector-effect: none; stroke: var(--c); stroke-opacity: 0.28; }
+  .geo-shape--patch { fill: var(--c); fill-opacity: 0.85; stroke: var(--c); stroke-width: 1.25; }
+  .geo-shape--line { stroke: var(--c); stroke-width: 2; }
+  .geo-shape--dash { stroke: var(--c); stroke-width: 2; stroke-dasharray: 7 5; }
+  .geo-shape--rail { stroke: var(--c); stroke-width: 1.5; }
+  .geo-shape--rail-ties { stroke: var(--c); stroke-width: 7; stroke-dasharray: 1 6; stroke-linecap: butt; pointer-events: none; }
+  .geo-shape--point-halo { stroke: var(--dd-surface-raised); stroke-width: 14; }
+  .geo-shape--point { stroke: var(--c); stroke-width: 10; }
+  .geo-shape--hit { stroke: transparent; stroke-width: 12; }
+  .geo-shape--hit:not([data-feature]) { pointer-events: none; }
+  .geo-shape.is-identified { stroke: var(--dd-brand-solid); stroke-width: 2.5; }
+  .geo-shape--area.is-identified,
+  .geo-shape--outline.is-identified { stroke-width: 2; }
+
+  .geo-ring-fill { fill: var(--dd-data-nearby-far); stroke: var(--dd-data-nearby-far); stroke-linejoin: round; opacity: 0.4; pointer-events: none; }
+  .geo-ring-line { fill: var(--dd-data-nearby-far); pointer-events: none; }
+  .geo-ring-line--inner { fill: var(--dd-data-nearby); }
+  .geo-site { fill: var(--dd-data-on-site); stroke: var(--dd-accent-text); stroke-opacity: 0.55; stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: none; }
+  .geo-measure__line { fill: none; stroke: var(--dd-brand-solid); stroke-width: 2; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; pointer-events: none; }
+  .geo-measure__pt { fill: none; stroke: var(--dd-brand-solid); stroke-width: 8; stroke-linecap: round; vector-effect: non-scaling-stroke; pointer-events: none; }
+
+  /* ---- Labels pinned to map coordinates ---- */
+  .geo__labels { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+  .geo__labels > span { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); white-space: nowrap; }
+  .geo__labels > span[hidden] { display: none; }
+  .geo-site-label { color: var(--dd-data-on-site-label); }
+  .geo-ring-chip {
+    padding: 1px 5px;
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-brand-border);
+    border-radius: 4px;
+    color: var(--dd-text);
+  }
+  .geo-measure-chip { border-color: var(--dd-brand-solid); color: var(--dd-brand-text); }
+
+  /* ---- Floating chrome ---- */
+  .geo-search { position: absolute; top: 16px; left: 404px; width: 320px; z-index: 2; }
+  .geo-search esa-text-field {
+    display: block;
+    --form-affix-bg: transparent;
+    --form-affix-border-color: transparent;
+    --color-background-field: var(--dd-surface-raised);
+    filter: drop-shadow(0 1px 2px rgb(39 42 48 / 0.08));
+  }
+  .geo-search__icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--dd-text-muted); z-index: 1; display: inline-flex; pointer-events: none; }
+
+  .geo-loading {
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 30px;
+    padding: 0 8px 0 10px;
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 6px;
+    box-shadow: var(--dd-shadow-popover);
+    color: var(--dd-text);
+  }
+  .geo-loading[hidden] { display: none; }
+  .geo-loading__spin { display: inline-flex; color: var(--dd-text-muted); animation: geo-spin 900ms linear infinite; }
+  .geo-loading__count { padding: 0 6px; background: var(--dd-border-subtle); border-radius: 4px; color: var(--dd-text-muted); }
+  @keyframes geo-spin { to { transform: rotate(360deg); } }
+
+  .geo-controls {
+    position: absolute;
+    top: 16px;
+    right: 326px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .geo-controls__stack {
+    display: flex;
+    flex-direction: column;
+    padding: 2px;
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgb(39 42 48 / 0.08);
+    color: var(--dd-text-muted);
+  }
+
+  .geo-card {
+    position: absolute;
+    z-index: 4;
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+    box-shadow: var(--dd-shadow-popover);
+    color: var(--dd-text);
+  }
+  .geo-card[hidden] { display: none; }
+
+  .geo-identify { top: 16px; right: 16px; width: 298px; }
+  .geo-identify__top { position: relative; padding: 14px 14px 14px; border-bottom: 1px solid var(--dd-border-subtle); }
+  .geo-identify__top :global(.geo-identify__close) { position: absolute; top: 8px; right: 8px; color: var(--dd-text-muted); }
+  .geo-identify__layer { display: flex; align-items: center; gap: 8px; padding-right: 28px; color: var(--dd-text-muted); }
+  .geo-identify__swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; background: color-mix(in srgb, var(--c, var(--dd-border)) 70%, transparent); border: 1px solid var(--c, var(--dd-border)); box-sizing: border-box; }
+  .geo-identify__swatch[data-kind='line'] { height: 0; border-width: 2px 0 0; border-radius: 0; background: none; }
+  .geo-identify__name { margin: 8px 0 0; }
+  .geo-identify__code { margin: 4px 0 0; color: var(--dd-text-muted); }
+  .geo-identify__code:empty { display: none; }
+  .geo-identify__share { margin-top: 16px; }
+  .geo-identify__share[hidden] { display: none; }
+  .geo-identify__share-row { display: flex; justify-content: space-between; align-items: baseline; color: var(--dd-text-muted); }
+  .geo-identify__share-row strong { color: var(--dd-text); margin-right: 4px; }
+  .geo-identify__muted { color: var(--dd-text-muted); }
+  .geo-identify__bar { display: flex; height: 8px; margin-top: 8px; background: var(--dd-data-not-found); border-radius: 2px; overflow: hidden; }
+  .geo-identify__bar span { display: block; height: 100%; background: var(--dd-data-on-site); border-right: 2px solid var(--dd-surface-raised); }
+  .geo-identify__rows {
+    display: grid;
+    grid-template-columns: 108px 1fr;
+    gap: 8px 0;
+    margin: 0;
+    padding: 14px;
+  }
+  .geo-identify__rows :global(dt) { color: var(--dd-text-muted); }
+  .geo-identify__rows :global(dd) { margin: 0; color: var(--dd-text); }
+  .geo-identify__foot { padding: 12px 14px; border-top: 1px solid var(--dd-border-subtle); }
+  .geo-link { display: inline-flex; align-items: center; gap: 6px; color: var(--dd-brand-text); text-decoration: none; }
+  .geo-link:hover { text-decoration: underline; }
+
+  .geo-info { width: 262px; padding: 14px; }
+  .geo-info__title { margin: 0; }
+  .geo-info .geo-identify__rows { padding: 10px 0 12px; grid-template-columns: 76px 1fr; }
+
+  .geo-tip {
+    position: absolute;
+    z-index: 5;
+    max-width: 240px;
+    padding: 6px 10px;
+    background: var(--dd-chrome-pager-bg);
+    color: var(--dd-chrome-pager-text);
+    border-radius: 6px;
+    pointer-events: none;
+  }
+  .geo-tip[hidden] { display: none; }
+
+  .geo-bottom-left { position: absolute; left: 16px; bottom: 16px; z-index: 2; display: flex; align-items: flex-end; gap: 10px; }
+  .geo-imagery {
+    position: relative;
+    width: 54px;
+    height: 54px;
+    padding: 0;
+    border: 2px solid var(--dd-surface-raised);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: var(--dd-shadow-popover);
+    cursor: pointer;
+    background: var(--dd-map-land);
+  }
+  .geo-imagery:focus-visible { outline: 2px solid var(--dd-focus-ring); outline-offset: 2px; }
+  .geo-imagery__thumb { position: absolute; inset: 0; display: block; }
+  .geo-imagery__thumb[hidden] { display: none; }
+  .geo-imagery__label {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 1px 0 2px;
+    background: linear-gradient(transparent, rgb(39 42 48 / 0.55));
+    color: var(--dd-on-brand);
+    text-align: center;
+  }
+  .geo-scale {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 24px;
+    padding: 0 8px;
+    background: color-mix(in srgb, var(--dd-surface-raised) 88%, transparent);
+    border-radius: 4px;
+    color: var(--dd-text);
+  }
+  .geo-scale__bar { display: block; width: 100px; height: 6px; border: 1.5px solid var(--dd-text-muted); border-top: 0; box-sizing: border-box; }
+
+  .geo-zoomto {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 2px 2px 10px;
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgb(39 42 48 / 0.08);
+  }
+  .geo-zoomto__label { color: var(--dd-text); margin-right: 4px; }
+  .geo-zoomto esa-button-toggle {
+    --color-background-elevation-sunken: transparent;
+    --form-border-color: transparent;
+    --color-background-elevation-raised: var(--dd-surface-selected);
+    --color-content-brand: var(--dd-text);
+  }
+</style>
+
+<script>
+  import '@esa/ecology/esa-text-field';
+  import '@esa/ecology/esa-button-toggle';
+  import { MI } from '../../lib/map-geometry';
+  import { layers } from '../../data/dd';
+  import { IDENTIFY, LAYER_DRAW, ZOOM_TO, DEFAULT_ZOOM, clientLayers, loadedLabel, type IdentifyFeature } from './geo-config';
+  import { geo, onGeo, setGeo, onGeoRequest, LOADED_KEY, type GeoState } from './geo-store';
+  import { getState, lockRedirect } from '../../lib/dd-store';
+  import { withBase } from '../../lib/base';
+
+  // Geospatial needs a complete run; a locked URL goes back to setup.
+  const locked = lockRedirect('results');
+  if (locked) location.replace(withBase(locked));
+
+  type Toggle = HTMLElement & { options: { label: string; value: string }[]; value: string };
+
+  const root = document.querySelector<HTMLElement>('[data-geo]');
+  const svg = root?.querySelector<SVGSVGElement>('[data-map-wrap] svg[data-dd-map]');
+  if (root && svg && !locked) {
+    const wrap = root.querySelector<HTMLElement>('[data-map-wrap]')!;
+    const $ = <T extends Element = HTMLElement>(sel: string): T | null => root.querySelector<T>(sel);
+
+    // ---- Measure -----------------------------------------------------------------
+    let pts: [number, number][] = [];
+    const mg = svg.querySelector<SVGGElement>('[data-measure-g]')!;
+    const mLine = svg.querySelector<SVGPathElement>('[data-measure-line]')!;
+    const mPts = svg.querySelector<SVGPathElement>('[data-measure-pts]')!;
+    const mLabel = $('[data-measure-label]')!;
+    function drawMeasure(): void {
+      if (pts.length === 0) { mg.setAttribute('display', 'none'); mLabel.hidden = true; return; }
+      mg.removeAttribute('display');
+      mPts.setAttribute('d', pts.map(([x, y]) => `M${x} ${y}h0.01`).join(''));
+      mLine.setAttribute('d', pts.length === 2 ? `M${pts[0][0]} ${pts[0][1]}L${pts[1][0]} ${pts[1][1]}` : '');
+      if (pts.length === 2) {
+        const miles = Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]) / MI;
+        mLabel.textContent = `${miles < 10 ? miles.toFixed(2) : miles.toFixed(1)} mi`;
+        mLabel.dataset.at = `${(pts[0][0] + pts[1][0]) / 2},${(pts[0][1] + pts[1][1]) / 2}`;
+        mLabel.hidden = false;
+        placeMeasureLabel();
+      } else {
+        mLabel.hidden = true;
+      }
+    }
+    function placeMeasureLabel(): void {
+      if (!mLabel || mLabel.hidden || !mLabel.dataset.at) return;
+      const [x, y] = mLabel.dataset.at.split(',').map(Number);
+      const [px, py] = project(x, y);
+      mLabel.style.transform = `translate(${px}px, ${py - 14}px) translate(-50%, -50%)`;
+    }
+    function clearMeasure(): void { pts = []; drawMeasure(); }
+
+    // ---- View ------------------------------------------------------------------
+    let cx = 0;
+    let cy = 0;
+    let mpp = 8.3; // metres per screen px
+
+    const zoomTo = $<Toggle>('[data-zoom-to]');
+    if (zoomTo) zoomTo.options = ZOOM_TO.map(({ label, value }) => ({ label, value }));
+
+    const project = (x: number, y: number): [number, number] => {
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
+      return [w / 2 + (x - cx) / mpp, h / 2 + (y - cy) / mpp];
+    };
+    const unproject = (px: number, py: number): [number, number] => {
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
+      return [cx + (px - w / 2) * mpp, cy + (py - h / 2) * mpp];
+    };
+
+    const scaleSteps: [number, string][] = [[1 / 8, '⅛ mi'], [1 / 4, '¼ mi'], [1 / 2, '½ mi'], [1, '1 mi'], [2, '2 mi'], [5, '5 mi'], [10, '10 mi']];
+    const scaleBar = $('[data-scale-bar]');
+    const scaleLabel = $('[data-scale-label]');
+    const mapLabels = svg.querySelector<SVGGElement>('.dd-map__labels');
+
+    function applyView(): void {
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
+      const vw = w * mpp;
+      const vh = h * mpp;
+      svg!.setAttribute('viewBox', `${cx - vw / 2} ${cy - vh / 2} ${vw} ${vh}`);
+      mapLabels?.setAttribute('font-size', String(11 * mpp));
+      svg!.querySelectorAll<SVGPathElement>('[data-ring-outer]').forEach((p) => {
+        const inner = Number(p.dataset.ringOuter);
+        p.setAttribute('stroke-width', String(inner + 2 * Number(p.dataset.ringO) * mpp));
+      });
+      root!.querySelectorAll<HTMLElement>('[data-at]').forEach((el) => {
+        const [x, y] = (el.dataset.at ?? '0,0').split(',').map(Number);
+        const [px, py] = project(x, y);
+        el.style.transform = `translate(${px}px, ${py}px) translate(-50%, -50%)`;
+      });
+      // Scale bar: the largest step that fits in 120px.
+      const fit = scaleSteps.filter(([mi]) => (mi * MI) / mpp <= 120);
+      const [mi, label] = fit[fit.length - 1] ?? scaleSteps[0];
+      if (scaleBar) scaleBar.style.width = `${Math.round((mi * MI) / mpp)}px`;
+      if (scaleLabel) scaleLabel.textContent = label;
+      placeMeasureLabel();
+    }
+
+    function setZoom(value: string): void {
+      const z = ZOOM_TO.find((v) => v.value === value);
+      if (!z) return;
+      cx = 0;
+      cy = 0;
+      mpp = Math.max(z.w / wrap.clientWidth, z.h / wrap.clientHeight);
+      if (zoomTo) zoomTo.value = value;
+      applyView();
+    }
+
+    zoomTo?.addEventListener('change', (e) => setZoom((e as CustomEvent<{ value: string }>).detail.value));
+    root.querySelectorAll<HTMLElement>('[data-zoom]').forEach((b) =>
+      b.addEventListener('click', () => {
+        mpp = Math.min(60, Math.max(1.2, mpp * (b.dataset.zoom === 'in' ? 1 / 1.5 : 1.5)));
+        if (zoomTo) zoomTo.value = '';
+        applyView();
+      }),
+    );
+    $('[data-fit]')?.addEventListener('click', () => setZoom('site'));
+    new ResizeObserver(() => applyView()).observe(wrap);
+
+    // ---- Imagery ---------------------------------------------------------------
+    const bg = svg.querySelector<SVGRectElement>(':scope > rect');
+    const imageryBtn = $<HTMLButtonElement>('[data-imagery]');
+    imageryBtn?.addEventListener('click', () => {
+      const on = imageryBtn.getAttribute('aria-pressed') !== 'true';
+      imageryBtn.setAttribute('aria-pressed', String(on));
+      const fill = bg?.getAttribute('fill') ?? '';
+      bg?.setAttribute('fill', on ? fill.replace('-fields)', '-imagery)') : fill.replace('-imagery)', '-fields)'));
+      svg.classList.toggle('dd-map--imagery', on);
+      $('[data-thumb="imagery"]')!.hidden = on;
+      $('[data-thumb="map"]')!.hidden = !on;
+      const lbl = $('[data-imagery-label]');
+      if (lbl) lbl.textContent = on ? 'Map' : 'Imagery';
+    });
+
+    // ---- Layers: visibility and opacity ----------------------------------------
+    const groups = [...svg.querySelectorAll<SVGGElement>('[data-layer-g]')];
+    const render = (s: GeoState): void => {
+      const vis = new Set(s.visible);
+      groups.forEach((g) => {
+        const id = Number(g.dataset.layerG);
+        if (vis.has(id)) g.removeAttribute('display');
+        else g.setAttribute('display', 'none');
+        g.classList.toggle('is-loading', s.loading);
+        g.style.opacity = String((s.opacity[id] ?? 100) / 100);
+      });
+      // An identified feature whose layer is turned off closes its card.
+      if (current && !vis.has(IDENTIFY[current]?.layerId ?? -1)) closeIdentify();
+    };
+
+    // ---- Identify ----------------------------------------------------------------
+    let current: string | null = null;
+    const card = $('[data-identify]')!;
+    const layerOf = (id: number) => layers.find((l) => l.id === id);
+
+    function openIdentify(key: string): void {
+      const f: IdentifyFeature | undefined = IDENTIFY[key];
+      const l = f && layerOf(f.layerId);
+      if (!f || !l) return;
+      current = key;
+      svg!.querySelectorAll('.is-identified').forEach((el) => el.classList.remove('is-identified'));
+      svg!.querySelectorAll(`.geo-shape[data-feature="${key}"]:not(.geo-shape--hit)`).forEach((el) => el.classList.add('is-identified'));
+
+      const shape = LAYER_DRAW[l.id]?.shapes.find((s) => s.feature === key);
+      const sw = $('[data-id-swatch]')!;
+      sw.style.setProperty('--c', shape?.color ?? 'var(--dd-border)');
+      sw.dataset.kind = shape && ['line', 'dash', 'rail'].includes(shape.role) ? 'line' : 'fill';
+      $('[data-id-layer]')!.textContent = l.name;
+      $('[data-id-name]')!.textContent = f.name;
+      $('[data-id-code]')!.textContent = f.code ?? '';
+      const share = $('[data-id-share]')!;
+      share.hidden = !f.onSite;
+      if (f.onSite) {
+        $('[data-id-acres]')!.textContent = `${f.onSite.acres} ac`;
+        $('[data-id-total]')!.textContent = `of ${f.onSite.total} ac`;
+        $('[data-id-bar]')!.style.width = `${(f.onSite.acres / f.onSite.total) * 100}%`;
+      }
+      fillRows($('[data-id-rows]')!, [...f.rows, ['Agency', l.sourceAgency], ['Loaded', loadedLabel(l)]]);
+      $<HTMLAnchorElement>('[data-id-link]')!.hash = `layer-${l.id}`;
+      card.hidden = false;
+    }
+    function closeIdentify(): void {
+      current = null;
+      card.hidden = true;
+      svg!.querySelectorAll('.is-identified').forEach((el) => el.classList.remove('is-identified'));
+    }
+    function fillRows(dl: HTMLElement, rows: [string, string][]): void {
+      dl.replaceChildren(
+        ...rows.flatMap(([k, v]) => {
+          const dt = document.createElement('dt');
+          dt.textContent = k;
+          const dd = document.createElement('dd');
+          dd.textContent = v;
+          return [dt, dd];
+        }),
+      );
+    }
+    $('[data-id-close]')?.addEventListener('click', closeIdentify);
+
+    // ---- Tools -------------------------------------------------------------------
+    let tool: 'identify' | 'measure' | null = 'identify';
+    const toolBtns = [...root.querySelectorAll<HTMLElement>('[data-tool]')];
+    const setTool = (t: typeof tool): void => {
+      tool = t;
+      toolBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tool === t)));
+      if (t) wrap.dataset.tool = t;
+      else delete wrap.dataset.tool;
+      if (t !== 'measure') clearMeasure();
+    };
+    toolBtns.forEach((b) =>
+      b.addEventListener('click', () => setTool(tool === b.dataset.tool ? null : (b.dataset.tool as typeof tool))),
+    );
+    setTool('identify');
+
+    svg.addEventListener('click', (e) => {
+      const r = wrap.getBoundingClientRect();
+      if (tool === 'measure') {
+        const p = unproject(e.clientX - r.left, e.clientY - r.top);
+        pts = pts.length >= 2 ? [p] : [...pts, p];
+        drawMeasure();
+        return;
+      }
+      if (tool === 'identify') {
+        const hit = (e.target as Element).closest<SVGElement>('[data-feature]');
+        if (hit?.dataset.feature) openIdentify(hit.dataset.feature);
+        else closeIdentify();
+      }
+    });
+
+    // ---- Floaters: layer info and the reload tip ----------------------------------
+    const info = $('[data-info]')!;
+    const tip = $('[data-tip]')!;
+    const panel = $('[data-geo-panel]');
+    onGeoRequest((req) => {
+      const box = root!.getBoundingClientRect();
+      if (req.kind === 'close-floaters') {
+        tip.hidden = true;
+        return;
+      }
+      if (req.kind === 'tip') {
+        tip.textContent = req.text;
+        tip.hidden = false;
+        const left = req.anchor.left + req.anchor.width / 2 - box.left - tip.offsetWidth / 2;
+        tip.style.left = `${Math.max(8, Math.min(left, box.width - tip.offsetWidth - 8))}px`;
+        tip.style.top = `${req.anchor.top - box.top - tip.offsetHeight - 8}px`;
+        return;
+      }
+      if (req.kind === 'info') {
+        const l = clientLayers.find((c) => c.id === req.id);
+        if (!l) return;
+        if (!info.hidden && info.dataset.layer === String(l.id)) { info.hidden = true; return; }
+        info.dataset.layer = String(l.id);
+        $('[data-info-title]')!.textContent = l.name;
+        const rows: [string, string][] = [['Source', l.agency], ['Loaded', l.loaded]];
+        if (l.updates) rows.push(['Updates', l.updates]);
+        fillRows($('[data-info-rows]')!, rows);
+        $<HTMLAnchorElement>('[data-info-link]')!.hash = `layer-${l.id}`;
+        info.hidden = false;
+        const pr = panel?.getBoundingClientRect();
+        info.style.left = `${(pr ? pr.right : req.anchor.right) - box.left + 8}px`;
+        const top = req.anchor.top - box.top - 20;
+        info.style.top = `${Math.max(16, Math.min(top, box.height - info.offsetHeight - 16))}px`;
+      }
+    });
+    document.addEventListener('click', (e) => {
+      if (info.hidden) return;
+      const t = e.target as Element;
+      if (info.contains(t) || t.closest('[data-layer-info]')) return;
+      info.hidden = true;
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (!info.hidden) { info.hidden = true; return; }
+      if (pts.length) { clearMeasure(); return; }
+      if (current) closeIdentify();
+    });
+    // Close the info card when its layer is deselected.
+    onGeo((s) => { if (!info.hidden && s.selected !== Number(info.dataset.layer)) info.hidden = true; });
+
+    // ---- Start -------------------------------------------------------------------
+    onGeo(render);
+    setZoom(DEFAULT_ZOOM);
+    render(geo());
+
+    const openDefault = (): void => {
+      if (geo().visible.includes(10)) openIdentify('nwi-0');
+    };
+    const stamp = String(getState().runStartedAt ?? 'preset');
+    let visited = false;
+    try { visited = sessionStorage.getItem(LOADED_KEY) === stamp; } catch { /* ignore */ }
+    if (visited) {
+      openDefault();
+    } else {
+      const loading = $('[data-loading]')!;
+      const count = $('[data-loading-count]');
+      if (count) count.textContent = String(geo().visible.length);
+      loading.hidden = false;
+      setGeo({ loading: true });
+      window.setTimeout(() => {
+        loading.hidden = true;
+        setGeo({ loading: false });
+        try { sessionStorage.setItem(LOADED_KEY, stamp); } catch { /* ignore */ }
+        openDefault();
+      }, 1600);
+    }
+  }
+</script>

@@ -1,0 +1,437 @@
+---
+// DdProjectsTable: the Projects list. Toolbar (find, county filter, sort)
+// over a table of projects: name and type, county, area, stage, progress
+// through the eight steps with the latest run state, created by and created.
+// Cottonwood opens its Project Details; the other rows are not links in the
+// prototype. `?empty` on the URL shows the No Projects Yet state.
+//
+// bcn-lego-checked: no esa-* data table lego exists (checked esa-card,
+// esa-link-column, esa-pagination, esa-filter-container); the table is plain
+// semantic <table> markup. The step progress strip is eight 3px segments
+// grouped by phase; esa-progress-bar draws one continuous bar and cannot show
+// per-step or stale segments.
+import EsaEmptyState from '@esa/ecology/esa-empty-state.astro';
+import EsaButton from '@esa/ecology/esa-button.astro';
+import EsaPill from '@esa/ecology/esa-pill.astro';
+import DdIcon from '../common/DdIcon.astro';
+import { projects, enums, type ProjectListItem } from '../../data/dd';
+import { typeIcon } from '../details/dd-details-model';
+import { withBase } from '../../lib/base';
+
+type Seg = 'done' | 'active' | 'stale' | 'todo';
+type Tone = 'brand' | 'warning' | 'danger' | 'muted' | 'default';
+
+interface Row {
+  p: ProjectListItem;
+  live: boolean;
+  href: string | null;
+  icon: string;
+  area: string;
+  segs: Seg[][];
+  status: string;
+  tone: Tone;
+  when: string;
+  spin: boolean;
+  updated: number;
+  created: number;
+}
+
+const TZ = 'America/Los_Angeles';
+const shortDate = (iso: string): string =>
+  new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: TZ });
+const shortTime = (iso: string): string =>
+  new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ });
+
+/** Eight steps in three phases (Setup 3, Analysis 3, Report 2). */
+const strip = (done: number, analysis: Seg = 'todo'): Seg[][] => {
+  const all: Seg[] = Array.from({ length: 8 }, (_, i) => (i < done ? 'done' : i >= 3 && i < 6 ? analysis : 'todo'));
+  return [all.slice(0, 3), all.slice(3, 6), all.slice(6)];
+};
+
+const rows: Row[] = projects.map((p) => {
+  const extra = p as ProjectListItem & { updated?: string | null; created?: string };
+  const updated = extra.updated ?? null;
+  let segs: Seg[][];
+  let status: string;
+  let tone: Tone = 'default';
+  let when = '';
+  let spin = false;
+  const live = p.name === 'Cottonwood';
+  if (live) {
+    // Cottonwood follows the prototype state; the client script updates it.
+    // Server render = the default state: boundary defined, report not run.
+    segs = strip(2);
+    status = 'Report Not Run';
+    tone = 'muted';
+  } else if (p.acres === null) {
+    segs = strip(1);
+    status = 'Boundary Not Defined';
+    tone = 'muted';
+  } else if (p.latestRunStatus === 'Running' || p.latestRunStatus === 'Queued') {
+    segs = strip(3, 'active');
+    status = 'Running Report';
+    tone = 'brand';
+    spin = true;
+    when = updated ? shortTime(updated) : '';
+  } else if (p.latestRunStatus === 'Failed') {
+    segs = strip(3);
+    status = 'Report Failed';
+    tone = 'danger';
+    when = updated ? shortDate(updated) : '';
+  } else if (p.latestRunStatus === 'Complete' && p.staleRun) {
+    segs = strip(3, 'stale');
+    status = 'Out of Date';
+    tone = 'warning';
+    when = updated ? shortDate(updated) : '';
+  } else if (p.latestRunStatus === 'Complete') {
+    segs = strip(6);
+    status = 'Report Run';
+    when = updated ? shortDate(updated) : '';
+  } else {
+    segs = strip(3);
+    status = 'Report Not Run';
+    tone = 'muted';
+  }
+  return {
+    p,
+    live,
+    href: p.name === 'Cottonwood' ? withBase('/app/cottonwood/project-details/') : null,
+    icon: typeIcon(p.type),
+    area: p.acres === null ? 'No Area Yet' : `${p.acres.toFixed(1)} ac`,
+    segs,
+    status,
+    tone,
+    when,
+    spin,
+    updated: updated ? Date.parse(updated) : 0,
+    created: extra.created ? Date.parse(extra.created) : 0,
+  };
+});
+
+const counties = [...enums.counties].map((c) => c.name).sort((a, b) => a.localeCompare(b));
+const countyOptions = [{ label: 'All Counties', value: 'all' }, ...counties.map((c) => ({ label: c, value: c }))];
+const sortOptions = [
+  { label: 'Recent Activity', value: 'recent' },
+  { label: 'Name', value: 'name' },
+  { label: 'Created', value: 'created' },
+];
+---
+<script is:inline>
+  if (new URLSearchParams(location.search).has('empty')) document.documentElement.setAttribute('data-dd-projects-empty', '');
+</script>
+
+<section class="dd-projects" data-dd-projects aria-label="Projects">
+  <div class="dd-projects__list">
+    <div class="dd-projects__toolbar">
+      <div class="dd-projects__filters">
+        <esa-text-field class="dd-projects__find" size="sm" aria-label="Find a Project" placeholder="Find a Project" data-find></esa-text-field>
+        <esa-select class="dd-projects__county" size="sm" aria-label="County" options={JSON.stringify(countyOptions)} data-county></esa-select>
+      </div>
+      <esa-select class="dd-projects__sort" size="sm" aria-label="Sort" options={JSON.stringify(sortOptions)} data-sort></esa-select>
+    </div>
+
+    <div class="dd-projects__card">
+      <table class="dd-projects__table">
+        <thead>
+          <tr class="dd-t-13-medium">
+            <th scope="col">Project</th>
+            <th scope="col">County</th>
+            <th scope="col" class="dd-projects__num">Area</th>
+            <th scope="col">Stage</th>
+            <th scope="col">Progress</th>
+            <th scope="col">Created By</th>
+            <th scope="col">Created</th>
+          </tr>
+        </thead>
+        <tbody data-rows>
+          {rows.map((r, i) => (
+            <tr
+              class:list={['dd-projects__row', { 'is-link': r.href }]}
+              data-name={r.p.name.toLowerCase()}
+              data-county={r.p.county}
+              data-order={i}
+              data-updated={r.updated}
+              data-created={r.created}
+              data-live={r.live ? '' : undefined}
+            >
+              <td>
+                <div class="dd-projects__project">
+                  <span class="dd-projects__type-icon"><DdIcon name={r.icon} size="sm" /></span>
+                  <span class="dd-projects__names">
+                    {r.href
+                      ? <a class="dd-projects__name dd-t-14-medium" href={r.href}>{r.p.name}</a>
+                      : <span class="dd-projects__name dd-t-14-medium">{r.p.name}</span>}
+                    <span class="dd-projects__type dd-t-12">{r.p.type}</span>
+                  </span>
+                </div>
+              </td>
+              <td class="dd-t-14">{r.p.county}</td>
+              <td class:list={['dd-projects__num dd-t-14', { 'dd-projects__none': r.p.acres === null }]}>{r.area}</td>
+              <td class="dd-t-14">{r.p.stage}</td>
+              <td>
+                <div class="dd-projects__progress">
+                  <span class="dd-projects__strip" aria-hidden="true">
+                    {r.segs.map((phase) => (
+                      <span class="dd-projects__phase">
+                        {phase.map((s) => <span class:list={['dd-projects__seg', `is-${s}`]} data-seg></span>)}
+                      </span>
+                    ))}
+                  </span>
+                  <span class="dd-projects__status">
+                    <span class:list={['dd-t-13', `dd-projects__tone--${r.tone}`]} data-status>
+                      {(r.spin || r.live) && <span data-spin hidden={!r.spin}><DdIcon name="loader-circle" size="xs" class="dd-projects__spin" /></span>}
+                      <span data-status-text>{r.status}</span>
+                    </span>
+                    {(r.when || r.live) && <span class="dd-t-12 dd-projects__when" data-when>{r.when}</span>}
+                  </span>
+                </div>
+              </td>
+              <td class="dd-t-14">{r.p.createdBy}</td>
+              <td class="dd-t-14">{r.p.createdLabel}</td>
+            </tr>
+          ))}
+          <tr class="dd-projects__nomatch" data-nomatch hidden>
+            <td colspan="7" class="dd-t-14">No projects match. Clear the search or pick All Counties.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="dd-projects__empty">
+    <EsaEmptyState title="No Projects Yet" description="Create one to define its area in a pilot county and screen it.">
+      <span slot="icon" class="dd-projects__empty-icon"><DdIcon name="folder-open" size="sm" /></span>
+      <EsaButton variant="primary" size="sm" data-dd-new-project>
+        <DdIcon name="plus" size="sm" />
+        New Project
+      </EsaButton>
+    </EsaEmptyState>
+    <div class="dd-projects__pilot">
+      <p class="dd-t-12-strong">Pilot Counties</p>
+      <div class="dd-projects__pills">
+        {counties.map((c) => <EsaPill label={c} size="sm" removable={false} />)}
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .dd-projects__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .dd-projects__filters { display: flex; align-items: center; gap: 8px; }
+  .dd-projects__find { width: 280px; }
+  .dd-projects__county { width: 180px; }
+  .dd-projects__sort { width: 170px; }
+
+  .dd-projects__card {
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .dd-projects__table { width: 100%; border-collapse: collapse; }
+  .dd-projects__table th {
+    text-align: left;
+    padding: 10px 12px;
+    color: var(--dd-text-muted);
+    border-bottom: 1px solid var(--dd-border-subtle);
+    white-space: nowrap;
+  }
+  .dd-projects__table td {
+    padding: 12px;
+    color: var(--dd-text);
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  .dd-projects__table th:first-child, .dd-projects__table td:first-child { padding-left: 16px; white-space: normal; }
+  .dd-projects__table th:last-child, .dd-projects__table td:last-child { padding-right: 16px; }
+  .dd-projects__row + .dd-projects__row td { border-top: 1px solid var(--dd-border-subtle); }
+  .dd-projects__table .dd-projects__num { text-align: right; }
+  .dd-projects__table .dd-projects__none { color: var(--dd-text-muted); }
+
+  .dd-projects__row.is-link { position: relative; cursor: pointer; }
+  .dd-projects__row.is-link:hover td { background: var(--dd-surface); }
+  .dd-projects__name { color: var(--dd-text); text-decoration: none; }
+  a.dd-projects__name::after { content: ''; position: absolute; inset: 0; }
+  a.dd-projects__name:hover { color: var(--dd-brand-text); }
+  a.dd-projects__name:focus-visible { outline: 2px solid var(--dd-focus-ring); outline-offset: 2px; border-radius: 2px; }
+
+  .dd-projects__project { display: flex; align-items: center; gap: 12px; }
+  .dd-projects__type-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 6px;
+    color: var(--dd-text-muted);
+    background: var(--dd-surface-raised);
+    flex: none;
+  }
+  .dd-projects__names { display: flex; flex-direction: column; }
+  .dd-projects__type { color: var(--dd-text-muted); }
+
+  .dd-projects__progress { display: flex; flex-direction: column; gap: 6px; }
+  .dd-projects__strip { display: flex; gap: 6px; }
+  .dd-projects__phase { display: flex; gap: 3px; }
+  .dd-projects__seg { width: 16px; height: 3px; border-radius: 2px; background: var(--dd-border); }
+  .dd-projects__seg.is-done { background: var(--dd-brand-solid); }
+  .dd-projects__seg.is-active { background: var(--dd-brand-border); }
+  .dd-projects__seg.is-stale { background: var(--dd-warning-border); }
+  .dd-projects__status { display: flex; align-items: baseline; gap: 6px; }
+  .dd-projects__status > span:first-child { display: inline-flex; align-items: center; gap: 4px; }
+  .dd-projects__when { color: var(--dd-text-muted); }
+  .dd-projects__when:empty { display: none; }
+  [data-spin] { display: inline-flex; }
+  [data-spin][hidden] { display: none; }
+  .dd-projects__tone--brand { color: var(--dd-brand-text); }
+  .dd-projects__tone--warning { color: var(--dd-warning-text); }
+  .dd-projects__tone--danger { color: var(--dd-danger-text); }
+  .dd-projects__tone--muted { color: var(--dd-text-muted); }
+  .dd-projects :global(.dd-projects__spin) { animation: dd-spin 1.2s linear infinite; }
+  @keyframes dd-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .dd-projects :global(.dd-projects__spin) { animation: none; } }
+
+  .dd-projects__nomatch td { color: var(--dd-text-muted); padding: 24px 16px; }
+  .dd-projects__nomatch[hidden] { display: none; }
+
+  .dd-projects__empty {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+    padding: 72px 24px;
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+  }
+  :global(html[data-dd-projects-empty]) .dd-projects__list { display: none; }
+  :global(html[data-dd-projects-empty]) .dd-projects__empty { display: flex; }
+  .dd-projects__empty-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--dd-border);
+    border-radius: 8px;
+    color: var(--dd-text-muted);
+  }
+  .dd-projects__pilot { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .dd-projects__pilot p { margin: 0; color: var(--dd-text-muted); }
+  .dd-projects__pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+</style>
+
+<script>
+  import '@esa/ecology/esa-text-field';
+  import '@esa/ecology/esa-select';
+  import { getState, onState, runStatus, RUN_MS, type DdState } from '../../lib/dd-store';
+  import { nameInnerControls } from '../details/dd-a11y';
+
+  type Seg = 'done' | 'active' | 'stale' | 'todo';
+  type Tone = 'brand' | 'warning' | 'danger' | 'muted' | 'default';
+  const TONES: Tone[] = ['brand', 'warning', 'danger', 'muted', 'default'];
+
+  /** Cottonwood's row tells the truth about the prototype state. */
+  function renderLive(row: HTMLElement, s: DdState): void {
+    const status = runStatus(s);
+    const segsFor = (done: number, analysis: Seg = 'todo'): Seg[] =>
+      Array.from({ length: 8 }, (_, i) => (i < done ? 'done' : i >= 3 && i < 6 ? analysis : 'todo'));
+    let segs: Seg[];
+    let text: string;
+    let tone: Tone = 'default';
+    let when = '';
+    const at = s.runStartedAt;
+    const fmtDate = (ms: number): string => new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (s.boundary !== 'defined') {
+      segs = segsFor(1); text = 'Boundary Not Defined'; tone = 'muted';
+    } else if (status === 'never') {
+      segs = segsFor(2); text = 'Report Not Run'; tone = 'muted';
+    } else if (status === 'queued' || status === 'running') {
+      segs = segsFor(3, 'active'); text = 'Running Report'; tone = 'brand';
+      when = at ? new Date(at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+    } else if (status === 'failed') {
+      segs = segsFor(3); text = 'Report Failed'; tone = 'danger';
+    } else if (s.stale) {
+      segs = segsFor(3, 'stale'); text = 'Out of Date'; tone = 'warning';
+    } else {
+      segs = segsFor(6); text = 'Report Run';
+      when = at ? fmtDate(at + RUN_MS) : '';
+    }
+    row.querySelectorAll<HTMLElement>('[data-seg]').forEach((el, i) => {
+      el.classList.remove('is-done', 'is-active', 'is-stale', 'is-todo');
+      el.classList.add(`is-${segs[i]}`);
+    });
+    const statusEl = row.querySelector<HTMLElement>('[data-status]');
+    if (statusEl) {
+      TONES.forEach((t) => statusEl.classList.remove(`dd-projects__tone--${t}`));
+      statusEl.classList.add(`dd-projects__tone--${tone}`);
+    }
+    const textEl = row.querySelector<HTMLElement>('[data-status-text]');
+    if (textEl) textEl.textContent = text;
+    const spin = row.querySelector<HTMLElement>('[data-spin]');
+    if (spin) spin.hidden = tone !== 'brand';
+    const whenEl = row.querySelector<HTMLElement>('[data-when]');
+    if (whenEl) whenEl.textContent = when;
+  }
+
+  type ValueEl = HTMLElement & { value: string | string[] };
+
+  const root = document.querySelector<HTMLElement>('[data-dd-projects]');
+  if (root) {
+    const find = root.querySelector<ValueEl>('[data-find]')!;
+    const county = root.querySelector<ValueEl>('[data-county]')!;
+    const sort = root.querySelector<ValueEl>('[data-sort]')!;
+    const body = root.querySelector<HTMLElement>('[data-rows]')!;
+    const nomatch = root.querySelector<HTMLElement>('[data-nomatch]')!;
+    const rows = [...body.querySelectorAll<HTMLElement>('.dd-projects__row')];
+
+    const str = (v: string | string[] | undefined): string => (Array.isArray(v) ? v[0] ?? '' : v ?? '');
+
+    function apply(): void {
+      const q = str(find.value).trim().toLowerCase();
+      const c = str(county.value) === 'all' ? '' : str(county.value);
+      const by = str(sort.value) || 'recent';
+      let shown = 0;
+      const sorted = [...rows].sort((a, b) => {
+        if (by === 'name') return (a.dataset.name ?? '').localeCompare(b.dataset.name ?? '');
+        const key = by === 'created' ? 'created' : 'updated';
+        const diff = Number(b.dataset[key]) - Number(a.dataset[key]);
+        return diff || Number(a.dataset.order) - Number(b.dataset.order);
+      });
+      sorted.forEach((r) => {
+        const match = (!q || (r.dataset.name ?? '').includes(q)) && (!c || r.dataset.county === c);
+        r.hidden = !match;
+        if (match) shown += 1;
+        body.insertBefore(r, nomatch);
+      });
+      nomatch.hidden = shown > 0;
+    }
+
+    county.value = 'all';
+    sort.value = 'recent';
+    find.addEventListener('change', apply);
+    county.addEventListener('change', apply);
+    sort.addEventListener('change', apply);
+    apply();
+    void nameInnerControls(root);
+
+    const liveRow = root.querySelector<HTMLElement>('[data-live]');
+    if (liveRow) {
+      renderLive(liveRow, getState());
+      onState((s) => renderLive(liveRow, s));
+      // The run is time-based: re-read while it is queued or running.
+      window.setInterval(() => {
+        const st = runStatus();
+        if (st === 'queued' || st === 'running' || liveRow.dataset.lastStatus !== st) {
+          liveRow.dataset.lastStatus = st;
+          renderLive(liveRow, getState());
+        }
+      }, 1000);
+    }
+  }
+</script>

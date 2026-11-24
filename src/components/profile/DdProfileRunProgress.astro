@@ -1,0 +1,295 @@
+---
+// DdProfileRunProgress: the Queued / Running (and Failed) body of Site Profile.
+// A layer-by-layer progress strip grouped by theme, then one row per theme
+// ticking Waiting, Measuring, Done as runProgress() advances. Hidden once the
+// run completes; the page then shows the results and toasts Report Ready.
+// Failed is reachable with ?run=failed (runStatus() never fails on its own).
+//
+// bcn-lego-checked: esa-progress-bar is one continuous bar; the Figma strip is
+// one segment per layer coloured by where that layer was found, grouped by
+// theme. esa-card's header/title roles do not match the Besley section
+// headline. The ring legend items are static key labels, not chips or pills.
+import DdIcon from '../common/DdIcon.astro';
+import DdCountBadge from '../common/DdCountBadge.astro';
+import EsaButton from '@esa/ecology/esa-button.astro';
+import { themes, layersForTheme, outerRings, rings, mi, statusKey, progressLayers, run } from './profile-model';
+import { runStates } from '../../data/dd';
+import { withBase } from '../../lib/base';
+
+const states = runStates as unknown as Record<string, { uiText: string; hint?: string; failureMessage?: string | null }>;
+const queuedText = states.queued.uiText;
+const runningText = states.running.uiText;
+const hint = states.running.hint ?? '';
+const failedText = states.failed.uiText;
+const failureMessage = states.failed.failureMessage ?? '';
+
+let idx = 0;
+const groups = themes.map((t) => ({
+  theme: t,
+  layers: layersForTheme(t.id).map((l) => ({ layer: l, index: idx++, key: statusKey(l.result.status) })),
+}));
+
+const lastRing = outerRings.length;
+const ringKeyClass = (k: number): string => (k === 1 ? 'near' : k === lastRing ? 'far' : 'mid');
+const legend = [
+  { cls: 'site', label: 'On the Site' },
+  ...outerRings.map((r) => ({ cls: ringKeyClass(r.ringIndex), label: r.ringIndex === 1 ? `Within ${mi(r.toMiles)}` : r.bandLabel })),
+  { cls: 'none', label: 'Not Found' },
+  { cls: 'nodata', label: 'No Data Yet' },
+];
+const ringChips = rings.map((r) => ({ cls: r.ringIndex === 0 ? 'site' : ringKeyClass(r.ringIndex), label: r.ringIndex === 0 ? 'On Site' : mi(r.toMiles) }));
+const segClass = (key: string): string =>
+  key === '0' ? 'site' : /^\d$/.test(key) ? ringKeyClass(Number(key)) : key === 'none' ? 'none' : key === 'nodata' ? 'nodata' : 'na';
+---
+<div class="dd-run" data-profile-run hidden data-texts={JSON.stringify({ queuedText, runningText, failedText })}>
+  <section class="dd-run__card">
+    <div class="dd-run__top">
+      <span class="dd-run__status dd-t-14-medium">
+        <span class="dd-run__spin" data-when="active"><DdIcon name="loader-circle" size="sm" /></span>
+        <span class="dd-run__fail" data-when="failed"><DdIcon name="x" size="sm" /></span>
+        <span data-run-text>{runningText}</span>
+      </span>
+      <span class="dd-run__elapsed dd-t-13" data-when="active"><DdIcon name="clock" size="xs" /><span data-run-elapsed>0:00</span></span>
+    </div>
+
+    <div class="dd-run__strip" aria-hidden="true">
+      {groups.map((g) => (
+        <span class="dd-run__strip-group" style={`flex: ${g.layers.length} 1 0`}>
+          {g.layers.map((l) => <span class="dd-run__seg dd-run__seg--pending" data-seg={l.index} data-key={segClass(l.key)} />)}
+        </span>
+      ))}
+    </div>
+
+    <div class="dd-run__meta">
+      <span class="dd-t-13">
+        <span data-run-count>0 of {progressLayers.length}</span> <span class="dd-muted">layers</span>
+        <span class="dd-run__hint dd-muted" data-when="active">{hint}</span>
+        <span class="dd-run__hint dd-muted" data-when="failed">{failureMessage}</span>
+      </span>
+      <span class="dd-run__rings dd-t-12">
+        <span class="dd-muted">Rings</span>
+        {ringChips.map((c) => <span class="dd-run__ring dd-t-12-strong"><span class:list={['dd-run__dot', `dd-run__dot--${c.cls}`]} />{c.label}</span>)}
+      </span>
+    </div>
+
+    <div class="dd-run__failed-actions" data-when="failed">
+      <EsaButton variant="primary" size="sm" icon="plus" data-run-retry>Try Again</EsaButton>
+      <EsaButton variant="secondary" size="sm" icon="plus" href={withBase('/app/cottonwood/proximity/')}>Change Distances</EsaButton>
+      <span class="dd-t-13 dd-muted">{run.runLabel}</span>
+    </div>
+  </section>
+
+  <section class="dd-run__card">
+    <div class="dd-run__head">
+      <h2 class="dd-t-display-22 dd-run__title">Themes <DdCountBadge value={themes.length} /></h2>
+      <ul class="dd-run__legend dd-t-12" aria-label="Key">
+        {legend.map((k) => <li><span class:list={['dd-run__sq', `dd-run__sq--${k.cls}`]} />{k.label}</li>)}
+      </ul>
+    </div>
+    <ul class="dd-run__themes">
+      {groups.map((g) => (
+        <li class="dd-run__theme" data-run-theme data-first={g.layers[0]?.index ?? 0} data-count={g.layers.length} data-state="waiting">
+          <span class="dd-run__ticon">
+            <span data-when-theme="done"><DdIcon name="circle-check" size="sm" /></span>
+            <span data-when-theme="measuring" class="dd-run__spin"><DdIcon name="loader-circle" size="sm" /></span>
+            <span data-when-theme="failed" class="dd-run__fail"><DdIcon name="x" size="sm" /></span>
+            <span data-when-theme="waiting"><DdIcon name="circle" size="sm" /></span>
+          </span>
+          <span class="dd-run__tname">
+            <span class="dd-t-14">{g.theme.name}</span>
+            <span class="dd-run__tsub dd-t-12" data-theme-sub></span>
+          </span>
+          <span class="dd-run__squares" aria-hidden="true">
+            {g.layers.map((l) => <span class="dd-run__sq dd-run__sq--pending" data-seg={l.index} data-key={segClass(l.key)} data-name={l.layer.name} />)}
+          </span>
+          <span class="dd-run__tcount" data-theme-count><DdCountBadge value={`0 of ${g.layers.length}`} /></span>
+        </li>
+      ))}
+    </ul>
+  </section>
+</div>
+
+<script>
+  import { getState, runStatus, runProgress, startRun, toast, onState } from '../../lib/dd-store';
+  import { withBase } from '../../lib/base';
+
+  // Locked by URL: no area yet, or never run. The shell redirects too; this is a harmless second guard.
+  {
+    const s = getState();
+    if (s.boundary !== 'defined') location.replace(withBase('/app/cottonwood/site-boundary/'));
+    else if (runStatus(s) === 'never') location.replace(withBase('/app/cottonwood/proximity/'));
+  }
+  import { progressLayers } from './profile-model';
+
+  const root = document.querySelector<HTMLElement>('[data-profile-run]');
+  if (root) {
+    const texts = JSON.parse(root.dataset.texts ?? '{}') as { queuedText: string; runningText: string; failedText: string };
+    const total = progressLayers.length;
+    const forcedFail = new URLSearchParams(location.search).get('run') === 'failed';
+    const failMsg = root.querySelector('[data-when="failed"].dd-run__hint')?.textContent ?? '';
+    const failIndex = Math.max(0, progressLayers.findIndex((l) => failMsg.includes(l.name)));
+    let last = runStatus();
+
+    const setVisible = (showRun: boolean): void => {
+      root.hidden = !showRun;
+      document.querySelectorAll<HTMLElement>('[data-profile-results], [data-profile-chrome]').forEach((el) => {
+        el.hidden = showRun;
+      });
+    };
+
+    const paint = (mode: 'queued' | 'running' | 'failed', measured: number): void => {
+      root.dataset.mode = mode;
+      const text = root.querySelector('[data-run-text]');
+      if (text) text.textContent = mode === 'failed' ? texts.failedText : mode === 'queued' ? texts.queuedText : texts.runningText;
+      const count = root.querySelector('[data-run-count]');
+      if (count) count.textContent = `${measured} of ${total}`;
+      const s = getState();
+      const secs = s.runStartedAt ? Math.max(0, Math.floor((Date.now() - s.runStartedAt) / 1000)) : 0;
+      const el = root.querySelector('[data-run-elapsed]');
+      if (el) el.textContent = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+
+      root.querySelectorAll<HTMLElement>('[data-seg]').forEach((seg) => {
+        const i = Number(seg.dataset.seg);
+        const base = seg.classList.contains('dd-run__seg') ? 'dd-run__seg' : 'dd-run__sq';
+        const state = i < measured ? seg.dataset.key
+          : i === measured && mode === 'running' ? 'current'
+          : i === measured && mode === 'failed' ? 'failed'
+          : 'pending';
+        seg.className = `${base} ${base}--${state}`;
+      });
+
+      root.querySelectorAll<HTMLElement>('[data-run-theme]').forEach((row) => {
+        const first = Number(row.dataset.first);
+        const n = Number(row.dataset.count);
+        const done = Math.max(0, Math.min(n, measured - first));
+        const holdsCurrent = measured >= first && measured < first + n;
+        const state = done === n ? 'done' : holdsCurrent && mode === 'failed' ? 'failed' : holdsCurrent && mode === 'running' ? 'measuring' : done > 0 ? 'measuring' : 'waiting';
+        row.dataset.state = state;
+        const sub = row.querySelector<HTMLElement>('[data-theme-sub]');
+        const current = holdsCurrent ? row.querySelector<HTMLElement>(`[data-seg="${measured}"]`)?.dataset.name : undefined;
+        if (sub) sub.textContent = state === 'measuring' && current ? `Measuring ${current}` : state === 'failed' && current ? `Stopped at ${current}` : '';
+        const badge = row.querySelector('.esa-badge__text');
+        if (badge) badge.textContent = `${done} of ${n}`;
+      });
+    };
+
+    const tick = (): void => {
+      if (forcedFail) {
+        setVisible(true);
+        paint('failed', failIndex);
+        return;
+      }
+      const status = runStatus();
+      if (status === 'queued' || status === 'running') {
+        setVisible(true);
+        paint(status, status === 'queued' ? 0 : Math.min(total - 1, Math.floor(runProgress() * total)));
+      } else {
+        setVisible(false);
+        if ((last === 'queued' || last === 'running') && status === 'complete') toast('Report Ready');
+      }
+      last = status;
+    };
+
+    // Phase and clock derive from getState().runStartedAt on every tick (runStatus/runProgress),
+    // so a throttled timer only delays a repaint, never the run itself.
+    tick();
+    window.setInterval(tick, 500);
+    onState(tick);
+    document.addEventListener('visibilitychange', tick);
+    window.addEventListener('focus', tick);
+
+    root.querySelector('[data-run-retry]')?.addEventListener('click', () => {
+      startRun();
+      if (forcedFail) location.search = '';
+    });
+  }
+</script>
+
+<style>
+  .dd-run { display: flex; flex-direction: column; gap: 24px; }
+  .dd-run[hidden] { display: none; }
+  .dd-run__card {
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+    padding: 24px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+
+  .dd-run [data-when] { display: none; }
+  .dd-run:not([data-mode='failed']) [data-when='active'] { display: inline-flex; }
+  .dd-run[data-mode='failed'] [data-when='failed'] { display: inline-flex; }
+  .dd-run[data-mode='failed'] .dd-run__failed-actions { display: flex; }
+
+  .dd-run__top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .dd-run__status { display: inline-flex; align-items: center; gap: 10px; color: var(--dd-text); }
+  .dd-run__spin { display: inline-flex; color: var(--dd-brand-solid); animation: dd-run-spin 1s linear infinite; }
+  .dd-run__fail { display: inline-flex; color: var(--dd-danger-text); }
+  .dd-run__elapsed { align-items: center; gap: 6px; color: var(--dd-text-muted); }
+  @keyframes dd-run-spin { to { transform: rotate(360deg); } }
+
+  .dd-run__strip { display: flex; gap: 8px; }
+  .dd-run__strip-group { display: flex; gap: 2px; }
+  .dd-run__seg { flex: 1 1 0; height: 10px; border-radius: 2px; box-sizing: border-box; }
+
+  .dd-run__meta { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .dd-run__hint { margin-left: 14px; }
+  .dd-run__rings { display: inline-flex; align-items: center; gap: 8px; }
+  .dd-run__ring {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 8px; border: 1px solid var(--dd-border-subtle); border-radius: 4px; color: var(--dd-text);
+  }
+  .dd-run__dot { width: 7px; height: 7px; border-radius: 50%; box-sizing: border-box; }
+  .dd-run__dot--site { background: var(--dd-data-on-site); }
+  .dd-run__dot--near { background: var(--dd-data-nearby); }
+  .dd-run__dot--mid { background: var(--dd-data-nearby-far); }
+  .dd-run__dot--far { border: 1px dashed var(--dd-data-nearby); }
+
+  .dd-run__failed-actions { display: none; align-items: center; gap: 12px; }
+  /* Neutral outline button (the Figma's secondary): esa-button's secondary is a brand-muted fill
+     in this theme, so its documented private accent hooks are re-pointed at the neutrals. */
+  .dd-run :global(.esa-button--variant-secondary) {
+    --_accent: var(--dd-surface-raised);
+    --_accent-hover: var(--dd-surface-hover);
+    --_on: var(--dd-text);
+    --_accent-border: var(--dd-border);
+  }
+  .dd-run :global(.esa-button__label) { display: inline-flex; align-items: center; gap: 6px; }
+
+  .dd-run__head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--dd-border-subtle); }
+  .dd-run__title { margin: 0; display: inline-flex; align-items: center; gap: 10px; }
+  .dd-run__legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 0; padding: 0; list-style: none; color: var(--dd-text-muted); }
+  .dd-run__legend li { display: inline-flex; align-items: center; gap: 6px; }
+
+  .dd-run__themes { margin: -16px 0 0; padding: 0; list-style: none; }
+  .dd-run__theme {
+    display: grid; grid-template-columns: 20px minmax(0, 320px) 1fr auto; align-items: center; gap: 12px;
+    padding: 12px 0; min-height: 24px; border-bottom: 1px solid var(--dd-border-subtle);
+  }
+  .dd-run__theme:last-child { border-bottom: 0; }
+  .dd-run__ticon { display: inline-flex; color: var(--dd-text-muted); }
+  .dd-run__ticon > span { display: none; }
+  .dd-run__theme[data-state='done'] [data-when-theme='done'],
+  .dd-run__theme[data-state='measuring'] [data-when-theme='measuring'],
+  .dd-run__theme[data-state='failed'] [data-when-theme='failed'],
+  .dd-run__theme[data-state='waiting'] [data-when-theme='waiting'] { display: inline-flex; }
+  .dd-run__theme[data-state='waiting'] .dd-run__tname { color: var(--dd-text-muted); }
+  .dd-run__tname { display: flex; flex-direction: column; gap: 2px; color: var(--dd-text); }
+  .dd-run__tsub { color: var(--dd-text-muted); }
+  .dd-run__tsub:empty { display: none; }
+  .dd-run__theme[data-state='failed'] .dd-run__tsub { color: var(--dd-danger-text); }
+  .dd-run__squares { display: flex; gap: 6px; }
+
+  /* Swatches: segments in the strip and squares in the rows share one key. */
+  .dd-run__sq { width: 12px; height: 12px; border-radius: 2px; box-sizing: border-box; flex: none; }
+  .dd-run__seg--pending, .dd-run__sq--pending { background: var(--dd-data-not-found); }
+  .dd-run__seg--site, .dd-run__sq--site { background: var(--dd-data-on-site); }
+  .dd-run__seg--near, .dd-run__sq--near { background: var(--dd-data-nearby); }
+  .dd-run__seg--mid, .dd-run__sq--mid { background: var(--dd-data-nearby-far); }
+  .dd-run__seg--far, .dd-run__sq--far { border: 1px dashed var(--dd-data-nearby); background: var(--dd-surface-raised); }
+  .dd-run__seg--none, .dd-run__sq--none { border: 1px solid var(--dd-border); background: var(--dd-surface-raised); }
+  .dd-run__seg--nodata, .dd-run__sq--nodata { border: 1px dotted var(--dd-border-strong); background: var(--dd-surface-raised); }
+  .dd-run__seg--na, .dd-run__sq--na { background: var(--dd-border-subtle); }
+  .dd-run__seg--current, .dd-run__sq--current { border: 1.5px solid var(--dd-brand-solid); background: var(--dd-surface-raised); }
+  .dd-run__seg--failed, .dd-run__sq--failed { border: 1.5px solid var(--dd-danger-text); background: var(--dd-surface-raised); }
+</style>

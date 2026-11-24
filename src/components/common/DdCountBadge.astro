@@ -1,0 +1,37 @@
+---
+// DdCountBadge: the quiet count next to a label (brief item 11). esa-badge at
+// xs, re-pointed through its documented --badge-* hooks to Text/12 Semibold,
+// text-muted on border-subtle, 4px corners, no border. A count beside a label
+// sits in this, never as a bare number, so "Within ¼ mi 2" cannot read as a
+// distance.
+import EsaBadge from '@esa/ecology/esa-badge.astro';
+
+interface Props {
+  value: string | number;
+  label?: string;
+  /** "brand" for the count on a selected filter chip. */
+  tone?: 'neutral' | 'brand';
+}
+const { value, label, tone = 'neutral' } = Astro.props;
+---
+<span class:list={['dd-count-badge', `dd-count-badge--${tone}`]} data-dd-count><EsaBadge value={value} size="xs" label={label} /></span>
+
+<style>
+  .dd-count-badge {
+    display: inline-flex;
+    --badge-bg: var(--dd-border-subtle);
+    --badge-text-color: var(--dd-text-muted);
+    --badge-border-color: transparent;
+  }
+  .dd-count-badge--brand {
+    --badge-bg: var(--dd-brand-border);
+    --badge-text-color: var(--dd-brand-text);
+  }
+  .dd-count-badge :global(.esa-badge) {
+    font: 600 12px/16px var(--dd-font-sans);
+    padding: 1px 6px;
+    min-width: 20px;
+    border-radius: var(--radius-100, 4px);
+    border-color: transparent;
+  }
+</style>

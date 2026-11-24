@@ -1,0 +1,127 @@
+---
+// DdTypeTiles: the Project Type picker, nine selectable tiles in a 3x3 grid
+// with a Lucide glyph each. Radio semantics (one value, arrow keys move the
+// selection, roving tabindex). Emits `dd:type-change` (detail: type id) on the
+// root; a parent can set the value with a `dd:set` event (detail: type id).
+//
+// bcn-lego-checked: esa-radio-group renders a plain dot-and-label list with no
+// glyph or tile body; esa-button-toggle is a one-row segmented control and
+// cannot wrap into a 3x3 grid of two-line labels; esa-chip-group is for
+// filters. The Figma tile (icon, wrapped label, brand surface + border and a
+// circle-check when selected) has no lego, so this is the reusable home for it
+// (Project Details and the New Project panel both use it).
+import DdIcon from '../common/DdIcon.astro';
+import { PROJECT_TYPES } from './dd-details-model';
+
+interface Props {
+  value: string;
+  /** Accessible name of the group. */
+  label?: string;
+  /** Smaller tiles for the New Project panel (no check glyph). */
+  compact?: boolean;
+  id?: string;
+}
+const { value, label = 'Project Type', compact = false, id } = Astro.props;
+---
+<div
+  class:list={['dd-type-tiles', { 'dd-type-tiles--compact': compact }]}
+  role="radiogroup"
+  aria-label={label}
+  data-dd-type-tiles
+  data-value={value}
+  id={id}
+>
+  {PROJECT_TYPES.map((t, i) => {
+    const on = t.id === value;
+    return (
+      <div
+        class="dd-type-tiles__tile"
+        role="radio"
+        aria-checked={on ? 'true' : 'false'}
+        tabindex={on || (!value && i === 0) ? 0 : -1}
+        data-id={t.id}
+      >
+        <DdIcon name={t.icon ?? 'shapes'} size="sm" class="dd-type-tiles__icon" />
+        <span class="dd-type-tiles__name dd-t-14">{t.name}</span>
+        {!compact && <DdIcon name="circle-check" size="sm" class="dd-type-tiles__check" />}
+      </div>
+    );
+  })}
+</div>
+
+<style>
+  .dd-type-tiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .dd-type-tiles__tile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 60px;
+    padding: 8px 16px;
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border);
+    border-radius: 4px;
+    color: var(--dd-text);
+    cursor: pointer;
+    user-select: none;
+  }
+  .dd-type-tiles--compact .dd-type-tiles__tile { min-height: 52px; padding: 6px 12px; gap: 10px; }
+  .dd-type-tiles__tile:hover { background: var(--dd-surface); border-color: var(--dd-border-strong); }
+  .dd-type-tiles__tile:focus-visible { outline: 2px solid var(--dd-focus-ring); outline-offset: 2px; }
+  .dd-type-tiles__tile[aria-checked='true'] {
+    background: var(--dd-brand-surface);
+    border-color: var(--dd-brand-solid);
+    box-shadow: inset 0 0 0 1px var(--dd-brand-solid);
+    color: var(--dd-brand-text);
+  }
+  .dd-type-tiles__name { flex: 1; min-width: 0; }
+  .dd-type-tiles :global(.dd-type-tiles__icon) { color: var(--dd-text-muted); }
+  .dd-type-tiles__tile[aria-checked='true'] :global(.dd-type-tiles__icon) { color: var(--dd-brand-text); }
+  .dd-type-tiles :global(.dd-type-tiles__check) { color: var(--dd-brand-text); visibility: hidden; }
+  .dd-type-tiles__tile[aria-checked='true'] :global(.dd-type-tiles__check) { visibility: visible; }
+</style>
+
+<script>
+  function select(root: HTMLElement, id: string, emit: boolean, focus = false): void {
+    if (root.dataset.value === id && !focus) return;
+    const changed = root.dataset.value !== id;
+    root.dataset.value = id;
+    root.querySelectorAll<HTMLElement>('[role="radio"]').forEach((tile) => {
+      const on = tile.dataset.id === id;
+      tile.setAttribute('aria-checked', on ? 'true' : 'false');
+      tile.tabIndex = on ? 0 : -1;
+      if (on && focus) tile.focus();
+    });
+    if (emit && changed) root.dispatchEvent(new CustomEvent<string>('dd:type-change', { detail: id, bubbles: true }));
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-dd-type-tiles]').forEach((root) => {
+    const tiles = (): HTMLElement[] => [...root.querySelectorAll<HTMLElement>('[role="radio"]')];
+
+    root.addEventListener('click', (e) => {
+      const tile = (e.target as HTMLElement).closest<HTMLElement>('[role="radio"]');
+      if (tile?.dataset.id) select(root, tile.dataset.id, true, true);
+    });
+
+    root.addEventListener('keydown', (e) => {
+      const list = tiles();
+      const i = list.findIndex((t) => t === document.activeElement);
+      if (i < 0) return;
+      const step: Record<string, number> = { ArrowRight: 1, ArrowDown: 3, ArrowLeft: -1, ArrowUp: -3 };
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        select(root, list[i].dataset.id ?? '', true, true);
+        return;
+      }
+      if (!(e.key in step)) return;
+      e.preventDefault();
+      const next = list[(i + step[e.key] + list.length) % list.length];
+      select(root, next.dataset.id ?? '', true, true);
+    });
+
+    root.addEventListener('dd:set', (e) => select(root, (e as CustomEvent<string>).detail, false));
+  });
+</script>

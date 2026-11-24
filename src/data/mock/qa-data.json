@@ -1,0 +1,5332 @@
+{
+  "meta": {
+    "source": "https://due-diligence.qa.esassoc.dev",
+    "extractedAt": "2026-11-24",
+    "apiVersion": "0.1.0-alpha.78 (develop c54e18d2), Staging, built 2026-11-24T05:22:56Z",
+    "method": "GET responses from the app's own API (/api/projects, /api/projects/{id}, /api/projects/{id}/area, /api/projects/4/screening-runs/latest/report, /api/projects/4/screening-runs/3/map, /api/projects/4/screening-runs/3/layers/{id}/features, /api/counties, /api/screening-layers/load-status, /api/public/system-info). Enums, form validators, status/finding logic and UI copy read from the app's shipped JS bundle. Derived fields (status, finding, short, cell labels, summary sentence, ring areas) were recomputed with the app's own formulas and checked against the rendered Report page.",
+    "notes": [
+      "project4.layers[].project4.status values: on_site, within_ring_1 (0 to 1/4 mi), within_ring_2 (1/4 to 1 mi), within_ring_3 (1 to 5 mi), not_found, no_data_for_county, not_applicable. The app's internal state key is the first ring index with FeatureCount > 0, or 'none' / 'nodata' / 'na'.",
+      "A layer's status is decided by FeatureCount per ring, not quantity. Ring quantities are per ring (donut), not cumulative.",
+      "Polygons measure acres covered with overlaps merged; lines measure miles; points measure a count (app copy). On-site share = on-site acres / report acres, polygons only, capped at 100%.",
+      "Times are UTC ISO strings from the API; display strings (sourceLine, runLabel, created) are rendered in Pacific time like the app.",
+      "Report acres (76.81) differ slightly from the project's stored Acres (76.62); the projects list and setup show 76.6, the Report header shows 76.8 acres."
+    ]
+  },
+  "themes": [
+    {
+      "id": 1,
+      "name": "Land use and zoning",
+      "layers": [
+        {
+          "id": 1,
+          "name": "Zoning"
+        },
+        {
+          "id": 2,
+          "name": "General plan land use"
+        }
+      ],
+      "project4OnSiteText": "2 of 2 on the site"
+    },
+    {
+      "id": 2,
+      "name": "Wetlands and water",
+      "layers": [
+        {
+          "id": 10,
+          "name": "National Wetlands Inventory"
+        },
+        {
+          "id": 11,
+          "name": "NHDPlus HR flowlines"
+        },
+        {
+          "id": 12,
+          "name": "Wild and Scenic Rivers"
+        },
+        {
+          "id": 13,
+          "name": "Sole source aquifers"
+        }
+      ],
+      "project4OnSiteText": "0 of 4 on the site"
+    },
+    {
+      "id": 3,
+      "name": "Natural hazards",
+      "layers": [
+        {
+          "id": 20,
+          "name": "FEMA flood hazard zones"
+        },
+        {
+          "id": 21,
+          "name": "Quaternary faults and folds"
+        },
+        {
+          "id": 22,
+          "name": "US landslide inventory"
+        },
+        {
+          "id": 23,
+          "name": "2023 National Seismic Hazard Model (MMI)"
+        },
+        {
+          "id": 24,
+          "name": "Wildfire hazard potential 2023"
+        },
+        {
+          "id": 25,
+          "name": "Interagency fire perimeter history"
+        }
+      ],
+      "project4OnSiteText": "2 of 5 on the site"
+    },
+    {
+      "id": 4,
+      "name": "Biological resources",
+      "layers": [
+        {
+          "id": 30,
+          "name": "Critical habitat (final)"
+        },
+        {
+          "id": 31,
+          "name": "ESA listed species current range"
+        }
+      ],
+      "project4OnSiteText": "1 of 2 on the site"
+    },
+    {
+      "id": 5,
+      "name": "Soils and agriculture",
+      "layers": [
+        {
+          "id": 40,
+          "name": "Soil map units"
+        },
+        {
+          "id": 41,
+          "name": "Farmland classification"
+        },
+        {
+          "id": 42,
+          "name": "Cropland Data Layer 2025"
+        }
+      ],
+      "project4OnSiteText": "0 of 0 on the site"
+    },
+    {
+      "id": 6,
+      "name": "Infrastructure",
+      "layers": [
+        {
+          "id": 50,
+          "name": "Primary roads"
+        },
+        {
+          "id": 51,
+          "name": "North American Rail Network"
+        },
+        {
+          "id": 52,
+          "name": "FAA airports"
+        },
+        {
+          "id": 53,
+          "name": "Electric power transmission lines"
+        }
+      ],
+      "project4OnSiteText": "0 of 4 on the site"
+    },
+    {
+      "id": 7,
+      "name": "Protected and special areas",
+      "layers": [
+        {
+          "id": 14,
+          "name": "Legal Delta boundary"
+        },
+        {
+          "id": 60,
+          "name": "PAD-US 4.1"
+        }
+      ],
+      "project4OnSiteText": "0 of 1 on the site"
+    },
+    {
+      "id": 8,
+      "name": "Cultural resources",
+      "layers": [
+        {
+          "id": 70,
+          "name": "National Register of Historic Places"
+        }
+      ],
+      "project4OnSiteText": "0 of 1 on the site"
+    },
+    {
+      "id": 9,
+      "name": "Air quality",
+      "layers": [
+        {
+          "id": 80,
+          "name": "Ozone 8-hour (2015) nonattainment areas"
+        },
+        {
+          "id": 81,
+          "name": "CARB air districts"
+        }
+      ],
+      "project4OnSiteText": "0 of 1 on the site"
+    },
+    {
+      "id": 10,
+      "name": "Contamination",
+      "layers": [
+        {
+          "id": 90,
+          "name": "Superfund NPL site boundaries"
+        }
+      ],
+      "project4OnSiteText": "0 of 1 on the site"
+    },
+    {
+      "id": 11,
+      "name": "Community",
+      "layers": [
+        {
+          "id": 100,
+          "name": "Census tracts"
+        },
+        {
+          "id": 101,
+          "name": "Social Vulnerability Index 2022"
+        }
+      ],
+      "project4OnSiteText": "2 of 2 on the site"
+    }
+  ],
+  "layers": [
+    {
+      "id": 1,
+      "name": "Zoning",
+      "themeId": 1,
+      "theme": "Land use and zoning",
+      "reportOrder": 0,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "County and city planning departments",
+      "loadedDate": "2026-11-19T22:41:09.357Z",
+      "updateFrequency": null,
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "County and city planning departments · loaded Nov 19, 2026",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 1060,
+        "Martin": 13443,
+        "Santa Clara": 70776,
+        "Sacramento": 44814
+      },
+      "umatillaSourceDatasets": [
+        "Umatilla County Zoning",
+        "Hermiston Zoning",
+        "City of Umatilla Zoning",
+        "Milton-Freewater Zoning",
+        "Adams Zoning",
+        "Athena Zoning",
+        "Helix Zoning",
+        "Pilot Rock Zoning",
+        "Stanfield Zoning",
+        "Ukiah Zoning",
+        "Weston Zoning",
+        "Pendleton Zoning Districts"
+      ],
+      "project4": {
+        "status": "on_site",
+        "statusLabel": "On the site",
+        "finding": "58.4 ac, 76% of the site, mostly R-2, Duplex Residential",
+        "short": "76% of site",
+        "tooltip": "Zoning: 58.4 ac, 76% of the site, mostly R-2, Duplex Residential",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": 0,
+        "nearestLabel": "on the site",
+        "onSiteShare": 0.7606,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 58.4255,
+            "featureCount": 25,
+            "cell": "58.4 ac"
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 251.6702,
+            "featureCount": 117,
+            "cell": "252 ac"
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 2208.8248,
+            "featureCount": 242,
+            "cell": "2,209 ac"
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 50562.1981,
+            "featureCount": 242,
+            "cell": "50,562 ac"
+          }
+        ],
+        "classBreakdown": [
+          {
+            "className": "R-2, Duplex Residential",
+            "byRing": [
+              {
+                "quantity": 34.4795,
+                "featureCount": 9,
+                "cell": "34.5 ac"
+              },
+              {
+                "quantity": 70.4395,
+                "featureCount": 30,
+                "cell": "70.4 ac"
+              },
+              {
+                "quantity": 266.0949,
+                "featureCount": 66,
+                "cell": "266 ac"
+              },
+              {
+                "quantity": 70.5117,
+                "featureCount": 19,
+                "cell": "70.5 ac"
+              }
+            ]
+          },
+          {
+            "className": "C-1, Central Commercial",
+            "byRing": [
+              {
+                "quantity": 17.8305,
+                "featureCount": 11,
+                "cell": "17.8 ac"
+              },
+              {
+                "quantity": 51.3485,
+                "featureCount": 32,
+                "cell": "51.3 ac"
+              },
+              {
+                "quantity": 12.9996,
+                "featureCount": 8,
+                "cell": "13 ac"
+              },
+              null
+            ]
+          },
+          {
+            "className": "C-2, Outlying Commercial",
+            "byRing": [
+              {
+                "quantity": 4.4411,
+                "featureCount": 3,
+                "cell": "4.44 ac"
+              },
+              {
+                "quantity": 54.6238,
+                "featureCount": 28,
+                "cell": "54.6 ac"
+              },
+              {
+                "quantity": 244.044,
+                "featureCount": 21,
+                "cell": "244 ac"
+              },
+              {
+                "quantity": 204.1205,
+                "featureCount": 16,
+                "cell": "204 ac"
+              }
+            ]
+          },
+          {
+            "className": "R-3, Multi-family Residential",
+            "byRing": [
+              {
+                "quantity": 1.6745,
+                "featureCount": 2,
+                "cell": "1.67 ac"
+              },
+              {
+                "quantity": 45.4839,
+                "featureCount": 17,
+                "cell": "45.5 ac"
+              },
+              {
+                "quantity": 201.7719,
+                "featureCount": 33,
+                "cell": "202 ac"
+              },
+              {
+                "quantity": 267.5711,
+                "featureCount": 25,
+                "cell": "268 ac"
+              }
+            ]
+          },
+          {
+            "className": "OS/CS, Open Space/ Community Service",
+            "byRing": [
+              null,
+              {
+                "quantity": 13.4425,
+                "featureCount": 1,
+                "cell": "13.4 ac"
+              },
+              {
+                "quantity": 53.0926,
+                "featureCount": 1,
+                "cell": "53.1 ac"
+              },
+              null
+            ]
+          },
+          {
+            "className": "M-1, Light Industrial",
+            "byRing": [
+              null,
+              {
+                "quantity": 6.1145,
+                "featureCount": 4,
+                "cell": "6.11 ac"
+              },
+              {
+                "quantity": 243.2037,
+                "featureCount": 13,
+                "cell": "243 ac"
+              },
+              {
+                "quantity": 97.2468,
+                "featureCount": 5,
+                "cell": "97.2 ac"
+              }
+            ]
+          },
+          {
+            "className": "R-4, Multi-structure Residential",
+            "byRing": [
+              null,
+              {
+                "quantity": 5.2658,
+                "featureCount": 3,
+                "cell": "5.27 ac"
+              },
+              {
+                "quantity": 113.6482,
+                "featureCount": 19,
+                "cell": "114 ac"
+              },
+              {
+                "quantity": 204.1057,
+                "featureCount": 26,
+                "cell": "204 ac"
+              }
+            ]
+          },
+          {
+            "className": "R-1, Single-family Residential",
+            "byRing": [
+              null,
+              {
+                "quantity": 4.9662,
+                "featureCount": 2,
+                "cell": "4.97 ac"
+              },
+              {
+                "quantity": 720.3862,
+                "featureCount": 72,
+                "cell": "720 ac"
+              },
+              {
+                "quantity": 361.3146,
+                "featureCount": 31,
+                "cell": "361 ac"
+              }
+            ]
+          },
+          {
+            "className": "FU-10, Future Urban",
+            "byRing": [
+              null,
+              null,
+              {
+                "quantity": 311.264,
+                "featureCount": 1,
+                "cell": "311 ac"
+              },
+              {
+                "quantity": 1805.4171,
+                "featureCount": 3,
+                "cell": "1,805 ac"
+              }
+            ]
+          },
+          {
+            "className": "C-2/M-1, Outlying Comm/ Light Industrial",
+            "byRing": [
+              null,
+              null,
+              {
+                "quantity": 17.6523,
+                "featureCount": 5,
+                "cell": "17.7 ac"
+              },
+              {
+                "quantity": 185.4791,
+                "featureCount": 8,
+                "cell": "185 ac"
+              }
+            ]
+          },
+          {
+            "className": "OS, Open Space",
+            "byRing": [
+              null,
+              null,
+              {
+                "quantity": 12.4571,
+                "featureCount": 1,
+                "cell": "12.5 ac"
+              },
+              {
+                "quantity": 369.882,
+                "featureCount": 2,
+                "cell": "370 ac"
+              }
+            ]
+          },
+          {
+            "className": "F-2, General Rural",
+            "byRing": [
+              null,
+              null,
+              {
+                "quantity": 8.0916,
+                "featureCount": 1,
+                "cell": "8.09 ac"
+              },
+              {
+                "quantity": 414.5819,
+                "featureCount": 5,
+                "cell": "415 ac"
+              }
+            ]
+          },
+          {
+            "className": "F-1, Exclusive Farm Use",
+            "byRing": [
+              null,
+              null,
+              {
+                "quantity": 5.028,
+                "featureCount": 1,
+                "cell": "5.03 ac"
+              },
+              {
+                "quantity": 270.4633,
+                "featureCount": 4,
+                "cell": "270 ac"
+              }
+            ]
+          },
+          {
+            "className": "EFU",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 16276.6027,
+                "featureCount": 6,
+                "cell": "16,277 ac"
+              }
+            ]
+          },
+          {
+            "className": "EFU-40",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 11651.1994,
+                "featureCount": 1,
+                "cell": "11,651 ac"
+              }
+            ]
+          },
+          {
+            "className": "RR-4",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 4295.6371,
+                "featureCount": 1,
+                "cell": "4,296 ac"
+              }
+            ]
+          },
+          {
+            "className": "RR-2",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 2978.3058,
+                "featureCount": 1,
+                "cell": "2,978 ac"
+              }
+            ]
+          },
+          {
+            "className": "EFU-20",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 1657.0545,
+                "featureCount": 1,
+                "cell": "1,657 ac"
+              }
+            ]
+          },
+          {
+            "className": "HI",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 1536.3424,
+                "featureCount": 2,
+                "cell": "1,536 ac"
+              }
+            ]
+          },
+          {
+            "className": "LI",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 1051.8005,
+                "featureCount": 4,
+                "cell": "1,052 ac"
+              }
+            ]
+          },
+          {
+            "className": "UDR",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 796.7674,
+                "featureCount": 1,
+                "cell": "797 ac"
+              }
+            ]
+          },
+          {
+            "className": "C-2/M-2, Outlying Comm/ Heavy Industrial",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 720.5937,
+                "featureCount": 4,
+                "cell": "721 ac"
+              }
+            ]
+          },
+          {
+            "className": "R1 - Residential, Single Family",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 686.9564,
+                "featureCount": 5,
+                "cell": "687 ac"
+              }
+            ]
+          },
+          {
+            "className": "F1 - Exclusive Farm Use (UGA)",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 557.9051,
+                "featureCount": 1,
+                "cell": "558 ac"
+              }
+            ]
+          },
+          {
+            "className": "R-R, Recreational Residential",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 382.2032,
+                "featureCount": 1,
+                "cell": "382 ac"
+              }
+            ]
+          },
+          {
+            "className": "DI - U",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 364.9138,
+                "featureCount": 1,
+                "cell": "365 ac"
+              }
+            ]
+          },
+          {
+            "className": "F2 - General Rural (UGA)",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 304.3903,
+                "featureCount": 3,
+                "cell": "304 ac"
+              }
+            ]
+          },
+          {
+            "className": "R1 - Agricultural Residential",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 283.3446,
+                "featureCount": 5,
+                "cell": "283 ac"
+              }
+            ]
+          },
+          {
+            "className": "A, Airport",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 269.2895,
+                "featureCount": 1,
+                "cell": "269 ac"
+              }
+            ]
+          },
+          {
+            "className": "R/UH, Residential/Urban Holding",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 242.7499,
+                "featureCount": 2,
+                "cell": "243 ac"
+              }
+            ]
+          },
+          {
+            "className": "M1 - Light Industrial",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 223.5988,
+                "featureCount": 4,
+                "cell": "224 ac"
+              }
+            ]
+          },
+          {
+            "className": "LI, Light Industrial",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 218.705,
+                "featureCount": 4,
+                "cell": "219 ac"
+              }
+            ]
+          },
+          {
+            "className": "R2 - Residential, Multi-Family",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 204.8723,
+                "featureCount": 1,
+                "cell": "205 ac"
+              }
+            ]
+          },
+          {
+            "className": "RLI",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 184.2224,
+                "featureCount": 3,
+                "cell": "184 ac"
+              }
+            ]
+          },
+          {
+            "className": "RSC",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 180.8512,
+                "featureCount": 1,
+                "cell": "181 ac"
+              }
+            ]
+          },
+          {
+            "className": "R, Residential",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 163.9206,
+                "featureCount": 1,
+                "cell": "164 ac"
+              }
+            ]
+          },
+          {
+            "className": "GI, General Industrial",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 146.3046,
+                "featureCount": 3,
+                "cell": "146 ac"
+              }
+            ]
+          },
+          {
+            "className": "M1 - Light Industrial (UGA)",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 123.3976,
+                "featureCount": 2,
+                "cell": "123 ac"
+              }
+            ]
+          },
+          {
+            "className": "M2 - Heavy Industrial",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 115.9646,
+                "featureCount": 2,
+                "cell": "116 ac"
+              }
+            ]
+          },
+          {
+            "className": "RR-10",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 109.7206,
+                "featureCount": 1,
+                "cell": "110 ac"
+              }
+            ]
+          },
+          {
+            "className": "FO, Fairgrounds Overlay",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 97.9438,
+                "featureCount": 1,
+                "cell": "97.9 ac"
+              }
+            ]
+          },
+          {
+            "className": "M2 - Heavy Industrial (UGA)",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 85.1896,
+                "featureCount": 2,
+                "cell": "85.2 ac"
+              }
+            ]
+          },
+          {
+            "className": "M-2, Heavy Industrial",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 72.6838,
+                "featureCount": 1,
+                "cell": "72.7 ac"
+              }
+            ]
+          },
+          {
+            "className": "GI/TI, General Industrial/ Transportation Industrial",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 66.5464,
+                "featureCount": 1,
+                "cell": "66.5 ac"
+              }
+            ]
+          },
+          {
+            "className": "R/MH, Residential/Manufactured Home Park",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 46.3093,
+                "featureCount": 2,
+                "cell": "46.3 ac"
+              }
+            ]
+          },
+          {
+            "className": "C1 - General Commercial (UGA)",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 42.9541,
+                "featureCount": 5,
+                "cell": "43 ac"
+              }
+            ]
+          },
+          {
+            "className": "RTC",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 40.5253,
+                "featureCount": 2,
+                "cell": "40.5 ac"
+              }
+            ]
+          },
+          {
+            "className": "D, Downtown",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 32.9321,
+                "featureCount": 3,
+                "cell": "32.9 ac"
+              }
+            ]
+          },
+          {
+            "className": "AB",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 31.7007,
+                "featureCount": 3,
+                "cell": "31.7 ac"
+              }
+            ]
+          },
+          {
+            "className": "GC - General Commercial",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 31.4368,
+                "featureCount": 3,
+                "cell": "31.4 ac"
+              }
+            ]
+          },
+          {
+            "className": "CS - Community Service",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 27.5447,
+                "featureCount": 2,
+                "cell": "27.5 ac"
+              }
+            ]
+          },
+          {
+            "className": "NC - Neighborhood Commercial",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 21.9499,
+                "featureCount": 3,
+                "cell": "21.9 ac"
+              }
+            ]
+          },
+          {
+            "className": "RRSC",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 11.0607,
+                "featureCount": 1,
+                "cell": "11.1 ac"
+              }
+            ]
+          },
+          {
+            "className": "R3 - Residential, Multi Family, Apartments",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 10.4424,
+                "featureCount": 2,
+                "cell": "10.4 ac"
+              }
+            ]
+          },
+          {
+            "className": "MC - McNary Commercial",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 9.7529,
+                "featureCount": 1,
+                "cell": "9.75 ac"
+              }
+            ]
+          },
+          {
+            "className": "R3 - Urban Residential, 9000 Sq. Ft.  (UGA)",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 9.1384,
+                "featureCount": 1,
+                "cell": "9.14 ac"
+              }
+            ]
+          },
+          {
+            "className": "CRC",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 5.3795,
+                "featureCount": 1,
+                "cell": "5.38 ac"
+              }
+            ]
+          },
+          {
+            "className": "R1A - Two Acre Residential (UGA)",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 4.0365,
+                "featureCount": 1,
+                "cell": "4.04 ac"
+              }
+            ]
+          },
+          {
+            "className": "R/MF, Residential/Multi-Family",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 2.3678,
+                "featureCount": 1,
+                "cell": "2.37 ac"
+              }
+            ]
+          }
+        ],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": {
+          "featureCount": 527,
+          "namedFeatureCount": 0,
+          "names": []
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "General plan land use",
+      "themeId": 1,
+      "theme": "Land use and zoning",
+      "reportOrder": 1,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "County and city planning departments",
+      "loadedDate": "2026-11-19T22:47:43.97Z",
+      "updateFrequency": null,
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "County and city planning departments · loaded Nov 19, 2026",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 116,
+        "Martin": 13077,
+        "Santa Clara": 64612,
+        "Sacramento": 157269
+      },
+      "umatillaSourceDatasets": [
+        "Umatilla County Comprehensive Plan Designations",
+        "Hermiston Comprehensive Plan"
+      ],
+      "project4": {
+        "status": "on_site",
+        "statusLabel": "On the site",
+        "finding": "76.8 ac, 100% of the site, mostly L",
+        "short": "100% of site",
+        "tooltip": "General plan land use: 76.8 ac, 100% of the site, mostly L",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": 0,
+        "nearestLabel": "on the site",
+        "onSiteShare": 0.9998,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 76.7927,
+            "featureCount": 5,
+            "cell": "76.8 ac"
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 350.7773,
+            "featureCount": 18,
+            "cell": "351 ac"
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 2559.2555,
+            "featureCount": 57,
+            "cell": "2,559 ac"
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 46774.4556,
+            "featureCount": 76,
+            "cell": "46,774 ac"
+          }
+        ],
+        "classBreakdown": [
+          {
+            "className": "L",
+            "byRing": [
+              {
+                "quantity": 42.9095,
+                "featureCount": 1,
+                "cell": "42.9 ac"
+              },
+              {
+                "quantity": 94.4329,
+                "featureCount": 5,
+                "cell": "94.4 ac"
+              },
+              {
+                "quantity": 1213.3893,
+                "featureCount": 11,
+                "cell": "1,213 ac"
+              },
+              {
+                "quantity": 559.9683,
+                "featureCount": 15,
+                "cell": "560 ac"
+              }
+            ]
+          },
+          {
+            "className": "C",
+            "byRing": [
+              {
+                "quantity": 31.404,
+                "featureCount": 2,
+                "cell": "31.4 ac"
+              },
+              {
+                "quantity": 169.1517,
+                "featureCount": 3,
+                "cell": "169 ac"
+              },
+              {
+                "quantity": 331.5118,
+                "featureCount": 11,
+                "cell": "332 ac"
+              },
+              {
+                "quantity": 334.6045,
+                "featureCount": 9,
+                "cell": "335 ac"
+              }
+            ]
+          },
+          {
+            "className": "M",
+            "byRing": [
+              {
+                "quantity": 2.1118,
+                "featureCount": 1,
+                "cell": "2.11 ac"
+              },
+              {
+                "quantity": 44.4733,
+                "featureCount": 6,
+                "cell": "44.5 ac"
+              },
+              {
+                "quantity": 324.1476,
+                "featureCount": 18,
+                "cell": "324 ac"
+              },
+              {
+                "quantity": 367.035,
+                "featureCount": 10,
+                "cell": "367 ac"
+              }
+            ]
+          },
+          {
+            "className": "MH",
+            "byRing": [
+              {
+                "quantity": 0.3697,
+                "featureCount": 1,
+                "cell": "0.37 ac"
+              },
+              {
+                "quantity": 26.0036,
+                "featureCount": 2,
+                "cell": "26 ac"
+              },
+              {
+                "quantity": 121.0885,
+                "featureCount": 8,
+                "cell": "121 ac"
+              },
+              {
+                "quantity": 236.9532,
+                "featureCount": 8,
+                "cell": "237 ac"
+              }
+            ]
+          },
+          {
+            "className": "I",
+            "byRing": [
+              null,
+              {
+                "quantity": 14.0996,
+                "featureCount": 1,
+                "cell": "14.1 ac"
+              },
+              {
+                "quantity": 228.8631,
+                "featureCount": 2,
+                "cell": "229 ac"
+              },
+              {
+                "quantity": 1069.5639,
+                "featureCount": 7,
+                "cell": "1,070 ac"
+              }
+            ]
+          },
+          {
+            "className": "OS",
+            "byRing": [
+              null,
+              {
+                "quantity": 2.6811,
+                "featureCount": 1,
+                "cell": "2.68 ac"
+              },
+              {
+                "quantity": 64.7555,
+                "featureCount": 2,
+                "cell": "64.8 ac"
+              },
+              {
+                "quantity": 427.2088,
+                "featureCount": 4,
+                "cell": "427 ac"
+              }
+            ]
+          },
+          {
+            "className": "F-R",
+            "byRing": [
+              null,
+              null,
+              {
+                "quantity": 249.718,
+                "featureCount": 4,
+                "cell": "250 ac"
+              },
+              {
+                "quantity": 2062.6779,
+                "featureCount": 7,
+                "cell": "2,063 ac"
+              }
+            ]
+          },
+          {
+            "className": "C/I",
+            "byRing": [
+              null,
+              null,
+              {
+                "quantity": 27.8657,
+                "featureCount": 1,
+                "cell": "27.9 ac"
+              },
+              {
+                "quantity": 974.2252,
+                "featureCount": 2,
+                "cell": "974 ac"
+              }
+            ]
+          },
+          {
+            "className": "North/South Ag Region",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 17075.2972,
+                "featureCount": 2,
+                "cell": "17,075 ac"
+              }
+            ]
+          },
+          {
+            "className": "West County Irrigation District",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 11545.9217,
+                "featureCount": 1,
+                "cell": "11,546 ac"
+              }
+            ]
+          },
+          {
+            "className": "Rural Residential",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 7398.6461,
+                "featureCount": 2,
+                "cell": "7,399 ac"
+              }
+            ]
+          },
+          {
+            "className": "Industrial",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 2896.1836,
+                "featureCount": 1,
+                "cell": "2,896 ac"
+              }
+            ]
+          },
+          {
+            "className": "Special Ag",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 1657.0983,
+                "featureCount": 1,
+                "cell": "1,657 ac"
+              }
+            ]
+          },
+          {
+            "className": "R-R",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 392.6276,
+                "featureCount": 1,
+                "cell": "393 ac"
+              }
+            ]
+          },
+          {
+            "className": "Airport",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 289.1751,
+                "featureCount": 1,
+                "cell": "289 ac"
+              }
+            ]
+          },
+          {
+            "className": "Commercial",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 239.2505,
+                "featureCount": 2,
+                "cell": "239 ac"
+              }
+            ]
+          },
+          {
+            "className": "F-C/I",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 83.1276,
+                "featureCount": 1,
+                "cell": "83.1 ac"
+              }
+            ]
+          },
+          {
+            "className": "Agri-Business",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 33.1246,
+                "featureCount": 1,
+                "cell": "33.1 ac"
+              }
+            ]
+          },
+          {
+            "className": "F-I",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 4.3852,
+                "featureCount": 1,
+                "cell": "4.39 ac"
+              }
+            ]
+          }
+        ],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": {
+          "featureCount": 109,
+          "namedFeatureCount": 0,
+          "names": []
+        }
+      }
+    },
+    {
+      "id": 10,
+      "name": "National Wetlands Inventory",
+      "themeId": 2,
+      "theme": "Wetlands and water",
+      "reportOrder": 2,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "U.S. Fish and Wildlife Service",
+      "loadedDate": "2026-11-20T18:30:16.687Z",
+      "updateFrequency": "Continuous",
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "U.S. Fish and Wildlife Service · loaded Nov 20, 2026 · updated continuous",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 33206,
+        "Martin": 24623,
+        "Santa Clara": 22850,
+        "Sacramento": 37031
+      },
+      "umatillaSourceDatasets": [
+        "National Wetlands Inventory (USFWS)"
+      ],
+      "project4": {
+        "status": "within_ring_1",
+        "statusLabel": "First found 0 to ¼ mi out",
+        "finding": "Nearest is 0.2 mi from the boundary",
+        "short": "0.2 mi",
+        "tooltip": "National Wetlands Inventory: Nearest is 0.2 mi from the boundary",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": 0.164,
+        "nearestLabel": "0.2 mi",
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 4.9542,
+            "featureCount": 4,
+            "cell": "4.95 ac"
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 93.9334,
+            "featureCount": 24,
+            "cell": "93.9 ac"
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 2478.7863,
+            "featureCount": 744,
+            "cell": "2,479 ac"
+          }
+        ],
+        "classBreakdown": [
+          {
+            "className": "Freshwater Emergent Wetland",
+            "byRing": [
+              null,
+              {
+                "quantity": 4.0643,
+                "featureCount": 2,
+                "cell": "4.06 ac"
+              },
+              {
+                "quantity": 58.3258,
+                "featureCount": 13,
+                "cell": "58.3 ac"
+              },
+              {
+                "quantity": 1426.7527,
+                "featureCount": 301,
+                "cell": "1,427 ac"
+              }
+            ]
+          },
+          {
+            "className": "Freshwater Pond",
+            "byRing": [
+              null,
+              {
+                "quantity": 0.7029,
+                "featureCount": 1,
+                "cell": "0.7 ac"
+              },
+              {
+                "quantity": 15.8206,
+                "featureCount": 2,
+                "cell": "15.8 ac"
+              },
+              {
+                "quantity": 113.6239,
+                "featureCount": 95,
+                "cell": "114 ac"
+              }
+            ]
+          },
+          {
+            "className": "Riverine",
+            "byRing": [
+              null,
+              {
+                "quantity": 0.187,
+                "featureCount": 1,
+                "cell": "0.19 ac"
+              },
+              {
+                "quantity": 18.6859,
+                "featureCount": 8,
+                "cell": "18.7 ac"
+              },
+              {
+                "quantity": 470.3148,
+                "featureCount": 246,
+                "cell": "470 ac"
+              }
+            ]
+          },
+          {
+            "className": "Freshwater Forested/Shrub Wetland",
+            "byRing": [
+              null,
+              null,
+              {
+                "quantity": 1.1012,
+                "featureCount": 1,
+                "cell": "1.1 ac"
+              },
+              {
+                "quantity": 428.8914,
+                "featureCount": 100,
+                "cell": "429 ac"
+              }
+            ]
+          },
+          {
+            "className": "Lake",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 39.4243,
+                "featureCount": 2,
+                "cell": "39.4 ac"
+              }
+            ]
+          }
+        ],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": {
+          "featureCount": 760,
+          "namedFeatureCount": 0,
+          "names": []
+        }
+      }
+    },
+    {
+      "id": 11,
+      "name": "NHDPlus HR flowlines",
+      "themeId": 2,
+      "theme": "Wetlands and water",
+      "reportOrder": 3,
+      "geometry": "line",
+      "measureUnit": "miles",
+      "measureType": "length",
+      "sourceAgency": "U.S. Geological Survey",
+      "loadedDate": "2026-11-19T23:35:03.27Z",
+      "updateFrequency": "Static (March 2023)",
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "U.S. Geological Survey · loaded Nov 19, 2026 · updated static (march 2023)",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 57688,
+        "Martin": 27035,
+        "Santa Clara": 36274,
+        "Sacramento": 44760
+      },
+      "umatillaSourceDatasets": [
+        "NHDPlus HR Flowlines (USGS)"
+      ],
+      "project4": {
+        "status": "within_ring_1",
+        "statusLabel": "First found 0 to ¼ mi out",
+        "finding": "Nearest is 0.2 mi from the boundary",
+        "short": "0.2 mi",
+        "tooltip": "NHDPlus HR flowlines: Nearest is 0.2 mi from the boundary",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": 0.23,
+        "nearestLabel": "0.2 mi",
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0.1156,
+            "featureCount": 1,
+            "cell": "0.12 mi"
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 9.2276,
+            "featureCount": 13,
+            "cell": "9.23 mi"
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 150.021,
+            "featureCount": 348,
+            "cell": "150 mi"
+          }
+        ],
+        "classBreakdown": [
+          {
+            "className": "Canal or ditch",
+            "sourceCode": "336",
+            "sortOrder": 30,
+            "byRing": [
+              null,
+              {
+                "quantity": 0.1156,
+                "featureCount": 1,
+                "cell": "0.12 mi"
+              },
+              {
+                "quantity": 9.2276,
+                "featureCount": 13,
+                "cell": "9.23 mi"
+              },
+              {
+                "quantity": 94.3181,
+                "featureCount": 103,
+                "cell": "94.3 mi"
+              }
+            ]
+          },
+          {
+            "className": "Stream or river",
+            "sourceCode": "460",
+            "sortOrder": 10,
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 30.2641,
+                "featureCount": 108,
+                "cell": "30.3 mi"
+              }
+            ]
+          },
+          {
+            "className": "Artificial path",
+            "sourceCode": "558",
+            "sortOrder": 20,
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 25.4153,
+                "featureCount": 136,
+                "cell": "25.4 mi"
+              }
+            ]
+          },
+          {
+            "className": "Connector",
+            "sourceCode": "334",
+            "sortOrder": 40,
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 0.0235,
+                "featureCount": 1,
+                "cell": "0.02 mi"
+              }
+            ]
+          }
+        ],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": {
+          "featureCount": 353,
+          "namedFeatureCount": 29,
+          "names": [
+            "I Canal",
+            "Umatilla River",
+            "A Line Canal",
+            "M Canal",
+            "Westland F Canal",
+            "Hermiston Ditch",
+            "Maxwell Canal",
+            "Umatilla Drain",
+            "Hat Rock Drain",
+            "Courtney Ditch",
+            "R-3 Pipe",
+            "Butter Creek",
+            "Z Canal",
+            "Cold Springs Wash",
+            "N Canal"
+          ]
+        }
+      }
+    },
+    {
+      "id": 12,
+      "name": "Wild and Scenic Rivers",
+      "themeId": 2,
+      "theme": "Wetlands and water",
+      "reportOrder": 4,
+      "geometry": "line",
+      "measureUnit": "miles",
+      "measureType": "length",
+      "sourceAgency": "U.S. Forest Service",
+      "loadedDate": "2026-11-19T23:43:27.363Z",
+      "updateFrequency": null,
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "U.S. Forest Service · loaded Nov 19, 2026",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 2,
+        "Martin": 1,
+        "Santa Clara": 0,
+        "Sacramento": 1
+      },
+      "umatillaSourceDatasets": [
+        "National Wild and Scenic Rivers (USFS)"
+      ],
+      "project4": {
+        "status": "not_found",
+        "statusLabel": "Not found within 5 mi",
+        "finding": "None within 5 mi",
+        "short": "None",
+        "tooltip": "Wild and Scenic Rivers: None within 5 mi",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": null,
+        "nearestLabel": null,
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          }
+        ],
+        "classBreakdown": [],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": null
+      }
+    },
+    {
+      "id": 13,
+      "name": "Sole source aquifers",
+      "themeId": 2,
+      "theme": "Wetlands and water",
+      "reportOrder": 5,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "U.S. Environmental Protection Agency",
+      "loadedDate": "2026-11-19T23:43:28.337Z",
+      "updateFrequency": "Static (August 2019)",
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "U.S. Environmental Protection Agency · loaded Nov 19, 2026 · updated static (august 2019)",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 0,
+        "Martin": 1,
+        "Santa Clara": 1,
+        "Sacramento": 0
+      },
+      "umatillaSourceDatasets": [
+        "Sole Source Aquifers (EPA)"
+      ],
+      "project4": {
+        "status": "not_found",
+        "statusLabel": "Not found within 5 mi",
+        "finding": "None within 5 mi",
+        "short": "None",
+        "tooltip": "Sole source aquifers: None within 5 mi",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": null,
+        "nearestLabel": null,
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          }
+        ],
+        "classBreakdown": [],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": null
+      }
+    },
+    {
+      "id": 20,
+      "name": "FEMA flood hazard zones",
+      "themeId": 3,
+      "theme": "Natural hazards",
+      "reportOrder": 6,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "Federal Emergency Management Agency",
+      "loadedDate": "2026-11-20T00:18:41.783Z",
+      "updateFrequency": "Continuous",
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "Federal Emergency Management Agency · loaded Nov 19, 2026 · updated continuous",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 1070,
+        "Martin": 8198,
+        "Santa Clara": 4305,
+        "Sacramento": 9871
+      },
+      "umatillaSourceDatasets": [
+        "FEMA National Flood Hazard Layer"
+      ],
+      "project4": {
+        "status": "on_site",
+        "statusLabel": "On the site",
+        "finding": "76.8 ac, 100% of the site, mostly moderate or minimal hazard (X)",
+        "short": "100% of site",
+        "tooltip": "FEMA flood hazard zones: 76.8 ac, 100% of the site, mostly moderate or minimal hazard (X)",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": 0,
+        "nearestLabel": "on the site",
+        "onSiteShare": 1.0,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 76.8083,
+            "featureCount": 1,
+            "cell": "76.8 ac"
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 350.8822,
+            "featureCount": 1,
+            "cell": "351 ac"
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 2559.8636,
+            "featureCount": 1,
+            "cell": "2,560 ac"
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 51835.4302,
+            "featureCount": 124,
+            "cell": "51,835 ac"
+          }
+        ],
+        "classBreakdown": [
+          {
+            "className": "Moderate or minimal hazard (X)",
+            "sourceCode": "X",
+            "sortOrder": 90,
+            "byRing": [
+              {
+                "quantity": 76.8083,
+                "featureCount": 1,
+                "cell": "76.8 ac"
+              },
+              {
+                "quantity": 350.8822,
+                "featureCount": 1,
+                "cell": "351 ac"
+              },
+              {
+                "quantity": 2559.8636,
+                "featureCount": 1,
+                "cell": "2,560 ac"
+              },
+              {
+                "quantity": 22571.9661,
+                "featureCount": 65,
+                "cell": "22,572 ac"
+              }
+            ]
+          },
+          {
+            "className": "1% annual chance flood (A)",
+            "sourceCode": "A",
+            "sortOrder": 10,
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 823.2069,
+                "featureCount": 2,
+                "cell": "823 ac"
+              }
+            ]
+          },
+          {
+            "className": "1% annual chance flood (AE)",
+            "sourceCode": "AE",
+            "sortOrder": 20,
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 2675.7749,
+                "featureCount": 56,
+                "cell": "2,676 ac"
+              }
+            ]
+          },
+          {
+            "className": "Undetermined hazard (D)",
+            "sourceCode": "D",
+            "sortOrder": 100,
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 25764.4822,
+                "featureCount": 1,
+                "cell": "25,764 ac"
+              }
+            ]
+          }
+        ],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": {
+          "featureCount": 124,
+          "namedFeatureCount": 0,
+          "names": []
+        }
+      }
+    },
+    {
+      "id": 21,
+      "name": "Quaternary faults and folds",
+      "themeId": 3,
+      "theme": "Natural hazards",
+      "reportOrder": 7,
+      "geometry": "line",
+      "measureUnit": "miles",
+      "measureType": "length",
+      "sourceAgency": "U.S. Geological Survey",
+      "loadedDate": "2026-11-20T00:18:43.86Z",
+      "updateFrequency": null,
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "U.S. Geological Survey · loaded Nov 19, 2026",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 584,
+        "Martin": 0,
+        "Santa Clara": 2378,
+        "Sacramento": 70
+      },
+      "umatillaSourceDatasets": [
+        "Quaternary Faults and Folds (USGS)"
+      ],
+      "project4": {
+        "status": "not_found",
+        "statusLabel": "Not found within 5 mi",
+        "finding": "None within 5 mi",
+        "short": "None",
+        "tooltip": "Quaternary faults and folds: None within 5 mi",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": null,
+        "nearestLabel": null,
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          }
+        ],
+        "classBreakdown": [],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": null
+      }
+    },
+    {
+      "id": 22,
+      "name": "US landslide inventory",
+      "themeId": 3,
+      "theme": "Natural hazards",
+      "reportOrder": 8,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "U.S. Geological Survey",
+      "loadedDate": "2026-11-20T00:18:52.19Z",
+      "updateFrequency": null,
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "U.S. Geological Survey · loaded Nov 19, 2026",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 1061,
+        "Martin": 0,
+        "Santa Clara": 7903,
+        "Sacramento": 0
+      },
+      "umatillaSourceDatasets": [
+        "US Landslide Inventory (USGS)"
+      ],
+      "project4": {
+        "status": "not_found",
+        "statusLabel": "Not found within 5 mi",
+        "finding": "None within 5 mi",
+        "short": "None",
+        "tooltip": "US landslide inventory: None within 5 mi",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": null,
+        "nearestLabel": null,
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          }
+        ],
+        "classBreakdown": [],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": null
+      }
+    },
+    {
+      "id": 23,
+      "name": "2023 National Seismic Hazard Model (MMI)",
+      "themeId": 3,
+      "theme": "Natural hazards",
+      "reportOrder": 9,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "U.S. Geological Survey",
+      "loadedDate": "2026-11-20T00:19:02.12Z",
+      "updateFrequency": "Static (2023)",
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "U.S. Geological Survey · loaded Nov 19, 2026 · updated static (2023)",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 3,
+        "Martin": 1,
+        "Santa Clara": 6,
+        "Sacramento": 3
+      },
+      "umatillaSourceDatasets": [
+        "2023 National Seismic Hazard Model, MMI (USGS)"
+      ],
+      "project4": {
+        "status": "on_site",
+        "statusLabel": "On the site",
+        "finding": "76.8 ac, 100% of the site",
+        "short": "100% of site",
+        "tooltip": "2023 National Seismic Hazard Model (MMI): 76.8 ac, 100% of the site",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": 0,
+        "nearestLabel": "on the site",
+        "onSiteShare": 1.0,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 76.8083,
+            "featureCount": 1,
+            "cell": "76.8 ac"
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 350.8822,
+            "featureCount": 1,
+            "cell": "351 ac"
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 2559.8636,
+            "featureCount": 1,
+            "cell": "2,560 ac"
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 51835.4302,
+            "featureCount": 1,
+            "cell": "51,835 ac"
+          }
+        ],
+        "classBreakdown": [
+          {
+            "className": "VI",
+            "byRing": [
+              {
+                "quantity": 76.8083,
+                "featureCount": 1,
+                "cell": "76.8 ac"
+              },
+              {
+                "quantity": 350.8822,
+                "featureCount": 1,
+                "cell": "351 ac"
+              },
+              {
+                "quantity": 2559.8636,
+                "featureCount": 1,
+                "cell": "2,560 ac"
+              },
+              {
+                "quantity": 51835.4302,
+                "featureCount": 1,
+                "cell": "51,835 ac"
+              }
+            ]
+          }
+        ],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": {
+          "featureCount": 1,
+          "namedFeatureCount": 0,
+          "names": []
+        }
+      }
+    },
+    {
+      "id": 24,
+      "name": "Wildfire hazard potential 2023",
+      "themeId": 3,
+      "theme": "Natural hazards",
+      "reportOrder": 10,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "U.S. Forest Service",
+      "loadedDate": null,
+      "updateFrequency": "Static (2023)",
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "U.S. Forest Service · updated static (2023)",
+      "accessMethod": "ArcGIS image service",
+      "isLoadable": false,
+      "featuresLoadedByCounty": {
+        "Umatilla": 0,
+        "Martin": 0,
+        "Santa Clara": 0,
+        "Sacramento": 0
+      },
+      "umatillaSourceDatasets": [
+        "Wildfire Hazard Potential 2023, Classified (USFS)"
+      ],
+      "project4": {
+        "status": "no_data_for_county",
+        "statusLabel": "No data yet",
+        "finding": "No data for this county yet",
+        "short": "No data",
+        "tooltip": "Wildfire hazard potential 2023: No data for this county yet",
+        "hasData": false,
+        "appliesInCounty": true,
+        "nearestMiles": null,
+        "nearestLabel": null,
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          }
+        ],
+        "classBreakdown": [],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": null
+      }
+    },
+    {
+      "id": 25,
+      "name": "Interagency fire perimeter history",
+      "themeId": 3,
+      "theme": "Natural hazards",
+      "reportOrder": 11,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "National Interagency Fire Center",
+      "loadedDate": "2026-11-20T00:19:07.553Z",
+      "updateFrequency": "Annual",
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "National Interagency Fire Center · loaded Nov 19, 2026 · updated annual",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 273,
+        "Martin": 0,
+        "Santa Clara": 327,
+        "Sacramento": 295
+      },
+      "umatillaSourceDatasets": [
+        "Interagency Fire Perimeter History (NIFC)"
+      ],
+      "project4": {
+        "status": "within_ring_3",
+        "statusLabel": "First found 1 to 5 mi out",
+        "finding": "Nearest is 2.8 mi from the boundary",
+        "short": "2.8 mi",
+        "tooltip": "Interagency fire perimeter history: Nearest is 2.8 mi from the boundary",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": 2.84,
+        "nearestLabel": "2.8 mi",
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 2.0893,
+            "featureCount": 3,
+            "cell": "2.09 ac"
+          }
+        ],
+        "classBreakdown": [
+          {
+            "className": "2003",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 2.0893,
+                "featureCount": 3,
+                "cell": "2.09 ac"
+              }
+            ]
+          }
+        ],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": {
+          "featureCount": 3,
+          "namedFeatureCount": 3,
+          "names": [
+            "PICKUP",
+            "LAUBACK",
+            "LAUBACK 2"
+          ]
+        }
+      }
+    },
+    {
+      "id": 30,
+      "name": "Critical habitat (final)",
+      "themeId": 4,
+      "theme": "Biological resources",
+      "reportOrder": 12,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "U.S. Fish and Wildlife Service",
+      "loadedDate": "2026-11-20T00:19:15.613Z",
+      "updateFrequency": "Continuous",
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "U.S. Fish and Wildlife Service · loaded Nov 19, 2026 · updated continuous",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 1,
+        "Martin": 3,
+        "Santa Clara": 16,
+        "Sacramento": 15
+      },
+      "umatillaSourceDatasets": [
+        "Critical Habitat, Final (USFWS)"
+      ],
+      "project4": {
+        "status": "within_ring_3",
+        "statusLabel": "First found 1 to 5 mi out",
+        "finding": "Nearest is 1.5 mi from the boundary",
+        "short": "1.5 mi",
+        "tooltip": "Critical habitat (final): Nearest is 1.5 mi from the boundary",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": 1.486,
+        "nearestLabel": "1.5 mi",
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 162.7504,
+            "featureCount": 1,
+            "cell": "163 ac"
+          }
+        ],
+        "classBreakdown": [
+          {
+            "className": "Threatened",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 162.7504,
+                "featureCount": 1,
+                "cell": "163 ac"
+              }
+            ]
+          }
+        ],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": {
+          "featureCount": 1,
+          "namedFeatureCount": 1,
+          "names": [
+            "Bull Trout"
+          ]
+        }
+      }
+    },
+    {
+      "id": 31,
+      "name": "ESA listed species current range",
+      "themeId": 4,
+      "theme": "Biological resources",
+      "reportOrder": 13,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "U.S. Fish and Wildlife Service",
+      "loadedDate": "2026-11-20T18:50:12.453Z",
+      "updateFrequency": "Continuous",
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "U.S. Fish and Wildlife Service · loaded Nov 20, 2026 · updated continuous",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 24,
+        "Martin": 52,
+        "Santa Clara": 72,
+        "Sacramento": 50
+      },
+      "umatillaSourceDatasets": [
+        "ESA Listed Species Current Range (USFWS)"
+      ],
+      "project4": {
+        "status": "on_site",
+        "statusLabel": "On the site",
+        "finding": "76.8 ac, 100% of the site, mostly candidate for Listing",
+        "short": "100% of site",
+        "tooltip": "ESA listed species current range: 76.8 ac, 100% of the site, mostly candidate for Listing",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": 0,
+        "nearestLabel": "on the site",
+        "onSiteShare": 1.0,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 76.8083,
+            "featureCount": 5,
+            "cell": "76.8 ac"
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 350.8822,
+            "featureCount": 5,
+            "cell": "351 ac"
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 2559.8636,
+            "featureCount": 5,
+            "cell": "2,560 ac"
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 51835.4302,
+            "featureCount": 6,
+            "cell": "51,835 ac"
+          }
+        ],
+        "classBreakdown": [
+          {
+            "className": "Candidate for Listing",
+            "byRing": [
+              {
+                "quantity": 76.8083,
+                "featureCount": 1,
+                "cell": "76.8 ac"
+              },
+              {
+                "quantity": 350.8822,
+                "featureCount": 1,
+                "cell": "351 ac"
+              },
+              {
+                "quantity": 2559.8636,
+                "featureCount": 1,
+                "cell": "2,560 ac"
+              },
+              {
+                "quantity": 51835.4302,
+                "featureCount": 1,
+                "cell": "51,835 ac"
+              }
+            ]
+          },
+          {
+            "className": "Listed",
+            "byRing": [
+              {
+                "quantity": 76.8083,
+                "featureCount": 1,
+                "cell": "76.8 ac"
+              },
+              {
+                "quantity": 350.8822,
+                "featureCount": 1,
+                "cell": "351 ac"
+              },
+              {
+                "quantity": 2559.8636,
+                "featureCount": 1,
+                "cell": "2,560 ac"
+              },
+              {
+                "quantity": 51835.4302,
+                "featureCount": 2,
+                "cell": "51,835 ac"
+              }
+            ]
+          },
+          {
+            "className": "Not Listed",
+            "byRing": [
+              {
+                "quantity": 76.8083,
+                "featureCount": 2,
+                "cell": "76.8 ac"
+              },
+              {
+                "quantity": 350.8822,
+                "featureCount": 2,
+                "cell": "351 ac"
+              },
+              {
+                "quantity": 2559.8636,
+                "featureCount": 2,
+                "cell": "2,560 ac"
+              },
+              {
+                "quantity": 51835.4302,
+                "featureCount": 2,
+                "cell": "51,835 ac"
+              }
+            ]
+          },
+          {
+            "className": "Petitioned for Listing, Under Review",
+            "byRing": [
+              {
+                "quantity": 76.8083,
+                "featureCount": 1,
+                "cell": "76.8 ac"
+              },
+              {
+                "quantity": 350.8822,
+                "featureCount": 1,
+                "cell": "351 ac"
+              },
+              {
+                "quantity": 2559.8636,
+                "featureCount": 1,
+                "cell": "2,560 ac"
+              },
+              {
+                "quantity": 51835.4302,
+                "featureCount": 1,
+                "cell": "51,835 ac"
+              }
+            ]
+          }
+        ],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": {
+          "featureCount": 6,
+          "namedFeatureCount": 6,
+          "names": [
+            "Washington ground squirrel",
+            "Bull Trout",
+            "Columbia spotted frog",
+            "Gray wolf",
+            "Monarch butterfly",
+            "Little brown bat"
+          ]
+        }
+      }
+    },
+    {
+      "id": 40,
+      "name": "Soil map units",
+      "themeId": 5,
+      "theme": "Soils and agriculture",
+      "reportOrder": 14,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "NRCS SSURGO (Esri Living Atlas)",
+      "loadedDate": null,
+      "updateFrequency": "Annual",
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "NRCS SSURGO (Esri Living Atlas) · updated annual",
+      "accessMethod": "Not yet available",
+      "isLoadable": false,
+      "featuresLoadedByCounty": {
+        "Umatilla": 0,
+        "Martin": 0,
+        "Santa Clara": 0,
+        "Sacramento": 0
+      },
+      "umatillaSourceDatasets": [
+        "Soil Map Units (SSURGO, Living Atlas)"
+      ],
+      "project4": {
+        "status": "no_data_for_county",
+        "statusLabel": "No data yet",
+        "finding": "No data for this county yet",
+        "short": "No data",
+        "tooltip": "Soil map units: No data for this county yet",
+        "hasData": false,
+        "appliesInCounty": true,
+        "nearestMiles": null,
+        "nearestLabel": null,
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          }
+        ],
+        "classBreakdown": [],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": null
+      }
+    },
+    {
+      "id": 41,
+      "name": "Farmland classification",
+      "themeId": 5,
+      "theme": "Soils and agriculture",
+      "reportOrder": 15,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "NRCS SSURGO (Esri Living Atlas)",
+      "loadedDate": null,
+      "updateFrequency": "Annual",
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "NRCS SSURGO (Esri Living Atlas) · updated annual",
+      "accessMethod": "Not yet available",
+      "isLoadable": false,
+      "featuresLoadedByCounty": {
+        "Umatilla": 0,
+        "Martin": 0,
+        "Santa Clara": 0,
+        "Sacramento": 0
+      },
+      "umatillaSourceDatasets": [
+        "Farmland Classification (SSURGO, Living Atlas)"
+      ],
+      "project4": {
+        "status": "no_data_for_county",
+        "statusLabel": "No data yet",
+        "finding": "No data for this county yet",
+        "short": "No data",
+        "tooltip": "Farmland classification: No data for this county yet",
+        "hasData": false,
+        "appliesInCounty": true,
+        "nearestMiles": null,
+        "nearestLabel": null,
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          }
+        ],
+        "classBreakdown": [],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": null
+      }
+    },
+    {
+      "id": 42,
+      "name": "Cropland Data Layer 2025",
+      "themeId": 5,
+      "theme": "Soils and agriculture",
+      "reportOrder": 16,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "USDA National Agricultural Statistics Service",
+      "loadedDate": null,
+      "updateFrequency": "Annual",
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "USDA National Agricultural Statistics Service · updated annual",
+      "accessMethod": "ArcGIS image service",
+      "isLoadable": false,
+      "featuresLoadedByCounty": {
+        "Umatilla": 0,
+        "Martin": 0,
+        "Santa Clara": 0,
+        "Sacramento": 0
+      },
+      "umatillaSourceDatasets": [
+        "Cropland Data Layer 2025 (USDA NASS)"
+      ],
+      "project4": {
+        "status": "no_data_for_county",
+        "statusLabel": "No data yet",
+        "finding": "No data for this county yet",
+        "short": "No data",
+        "tooltip": "Cropland Data Layer 2025: No data for this county yet",
+        "hasData": false,
+        "appliesInCounty": true,
+        "nearestMiles": null,
+        "nearestLabel": null,
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          }
+        ],
+        "classBreakdown": [],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": null
+      }
+    },
+    {
+      "id": 50,
+      "name": "Primary roads",
+      "themeId": 6,
+      "theme": "Infrastructure",
+      "reportOrder": 17,
+      "geometry": "line",
+      "measureUnit": "miles",
+      "measureType": "length",
+      "sourceAgency": "U.S. Census Bureau (TIGERweb)",
+      "loadedDate": "2026-11-20T01:05:16.147Z",
+      "updateFrequency": "Annual",
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "U.S. Census Bureau (TIGERweb) · loaded Nov 19, 2026 · updated annual",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 43,
+        "Martin": 24,
+        "Santa Clara": 102,
+        "Sacramento": 93
+      },
+      "umatillaSourceDatasets": [
+        "Primary Roads (TIGERweb)"
+      ],
+      "project4": {
+        "status": "within_ring_3",
+        "statusLabel": "First found 1 to 5 mi out",
+        "finding": "Nearest is 2.9 mi from the boundary",
+        "short": "2.9 mi",
+        "tooltip": "Primary roads: Nearest is 2.9 mi from the boundary",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": 2.876,
+        "nearestLabel": "2.9 mi",
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 65.666,
+            "featureCount": 12,
+            "cell": "65.7 mi"
+          }
+        ],
+        "classBreakdown": [
+          {
+            "className": "Interstate",
+            "sourceCode": "I",
+            "sortOrder": 10,
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 27.9619,
+                "featureCount": 5,
+                "cell": "28 mi"
+              }
+            ]
+          },
+          {
+            "className": "U.S. highway",
+            "sourceCode": "U",
+            "sortOrder": 20,
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 11.3055,
+                "featureCount": 2,
+                "cell": "11.3 mi"
+              }
+            ]
+          },
+          {
+            "className": "Common name",
+            "sourceCode": "M",
+            "sortOrder": 50,
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 26.3986,
+                "featureCount": 5,
+                "cell": "26.4 mi"
+              }
+            ]
+          }
+        ],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": {
+          "featureCount": 12,
+          "namedFeatureCount": 5,
+          "names": [
+            "Old Oregon Trail Hwy",
+            "McNary Hwy",
+            "US Hwy 30",
+            "I- 84",
+            "I- 82"
+          ]
+        }
+      }
+    },
+    {
+      "id": 51,
+      "name": "North American Rail Network",
+      "themeId": 6,
+      "theme": "Infrastructure",
+      "reportOrder": 18,
+      "geometry": "line",
+      "measureUnit": "miles",
+      "measureType": "length",
+      "sourceAgency": "Bureau of Transportation Statistics",
+      "loadedDate": "2026-11-20T01:05:18.82Z",
+      "updateFrequency": null,
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "Bureau of Transportation Statistics · loaded Nov 19, 2026",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 641,
+        "Martin": 99,
+        "Santa Clara": 940,
+        "Sacramento": 1974
+      },
+      "umatillaSourceDatasets": [
+        "North American Rail Network Lines (BTS)"
+      ],
+      "project4": {
+        "status": "within_ring_1",
+        "statusLabel": "First found 0 to ¼ mi out",
+        "finding": "Nearest is 0.03 mi from the boundary",
+        "short": "0.03 mi",
+        "tooltip": "North American Rail Network: Nearest is 0.03 mi from the boundary",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": 0.028,
+        "nearestLabel": "0.03 mi",
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0.8613,
+            "featureCount": 2,
+            "cell": "0.86 mi"
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 2.1738,
+            "featureCount": 6,
+            "cell": "2.17 mi"
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 70.8118,
+            "featureCount": 158,
+            "cell": "70.8 mi"
+          }
+        ],
+        "classBreakdown": [
+          {
+            "className": "I",
+            "byRing": [
+              null,
+              {
+                "quantity": 0.7943,
+                "featureCount": 1,
+                "cell": "0.79 mi"
+              },
+              {
+                "quantity": 1.7513,
+                "featureCount": 4,
+                "cell": "1.75 mi"
+              },
+              {
+                "quantity": 11.4925,
+                "featureCount": 10,
+                "cell": "11.5 mi"
+              }
+            ]
+          },
+          {
+            "className": "O",
+            "byRing": [
+              null,
+              {
+                "quantity": 0.067,
+                "featureCount": 1,
+                "cell": "0.07 mi"
+              },
+              {
+                "quantity": 0.1024,
+                "featureCount": 1,
+                "cell": "0.1 mi"
+              },
+              {
+                "quantity": 3.0521,
+                "featureCount": 13,
+                "cell": "3.05 mi"
+              }
+            ]
+          },
+          {
+            "className": "S",
+            "byRing": [
+              null,
+              null,
+              {
+                "quantity": 0.3201,
+                "featureCount": 1,
+                "cell": "0.32 mi"
+              },
+              {
+                "quantity": 0.3224,
+                "featureCount": 1,
+                "cell": "0.32 mi"
+              }
+            ]
+          },
+          {
+            "className": "Y",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 32.9193,
+                "featureCount": 110,
+                "cell": "32.9 mi"
+              }
+            ]
+          },
+          {
+            "className": "M",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 23.0257,
+                "featureCount": 24,
+                "cell": "23 mi"
+              }
+            ]
+          }
+        ],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": {
+          "featureCount": 162,
+          "namedFeatureCount": 1,
+          "names": [
+            "UP"
+          ]
+        }
+      }
+    },
+    {
+      "id": 52,
+      "name": "FAA airports",
+      "themeId": 6,
+      "theme": "Infrastructure",
+      "reportOrder": 19,
+      "geometry": "point",
+      "measureUnit": "count",
+      "measureType": "count",
+      "sourceAgency": "Federal Aviation Administration",
+      "loadedDate": "2026-11-20T01:05:20.32Z",
+      "updateFrequency": null,
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "Federal Aviation Administration · loaded Nov 19, 2026",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 26,
+        "Martin": 30,
+        "Santa Clara": 27,
+        "Sacramento": 57
+      },
+      "umatillaSourceDatasets": [
+        "FAA Airports"
+      ],
+      "project4": {
+        "status": "within_ring_2",
+        "statusLabel": "First found ¼ to 1 mi out",
+        "finding": "Nearest is 1.0 mi from the boundary",
+        "short": "1.0 mi",
+        "tooltip": "FAA airports: Nearest is 1.0 mi from the boundary",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": 0.952,
+        "nearestLabel": "1.0 mi",
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 1,
+            "featureCount": 1,
+            "cell": "1"
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 1,
+            "featureCount": 1,
+            "cell": "1"
+          }
+        ],
+        "classBreakdown": [
+          {
+            "className": "Heliport",
+            "sourceCode": "HP",
+            "sortOrder": 20,
+            "byRing": [
+              null,
+              null,
+              {
+                "quantity": 1,
+                "featureCount": 1,
+                "cell": "1"
+              },
+              null
+            ]
+          },
+          {
+            "className": "Airport",
+            "sourceCode": "AD",
+            "sortOrder": 10,
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 1,
+                "featureCount": 1,
+                "cell": "1"
+              }
+            ]
+          }
+        ],
+        "nearbyFeatures": [
+          {
+            "name": "Good Shepherd Hospital",
+            "className": "Heliport",
+            "miles": 0.952,
+            "distance": "1.0 mi"
+          },
+          {
+            "name": "Hermiston Muni",
+            "className": "Airport",
+            "miles": 1.448,
+            "distance": "1.4 mi"
+          }
+        ],
+        "namedFeaturesInRunExtent": {
+          "featureCount": 2,
+          "namedFeatureCount": 2,
+          "names": [
+            "Hermiston Muni",
+            "Good Shepherd Hospital"
+          ]
+        }
+      }
+    },
+    {
+      "id": 53,
+      "name": "Electric power transmission lines",
+      "themeId": 6,
+      "theme": "Infrastructure",
+      "reportOrder": 20,
+      "geometry": "line",
+      "measureUnit": "miles",
+      "measureType": "length",
+      "sourceAgency": "HIFLD (via Esri)",
+      "loadedDate": "2026-11-20T01:05:21.623Z",
+      "updateFrequency": null,
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "HIFLD (via Esri) · loaded Nov 19, 2026",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 209,
+        "Martin": 88,
+        "Santa Clara": 268,
+        "Sacramento": 691
+      },
+      "umatillaSourceDatasets": [
+        "Electric Power Transmission Lines (HIFLD via Esri)"
+      ],
+      "project4": {
+        "status": "within_ring_2",
+        "statusLabel": "First found ¼ to 1 mi out",
+        "finding": "Nearest is 0.3 mi from the boundary",
+        "short": "0.3 mi",
+        "tooltip": "Electric power transmission lines: Nearest is 0.3 mi from the boundary",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": 0.251,
+        "nearestLabel": "0.3 mi",
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 5.5957,
+            "featureCount": 8,
+            "cell": "5.6 mi"
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 110.8539,
+            "featureCount": 51,
+            "cell": "111 mi"
+          }
+        ],
+        "classBreakdown": [
+          {
+            "className": "100-161",
+            "byRing": [
+              null,
+              null,
+              {
+                "quantity": 5.5957,
+                "featureCount": 8,
+                "cell": "5.6 mi"
+              },
+              {
+                "quantity": 69.8294,
+                "featureCount": 37,
+                "cell": "69.8 mi"
+              }
+            ]
+          },
+          {
+            "className": "500",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 21.4036,
+                "featureCount": 6,
+                "cell": "21.4 mi"
+              }
+            ]
+          },
+          {
+            "className": "220-287",
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 19.621,
+                "featureCount": 8,
+                "cell": "19.6 mi"
+              }
+            ]
+          }
+        ],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": {
+          "featureCount": 53,
+          "namedFeatureCount": 4,
+          "names": [
+            "BONNEVILLE POWER ADMINISTRATION",
+            "PACIFICORP",
+            "UMATILLA ELECTRIC COOP ASSN",
+            "NOT AVAILABLE"
+          ]
+        }
+      }
+    },
+    {
+      "id": 14,
+      "name": "Legal Delta boundary",
+      "themeId": 7,
+      "theme": "Protected and special areas",
+      "reportOrder": 21,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "California Department of Water Resources",
+      "loadedDate": null,
+      "updateFrequency": "Static",
+      "restrictionNote": null,
+      "coveredStates": "California",
+      "sourceLine": "California Department of Water Resources · updated static",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": null,
+        "Martin": null,
+        "Santa Clara": 0,
+        "Sacramento": 1
+      },
+      "umatillaSourceDatasets": [],
+      "project4": {
+        "status": "not_applicable",
+        "statusLabel": "Not applicable",
+        "finding": "Covers California only",
+        "short": "Not applicable",
+        "tooltip": "Legal Delta boundary: Covers California only",
+        "hasData": false,
+        "appliesInCounty": false,
+        "nearestMiles": null,
+        "nearestLabel": null,
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          }
+        ],
+        "classBreakdown": [],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": null
+      }
+    },
+    {
+      "id": 60,
+      "name": "PAD-US 4.1",
+      "themeId": 7,
+      "theme": "Protected and special areas",
+      "reportOrder": 22,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "U.S. Geological Survey",
+      "loadedDate": "2026-11-20T01:05:44.097Z",
+      "updateFrequency": "Static (4.1)",
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "U.S. Geological Survey · loaded Nov 19, 2026 · updated static (4.1)",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 234,
+        "Martin": 289,
+        "Santa Clara": 2175,
+        "Sacramento": 2201
+      },
+      "umatillaSourceDatasets": [
+        "Protected Areas Database (PAD-US 4.1)"
+      ],
+      "project4": {
+        "status": "within_ring_1",
+        "statusLabel": "First found 0 to ¼ mi out",
+        "finding": "Nearest is 0.05 mi from the boundary",
+        "short": "0.05 mi",
+        "tooltip": "PAD-US 4.1: Nearest is 0.05 mi from the boundary",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": 0.051,
+        "nearestLabel": "0.05 mi",
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 7.7712,
+            "featureCount": 3,
+            "cell": "7.77 ac"
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 39.9968,
+            "featureCount": 7,
+            "cell": "40 ac"
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 4401.9356,
+            "featureCount": 14,
+            "cell": "4,402 ac"
+          }
+        ],
+        "classBreakdown": [
+          {
+            "className": "Local",
+            "sourceCode": "LOC",
+            "sortOrder": 30,
+            "byRing": [
+              null,
+              {
+                "quantity": 7.7712,
+                "featureCount": 3,
+                "cell": "7.77 ac"
+              },
+              {
+                "quantity": 36.6009,
+                "featureCount": 6,
+                "cell": "36.6 ac"
+              },
+              {
+                "quantity": 44.7455,
+                "featureCount": 9,
+                "cell": "44.7 ac"
+              }
+            ]
+          },
+          {
+            "className": "Federal",
+            "sourceCode": "FED",
+            "sortOrder": 10,
+            "byRing": [
+              null,
+              null,
+              {
+                "quantity": 3.4258,
+                "featureCount": 1,
+                "cell": "3.43 ac"
+              },
+              {
+                "quantity": 4321.6089,
+                "featureCount": 3,
+                "cell": "4,322 ac"
+              }
+            ]
+          },
+          {
+            "className": "State",
+            "sourceCode": "STAT",
+            "sortOrder": 20,
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 103.4041,
+                "featureCount": 1,
+                "cell": "103 ac"
+              }
+            ]
+          },
+          {
+            "className": "Tribal",
+            "sourceCode": "TRIB",
+            "sortOrder": 40,
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 1241.1541,
+                "featureCount": 1,
+                "cell": "1,241 ac"
+              }
+            ]
+          }
+        ],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": {
+          "featureCount": 22,
+          "namedFeatureCount": 22,
+          "names": [
+            "Joint Base Lewis-McChord",
+            "Umatilla Off-Reservation Trust Land",
+            "Vale Baker Field Office",
+            "Wanaket Wildlife Area",
+            "Belt Park",
+            "Butte Park",
+            "Highland Park",
+            "Hodge Park",
+            "Mckenzie Park",
+            "Newport Park",
+            "Riverfront Park",
+            "Sunset Park",
+            "Theater Sports Park",
+            "Victory Square Park",
+            "Volunteer Park"
+          ]
+        }
+      }
+    },
+    {
+      "id": 70,
+      "name": "National Register of Historic Places",
+      "themeId": 8,
+      "theme": "Cultural resources",
+      "reportOrder": 23,
+      "geometry": "point",
+      "measureUnit": "count",
+      "measureType": "count",
+      "sourceAgency": "National Park Service",
+      "loadedDate": "2026-11-20T01:05:45.533Z",
+      "updateFrequency": null,
+      "restrictionNote": "For general reference only; NPS says it does not satisfy Section 106 consultation or review.",
+      "coveredStates": null,
+      "sourceLine": "National Park Service · loaded Nov 19, 2026",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 85,
+        "Martin": 17,
+        "Santa Clara": 172,
+        "Sacramento": 153
+      },
+      "umatillaSourceDatasets": [
+        "National Register of Historic Places, Points (NPS)"
+      ],
+      "project4": {
+        "status": "not_found",
+        "statusLabel": "Not found within 5 mi",
+        "finding": "None within 5 mi",
+        "short": "None",
+        "tooltip": "National Register of Historic Places: None within 5 mi",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": null,
+        "nearestLabel": null,
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          }
+        ],
+        "classBreakdown": [],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": null
+      }
+    },
+    {
+      "id": 80,
+      "name": "Ozone 8-hour (2015) nonattainment areas",
+      "themeId": 9,
+      "theme": "Air quality",
+      "reportOrder": 24,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "U.S. Environmental Protection Agency",
+      "loadedDate": "2026-11-20T01:05:46.847Z",
+      "updateFrequency": null,
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "U.S. Environmental Protection Agency · loaded Nov 19, 2026",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 0,
+        "Martin": 0,
+        "Santa Clara": 2,
+        "Sacramento": 5
+      },
+      "umatillaSourceDatasets": [
+        "Nonattainment Areas, Ozone 8-hr 2015 (EPA)"
+      ],
+      "project4": {
+        "status": "not_found",
+        "statusLabel": "Not found within 5 mi",
+        "finding": "None within 5 mi",
+        "short": "None",
+        "tooltip": "Ozone 8-hour (2015) nonattainment areas: None within 5 mi",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": null,
+        "nearestLabel": null,
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          }
+        ],
+        "classBreakdown": [],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": null
+      }
+    },
+    {
+      "id": 81,
+      "name": "CARB air districts",
+      "themeId": 9,
+      "theme": "Air quality",
+      "reportOrder": 25,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "California Air Resources Board",
+      "loadedDate": null,
+      "updateFrequency": null,
+      "restrictionNote": null,
+      "coveredStates": "California",
+      "sourceLine": "California Air Resources Board",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": null,
+        "Martin": null,
+        "Santa Clara": 3,
+        "Sacramento": 9
+      },
+      "umatillaSourceDatasets": [],
+      "project4": {
+        "status": "not_applicable",
+        "statusLabel": "Not applicable",
+        "finding": "Covers California only",
+        "short": "Not applicable",
+        "tooltip": "CARB air districts: Covers California only",
+        "hasData": false,
+        "appliesInCounty": false,
+        "nearestMiles": null,
+        "nearestLabel": null,
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          }
+        ],
+        "classBreakdown": [],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": null
+      }
+    },
+    {
+      "id": 90,
+      "name": "Superfund NPL site boundaries",
+      "themeId": 10,
+      "theme": "Contamination",
+      "reportOrder": 26,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "U.S. Environmental Protection Agency",
+      "loadedDate": "2026-11-20T01:05:50.277Z",
+      "updateFrequency": null,
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "U.S. Environmental Protection Agency · loaded Nov 19, 2026",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 1,
+        "Martin": 2,
+        "Santa Clara": 28,
+        "Sacramento": 10
+      },
+      "umatillaSourceDatasets": [
+        "Superfund NPL Site Boundaries (EPA)"
+      ],
+      "project4": {
+        "status": "within_ring_3",
+        "statusLabel": "First found 1 to 5 mi out",
+        "finding": "Nearest is 4.5 mi from the boundary",
+        "short": "4.5 mi",
+        "tooltip": "Superfund NPL site boundaries: Nearest is 4.5 mi from the boundary",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": 4.472,
+        "nearestLabel": "4.5 mi",
+        "onSiteShare": null,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 0,
+            "featureCount": 0,
+            "cell": ""
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 1162.8162,
+            "featureCount": 1,
+            "cell": "1,163 ac"
+          }
+        ],
+        "classBreakdown": [
+          {
+            "className": "Final NPL",
+            "sourceCode": "F",
+            "sortOrder": 10,
+            "byRing": [
+              null,
+              null,
+              null,
+              {
+                "quantity": 1162.8162,
+                "featureCount": 1,
+                "cell": "1,163 ac"
+              }
+            ]
+          }
+        ],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": {
+          "featureCount": 1,
+          "namedFeatureCount": 1,
+          "names": [
+            "UMATILLA ARMY DEPOT (LAGOONS)"
+          ]
+        }
+      }
+    },
+    {
+      "id": 100,
+      "name": "Census tracts",
+      "themeId": 11,
+      "theme": "Community",
+      "reportOrder": 27,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "U.S. Census Bureau (TIGERweb)",
+      "loadedDate": "2026-11-20T01:06:19.117Z",
+      "updateFrequency": "Decennial",
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "U.S. Census Bureau (TIGERweb) · loaded Nov 19, 2026 · updated decennial",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 50,
+        "Martin": 138,
+        "Santa Clara": 660,
+        "Sacramento": 700
+      },
+      "umatillaSourceDatasets": [
+        "Census Tracts (TIGERweb)"
+      ],
+      "project4": {
+        "status": "on_site",
+        "statusLabel": "On the site",
+        "finding": "76.8 ac, 100% of the site",
+        "short": "100% of site",
+        "tooltip": "Census tracts: 76.8 ac, 100% of the site",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": 0,
+        "nearestLabel": "on the site",
+        "onSiteShare": 1.0,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 76.8083,
+            "featureCount": 1,
+            "cell": "76.8 ac"
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 350.8822,
+            "featureCount": 4,
+            "cell": "351 ac"
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 2559.8636,
+            "featureCount": 4,
+            "cell": "2,560 ac"
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 51835.4302,
+            "featureCount": 8,
+            "cell": "51,835 ac"
+          }
+        ],
+        "classBreakdown": [
+          {
+            "className": "Unclassified",
+            "byRing": [
+              {
+                "quantity": 76.8083,
+                "featureCount": 1,
+                "cell": "76.8 ac"
+              },
+              {
+                "quantity": 350.8822,
+                "featureCount": 4,
+                "cell": "351 ac"
+              },
+              {
+                "quantity": 2559.8636,
+                "featureCount": 4,
+                "cell": "2,560 ac"
+              },
+              {
+                "quantity": 51835.4302,
+                "featureCount": 8,
+                "cell": "51,835 ac"
+              }
+            ]
+          }
+        ],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": {
+          "featureCount": 8,
+          "namedFeatureCount": 8,
+          "names": [
+            "Census Tract 9512.01",
+            "Census Tract 9512.02",
+            "Census Tract 9511",
+            "Census Tract 9513",
+            "Census Tract 9508",
+            "Census Tract 9509",
+            "Census Tract 9505",
+            "Census Tract 9510"
+          ]
+        }
+      }
+    },
+    {
+      "id": 101,
+      "name": "Social Vulnerability Index 2022",
+      "themeId": 11,
+      "theme": "Community",
+      "reportOrder": 28,
+      "geometry": "polygon",
+      "measureUnit": "acres",
+      "measureType": "area",
+      "sourceAgency": "CDC/ATSDR",
+      "loadedDate": "2026-11-20T01:06:22.28Z",
+      "updateFrequency": "Biennial",
+      "restrictionNote": null,
+      "coveredStates": null,
+      "sourceLine": "CDC/ATSDR · loaded Nov 19, 2026 · updated biennial",
+      "accessMethod": "ArcGIS feature or map service",
+      "isLoadable": true,
+      "featuresLoadedByCounty": {
+        "Umatilla": 50,
+        "Martin": 135,
+        "Santa Clara": 655,
+        "Sacramento": 699
+      },
+      "umatillaSourceDatasets": [
+        "CDC/ATSDR Social Vulnerability Index 2022, Tracts"
+      ],
+      "project4": {
+        "status": "on_site",
+        "statusLabel": "On the site",
+        "finding": "76.8 ac, 100% of the site",
+        "short": "100% of site",
+        "tooltip": "Social Vulnerability Index 2022: 76.8 ac, 100% of the site",
+        "hasData": true,
+        "appliesInCounty": true,
+        "nearestMiles": 0,
+        "nearestLabel": "on the site",
+        "onSiteShare": 1.0,
+        "byRing": [
+          {
+            "ring": "On the site",
+            "quantity": 76.8083,
+            "featureCount": 1,
+            "cell": "76.8 ac"
+          },
+          {
+            "ring": "0 to ¼ mi",
+            "quantity": 350.8822,
+            "featureCount": 4,
+            "cell": "351 ac"
+          },
+          {
+            "ring": "¼ to 1 mi",
+            "quantity": 2559.8636,
+            "featureCount": 4,
+            "cell": "2,560 ac"
+          },
+          {
+            "ring": "1 to 5 mi",
+            "quantity": 51835.4302,
+            "featureCount": 8,
+            "cell": "51,835 ac"
+          }
+        ],
+        "classBreakdown": [
+          {
+            "className": "Unclassified",
+            "byRing": [
+              {
+                "quantity": 76.8083,
+                "featureCount": 1,
+                "cell": "76.8 ac"
+              },
+              {
+                "quantity": 350.8822,
+                "featureCount": 4,
+                "cell": "351 ac"
+              },
+              {
+                "quantity": 2559.8636,
+                "featureCount": 4,
+                "cell": "2,560 ac"
+              },
+              {
+                "quantity": 51835.4302,
+                "featureCount": 8,
+                "cell": "51,835 ac"
+              }
+            ]
+          }
+        ],
+        "nearbyFeatures": [],
+        "namedFeaturesInRunExtent": {
+          "featureCount": 8,
+          "namedFeatureCount": 8,
+          "names": [
+            "Census Tract 9505; Umatilla County; Oregon",
+            "Census Tract 9508; Umatilla County; Oregon",
+            "Census Tract 9509; Umatilla County; Oregon",
+            "Census Tract 9510; Umatilla County; Oregon",
+            "Census Tract 9511; Umatilla County; Oregon",
+            "Census Tract 9512.01; Umatilla County; Oregon",
+            "Census Tract 9512.02; Umatilla County; Oregon",
+            "Census Tract 9513; Umatilla County; Oregon"
+          ]
+        }
+      }
+    }
+  ],
+  "project4": {
+    "project": {
+      "ProjectID": 4,
+      "ProjectName": "Report check – Umatilla",
+      "CountyID": 1,
+      "County": "Umatilla County, OR",
+      "ProjectTypeID": 1,
+      "ProjectType": "Solar generation",
+      "ProjectStageID": 1,
+      "ProjectStage": "Site screening",
+      "Description": null,
+      "Acres": 76.62,
+      "AreaDefinitionMethodID": 1,
+      "LatestScreeningRunID": 3,
+      "CreateDate": "2026-11-21T00:22:04.477Z",
+      "CreateUserFullName": "Raynard Lee",
+      "UpdateDate": "2026-11-21T00:22:04.807Z",
+      "Parcels": []
+    },
+    "run": {
+      "screeningRunID": 3,
+      "status": "Complete",
+      "statusID": 3,
+      "createDate": "2026-11-21T00:22:05.587Z",
+      "startDate": "2026-11-21T00:23:05.52Z",
+      "completeDate": "2026-11-21T00:23:12.56Z",
+      "createdBy": "Raynard Lee",
+      "failureMessage": null,
+      "isStale": false,
+      "runLabel": "Run Nov 20, 2026, 4:22 PM by Raynard Lee",
+      "reportAcres": 76.81,
+      "countyDisplayName": "Umatilla County, OR",
+      "facts": [
+        "76.8 acres",
+        "Umatilla County, OR",
+        "Solar generation",
+        "Screened out to 5 mi",
+        "23 layers checked"
+      ]
+    },
+    "rings": [
+      {
+        "ringIndex": 0,
+        "name": "Project area",
+        "bandLabel": "On the site",
+        "fromMiles": 0,
+        "toMiles": 0,
+        "uniqueAreaSqMi": 0.11972252759792953,
+        "areaLabel": "77 ac"
+      },
+      {
+        "ringIndex": 1,
+        "name": "0 to 0.25 mi",
+        "bandLabel": "0 to ¼ mi",
+        "fromMiles": 0,
+        "toMiles": 0.25,
+        "uniqueAreaSqMi": 0.548,
+        "areaLabel": "0.55 sq mi"
+      },
+      {
+        "ringIndex": 2,
+        "name": "0.25 to 1 mi",
+        "bandLabel": "¼ to 1 mi",
+        "fromMiles": 0.25,
+        "toMiles": 1,
+        "uniqueAreaSqMi": 4.0003,
+        "areaLabel": "4.00 sq mi"
+      },
+      {
+        "ringIndex": 3,
+        "name": "1 to 5 mi",
+        "bandLabel": "1 to 5 mi",
+        "fromMiles": 1,
+        "toMiles": 5,
+        "uniqueAreaSqMi": 81.0251,
+        "areaLabel": "81.03 sq mi"
+      }
+    ],
+    "ringTotal": {
+      "name": "Total within 5 mi",
+      "cumulativeAreaSqMi": 85.6931,
+      "areaLabel": "85.69 sq mi"
+    },
+    "proximitySelection": {
+      "presetActive": "Regional",
+      "miles": [
+        0.25,
+        1,
+        5
+      ]
+    },
+    "statusCounts": {
+      "on_site": 7,
+      "within_ring_1": 4,
+      "not_found": 6,
+      "no_data_for_county": 4,
+      "within_ring_3": 4,
+      "within_ring_2": 2,
+      "not_applicable": 2
+    },
+    "statusCountsUI": {
+      "onTheSite": 7,
+      "nearby": 10,
+      "notFound": 6,
+      "noDataYet": 4,
+      "notApplicable": 2,
+      "screened": 23,
+      "total": 29
+    },
+    "screeningSummary": {
+      "sentence": "7 of the 23 screened layers touch the site, 10 more first show up within 5 mi and 6 were not found. Listed first for solar generation: soils and agriculture, biological resources, infrastructure.",
+      "note": "4 layers have no data for this county yet: Wildfire hazard potential 2023, Soil map units, Farmland classification, Cropland Data Layer 2025. 2 layers cover other states only and don't apply in Umatilla County, OR: Legal Delta boundary, CARB air districts.",
+      "tally": [
+        {
+          "label": "On the site",
+          "caption": "On the site",
+          "count": 7
+        },
+        {
+          "label": "First found 0 to ¼ mi out",
+          "caption": "0 to ¼ mi",
+          "count": 4
+        },
+        {
+          "label": "First found ¼ to 1 mi out",
+          "caption": "¼ to 1 mi",
+          "count": 2
+        },
+        {
+          "label": "First found 1 to 5 mi out",
+          "caption": "1 to 5 mi",
+          "count": 4
+        },
+        {
+          "label": "Not found within 5 mi",
+          "caption": "Not found",
+          "count": 6
+        }
+      ],
+      "onTheSite": [
+        {
+          "name": "ESA listed species current range",
+          "short": "100% of site"
+        },
+        {
+          "name": "Zoning",
+          "short": "76% of site"
+        },
+        {
+          "name": "General plan land use",
+          "short": "100% of site"
+        },
+        {
+          "name": "FEMA flood hazard zones",
+          "short": "100% of site"
+        },
+        {
+          "name": "2023 National Seismic Hazard Model (MMI)",
+          "short": "100% of site"
+        },
+        {
+          "name": "Census tracts",
+          "short": "100% of site"
+        },
+        {
+          "name": "Social Vulnerability Index 2022",
+          "short": "100% of site"
+        }
+      ],
+      "nearbyNearestFirst": [
+        {
+          "name": "North American Rail Network",
+          "short": "0.03 mi"
+        },
+        {
+          "name": "PAD-US 4.1",
+          "short": "0.05 mi"
+        },
+        {
+          "name": "National Wetlands Inventory",
+          "short": "0.2 mi"
+        },
+        {
+          "name": "NHDPlus HR flowlines",
+          "short": "0.2 mi"
+        },
+        {
+          "name": "Electric power transmission lines",
+          "short": "0.3 mi"
+        },
+        {
+          "name": "FAA airports",
+          "short": "1.0 mi"
+        },
+        {
+          "name": "Critical habitat (final)",
+          "short": "1.5 mi"
+        },
+        {
+          "name": "Interagency fire perimeter history",
+          "short": "2.8 mi"
+        },
+        {
+          "name": "Primary roads",
+          "short": "2.9 mi"
+        },
+        {
+          "name": "Superfund NPL site boundaries",
+          "short": "4.5 mi"
+        }
+      ],
+      "notFound": [
+        "Wild and Scenic Rivers",
+        "Sole source aquifers",
+        "Quaternary faults and folds",
+        "US landslide inventory",
+        "National Register of Historic Places",
+        "Ozone 8-hour (2015) nonattainment areas"
+      ],
+      "listMax": 8
+    },
+    "filterChips": [
+      {
+        "key": null,
+        "label": "All",
+        "count": 29
+      },
+      {
+        "key": "0",
+        "label": "On the site",
+        "count": 7
+      },
+      {
+        "key": "1",
+        "label": "First found 0 to ¼ mi",
+        "count": 4
+      },
+      {
+        "key": "2",
+        "label": "First found ¼ to 1 mi",
+        "count": 2
+      },
+      {
+        "key": "3",
+        "label": "First found 1 to 5 mi",
+        "count": 4
+      },
+      {
+        "key": "none",
+        "label": "Not found within 5 mi",
+        "count": 6
+      },
+      {
+        "key": "nodata",
+        "label": "No data yet",
+        "count": 4
+      },
+      {
+        "key": "na",
+        "label": "Not applicable",
+        "count": 2
+      }
+    ],
+    "legend": [
+      {
+        "shade": "pk0",
+        "label": "On the site"
+      },
+      {
+        "shade": "pk1",
+        "label": "First found 0 to ¼ mi"
+      },
+      {
+        "shade": "pk2",
+        "label": "First found ¼ to 1 mi"
+      },
+      {
+        "shade": "pk3",
+        "label": "First found 1 to 5 mi"
+      },
+      {
+        "shade": "pkn",
+        "label": "Not found within 5 mi"
+      },
+      {
+        "shade": "pkx",
+        "label": "No data for this county yet"
+      },
+      {
+        "shade": "pkna",
+        "label": "Doesn't apply in this state"
+      }
+    ],
+    "boundaryGeoJson": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -119.29,
+            45.84
+          ],
+          [
+            -119.284,
+            45.84
+          ],
+          [
+            -119.284,
+            45.846
+          ],
+          [
+            -119.29,
+            45.846
+          ],
+          [
+            -119.29,
+            45.84
+          ]
+        ]
+      ]
+    }
+  },
+  "runStatuses": [
+    {
+      "id": 1,
+      "name": "Queued",
+      "uiText": "Waiting to start…"
+    },
+    {
+      "id": 2,
+      "name": "Running",
+      "uiText": "Measuring every core dataset in each ring…"
+    },
+    {
+      "id": 3,
+      "name": "Complete"
+    },
+    {
+      "id": 4,
+      "name": "Failed",
+      "uiText": "The report didn't finish.",
+      "showsFailureMessage": true
+    }
+  ],
+  "runStatusNotes": "Report page polls every 3 s while Queued or Running. Run.IsStale = area changed since the run. Layer load statuses seen in load-status: Complete, Failed, null (never loaded).",
+  "projectTypes": [
+    {
+      "id": 1,
+      "name": "Solar generation"
+    },
+    {
+      "id": 2,
+      "name": "Wind generation"
+    },
+    {
+      "id": 3,
+      "name": "Battery energy storage"
+    },
+    {
+      "id": 4,
+      "name": "Data center"
+    },
+    {
+      "id": 5,
+      "name": "Transmission or substation"
+    },
+    {
+      "id": 6,
+      "name": "Residential or mixed-use development"
+    },
+    {
+      "id": 7,
+      "name": "Industrial or logistics"
+    },
+    {
+      "id": 8,
+      "name": "Water or wastewater infrastructure"
+    },
+    {
+      "id": 9,
+      "name": "Other"
+    }
+  ],
+  "projectTypeThemePriority": {
+    "note": "Report lists these themes first for each project type ('Listed first for <type>: ...'). Type 9 Other has none.",
+    "byProjectTypeId": {
+      "1": [
+        "Soils and agriculture",
+        "Biological resources",
+        "Infrastructure"
+      ],
+      "2": [
+        "Biological resources",
+        "Infrastructure",
+        "Soils and agriculture"
+      ],
+      "3": [
+        "Wetlands and water",
+        "Natural hazards",
+        "Land use and zoning"
+      ],
+      "4": [
+        "Infrastructure",
+        "Wetlands and water",
+        "Land use and zoning"
+      ],
+      "5": [
+        "Wetlands and water",
+        "Biological resources",
+        "Land use and zoning"
+      ],
+      "6": [
+        "Land use and zoning",
+        "Wetlands and water",
+        "Natural hazards"
+      ],
+      "7": [
+        "Land use and zoning",
+        "Natural hazards",
+        "Infrastructure"
+      ],
+      "8": [
+        "Wetlands and water",
+        "Biological resources",
+        "Soils and agriculture"
+      ]
+    }
+  },
+  "projectStages": [
+    {
+      "id": 1,
+      "name": "Site screening"
+    },
+    {
+      "id": 2,
+      "name": "Acquisition due diligence"
+    },
+    {
+      "id": 3,
+      "name": "Pre-application"
+    },
+    {
+      "id": 4,
+      "name": "Entitlement and permitting"
+    }
+  ],
+  "counties": [
+    {
+      "id": 1,
+      "name": "Umatilla County, OR",
+      "center": [
+        45.59,
+        -118.74
+      ],
+      "defaultZoom": 9,
+      "parcelCount": 45042,
+      "parcelLoadDate": "2026-11-18T23:59:33.67Z"
+    },
+    {
+      "id": 2,
+      "name": "Martin County, FL",
+      "center": [
+        27.08,
+        -80.4
+      ],
+      "defaultZoom": 10,
+      "parcelCount": 97835,
+      "parcelLoadDate": "2026-11-19T00:07:54.16Z"
+    },
+    {
+      "id": 3,
+      "name": "Santa Clara County, CA",
+      "center": [
+        37.23,
+        -121.7
+      ],
+      "defaultZoom": 10,
+      "parcelCount": 496633,
+      "parcelLoadDate": "2026-11-18T23:58:18.143Z"
+    },
+    {
+      "id": 4,
+      "name": "Sacramento County, CA",
+      "center": [
+        38.45,
+        -121.34
+      ],
+      "defaultZoom": 10,
+      "parcelCount": 508143,
+      "parcelLoadDate": "2026-11-19T00:20:19.857Z"
+    }
+  ],
+  "areaDefinitionMethods": {
+    "note": "Enum names not in the bundle; values seen on projects",
+    "values": [
+      1,
+      2
+    ],
+    "guess": {
+      "1": "drawn/uploaded/sample boundary (project 4, 5)",
+      "2": "parcel selection (projects 1, 3, 6)"
+    }
+  },
+  "geometryTypes": [
+    {
+      "id": 1,
+      "name": "Polygon",
+      "measure": "acres"
+    },
+    {
+      "id": 2,
+      "name": "Line",
+      "measure": "miles"
+    },
+    {
+      "id": 3,
+      "name": "Point",
+      "measure": "count"
+    }
+  ],
+  "projectFields": [
+    {
+      "key": "ProjectName",
+      "label": "Project name",
+      "type": "text",
+      "required": true,
+      "minLength": 1,
+      "maxLength": 200
+    },
+    {
+      "key": "CountyID",
+      "label": "Pilot county (New project modal) / County (setup)",
+      "type": "select",
+      "required": true,
+      "options": "counties",
+      "lockedNote": "The county is set by the area. Clear the area to change it."
+    },
+    {
+      "key": "ProjectTypeID",
+      "label": "Project type",
+      "type": "select",
+      "required": true,
+      "options": "projectTypes"
+    },
+    {
+      "key": "ProjectStageID",
+      "label": "Project stage",
+      "type": "select",
+      "required": true,
+      "options": "projectStages",
+      "default": 1
+    },
+    {
+      "key": "Description",
+      "label": "Anything else we should know (optional)",
+      "type": "text",
+      "required": false,
+      "maxLength": 2000
+    }
+  ],
+  "projects": [
+    {
+      "id": 3,
+      "name": "Martin county check",
+      "type": "Industrial or logistics",
+      "county": "Martin County, FL",
+      "acres": 220.89,
+      "areaLabel": "220.9 acres",
+      "stage": "Site screening",
+      "createdBy": "Raynard Lee",
+      "created": "2026-11-20T18:32:48.323Z",
+      "createdLabel": "Nov 20, 2026",
+      "latestScreeningRunID": 1,
+      "areaDefinitionMethodID": 2,
+      "updated": "2026-11-24T00:03:14.093Z"
+    },
+    {
+      "id": 1,
+      "name": "Parcel check (Sacramento)",
+      "type": "Data center",
+      "county": "Sacramento County, CA",
+      "acres": 0.29,
+      "areaLabel": "0.3 acres",
+      "stage": "Site screening",
+      "createdBy": "Raynard Lee",
+      "created": "2026-11-18T21:25:01.517Z",
+      "createdLabel": "Nov 18, 2026",
+      "latestScreeningRunID": 2,
+      "areaDefinitionMethodID": 2,
+      "updated": "2026-11-18T21:27:06.39Z"
+    },
+    {
+      "id": 2,
+      "name": "Parcel check (Santa Clara)",
+      "type": "Data center",
+      "county": "Santa Clara County, CA",
+      "acres": null,
+      "areaLabel": "No area yet",
+      "stage": "Site screening",
+      "createdBy": "Raynard Lee",
+      "created": "2026-11-19T00:55:16.047Z",
+      "createdLabel": "Nov 18, 2026",
+      "latestScreeningRunID": null,
+      "areaDefinitionMethodID": null,
+      "updated": null
+    },
+    {
+      "id": 6,
+      "name": "QA walkthrough - Sacramento",
+      "type": "Solar generation",
+      "county": "Sacramento County, CA",
+      "acres": 1.96,
+      "areaLabel": "2 acres",
+      "stage": "Site screening",
+      "createdBy": "Raynard Lee",
+      "created": "2026-11-24T05:52:21.977Z",
+      "createdLabel": "Nov 23, 2026",
+      "latestScreeningRunID": 5,
+      "areaDefinitionMethodID": 2,
+      "updated": "2026-11-24T05:53:41.25Z"
+    },
+    {
+      "id": 5,
+      "name": "Report check – Santa Clara",
+      "type": "Solar generation",
+      "county": "Santa Clara County, CA",
+      "acres": 87.56,
+      "areaLabel": "87.6 acres",
+      "stage": "Site screening",
+      "createdBy": "Raynard Lee",
+      "created": "2026-11-21T00:22:04.95Z",
+      "createdLabel": "Nov 20, 2026",
+      "latestScreeningRunID": 4,
+      "areaDefinitionMethodID": 1,
+      "updated": "2026-11-21T00:22:05Z"
+    },
+    {
+      "id": 4,
+      "name": "Report check – Umatilla",
+      "type": "Solar generation",
+      "county": "Umatilla County, OR",
+      "acres": 76.62,
+      "areaLabel": "76.6 acres",
+      "stage": "Site screening",
+      "createdBy": "Raynard Lee",
+      "created": "2026-11-21T00:22:04.477Z",
+      "createdLabel": "Nov 20, 2026",
+      "latestScreeningRunID": 3,
+      "areaDefinitionMethodID": 1,
+      "updated": "2026-11-21T00:22:04.807Z"
+    }
+  ],
+  "projectsListNote": "Order is the API order, which the list page renders as-is. Card shows name, '<type> · <county>', then AREA, STAGE, CREATED BY, CREATED (mediumDate). areaLabel = Acres to 1 decimal + ' acres', or 'No area yet'.",
+  "steps": [
+    {
+      "step": 1,
+      "key": "setup",
+      "label": "Project setup",
+      "icon": "map-pin",
+      "badge": "Step 1 of 6",
+      "lockReason": null,
+      "doneWhen": "area defined"
+    },
+    {
+      "step": 2,
+      "key": "proximity",
+      "label": "Proximity",
+      "icon": "target",
+      "badge": "Step 2 of 6",
+      "lockReason": "Define the area first",
+      "doneWhen": "a run exists"
+    },
+    {
+      "step": 3,
+      "key": "report",
+      "label": "Report",
+      "icon": "file-text",
+      "badge": "Step 3 of 6",
+      "lockReason": "Run the report first",
+      "doneWhen": "a run exists"
+    },
+    {
+      "step": 4,
+      "key": "map",
+      "label": "Map",
+      "icon": "layers",
+      "badge": "Step 4 of 6",
+      "lockReason": "Run the report first"
+    },
+    {
+      "step": 5,
+      "key": "deep-dive",
+      "label": "Deep dive",
+      "icon": "search",
+      "badge": "Step 5 of 6",
+      "lockReason": "Coming next",
+      "alwaysLocked": true
+    },
+    {
+      "step": 6,
+      "key": "findings",
+      "label": "Findings report",
+      "badge": "Step 6 of 6",
+      "lockReason": "Run the report first"
+    }
+  ],
+  "proximityOptions": {
+    "projectArea": {
+      "label": "Project area",
+      "detail": "Always measured. What the boundary itself touches."
+    },
+    "distances": [
+      {
+        "miles": 0.25,
+        "label": "¼ mile",
+        "detail": "Adjoining parcels and edge effects."
+      },
+      {
+        "miles": 1,
+        "label": "1 mile",
+        "detail": "Neighborhood context. The widest standard records search in a Phase I site assessment."
+      },
+      {
+        "miles": 5,
+        "label": "5 miles",
+        "detail": "Regional context such as airports, habitat and protected lands."
+      }
+    ],
+    "custom": {
+      "label": "Custom",
+      "detail": "Your own distances, up to four. Another box appears as you fill one in.",
+      "unitHint": "miles, 0.1 to 5",
+      "min": 0.1,
+      "max": 5,
+      "step": 0.05,
+      "maxBoxes": 4,
+      "defaultBoxes": [
+        2,
+        null
+      ]
+    },
+    "presets": [
+      {
+        "label": "Site only",
+        "miles": []
+      },
+      {
+        "label": "Standard",
+        "miles": [
+          0.25,
+          1
+        ]
+      },
+      {
+        "label": "Regional",
+        "miles": [
+          0.25,
+          1,
+          5
+        ]
+      }
+    ],
+    "defaultPreset": "Standard",
+    "maxMiles": 5,
+    "tableHeaders": [
+      "Measured area",
+      "Unique area"
+    ],
+    "rowFormat": "Project area row in acres (sq mi x 640, rounded); ring rows '<a> to <b> mi' in sq mi to 2 decimals; last row 'Total within <max> mi'."
+  },
+  "uiCopy": {
+    "nav": {
+      "lockReasons": {
+        "proximityNoArea": "Define the area first",
+        "reportMapFindingsNoRun": "Run the report first",
+        "deepDive": "Coming next"
+      }
+    },
+    "projects": {
+      "pageTitle": "Projects",
+      "newButton": "New project",
+      "empty": "No projects yet. Create one to define its area in a pilot county and screen it.",
+      "noArea": "No area yet",
+      "cardLabels": [
+        "Area",
+        "Stage",
+        "Created by",
+        "Created"
+      ],
+      "newModal": {
+        "title": "New project",
+        "submit": "Create project",
+        "cancel": "Cancel"
+      },
+      "notFound": "There is no project at this address.",
+      "notFoundLink": "Back to projects",
+      "notFoundTitle": "Project not found"
+    },
+    "setup": {
+      "pageTitle": "Project setup",
+      "continue": "Continue to proximity",
+      "areaCardTitle": "Project area",
+      "areaBadges": [
+        "Editing",
+        "Defined",
+        "Not defined"
+      ],
+      "countyLine": "<County> · <N> parcels loaded <M/D/YYYY>",
+      "addressPlaceholder": "Find an address, e.g. 700 H St",
+      "find": "Find",
+      "searching": "Searching…",
+      "otherCounty": "In <County or 'another county'>, not <this county>",
+      "mapControls": [
+        "Imagery"
+      ],
+      "actions": [
+        "Draw area",
+        "Select parcels",
+        "Upload boundary file",
+        "Use sample area",
+        "Redraw",
+        "Clear area",
+        "Save area",
+        "Cancel"
+      ],
+      "drawHint": "Click the map to add corners. Click the first corner or press Enter to close the shape.",
+      "parcelHint": "Click parcels to add or remove them.",
+      "zoomHint": "Zoom in to see parcels.",
+      "addParcel": "Add this parcel to the area",
+      "addParcelBlocked": "Save or cancel the area you're editing before adding a parcel to it.",
+      "close": "Close",
+      "uploadHint": "Upload takes GeoJSON, KML, or a zipped Shapefile or File Geodatabase.",
+      "acceptedFiles": ".zip,.geojson,.json,.kml",
+      "countyLocked": "The county is set by the area. Clear the area to change it.",
+      "detailsTitle": "Project details",
+      "saveDetails": "Save details"
+    },
+    "proximity": {
+      "pageTitle": "Proximity",
+      "back": "Back",
+      "run": "Run report",
+      "question": "How far out should the report look?",
+      "intro": "Pick one or more distances from the project boundary. Each distance makes a ring, shaped like a donut, that starts where the ring inside it stops, so nothing is counted twice. The report measures every core dataset in each ring and adds a total. Five miles is the largest distance offered.",
+      "presetLead": "Start from a preset:",
+      "measuredHeading": "What will be measured",
+      "loadingCell": "…",
+      "totalRow": "Total within <max> mi"
+    },
+    "report": {
+      "pageTitle": "Report",
+      "actions": [
+        "Change distances",
+        "Run again",
+        "Map",
+        "Findings report",
+        "Print"
+      ],
+      "facts": "<acres> acres · <County> · <Project type> · Screened out to <max> · <N> layers checked",
+      "runLabel": "Run <Mon D, YYYY, h:mm AM> by <name>",
+      "queued": "Waiting to start…",
+      "running": "Measuring every core dataset in each ring…",
+      "runningHint": "This usually takes under a minute. The page updates when the report is ready.",
+      "failed": "The report didn't finish.",
+      "failedShows": "Run.FailureMessage",
+      "stale": "The project area has changed since this report ran.",
+      "staleHint": "These results describe the earlier area. Run the report again to measure the current one.",
+      "summaryHeading": "Screening summary",
+      "summarySentenceMulti": "<on> of the <screened> screened layers touch the site, <nearby> more first show up within <max> and <none> were not found.",
+      "summarySentenceSiteOnly": "<on> of the <screened> screened layers touch the site and <none> do not.",
+      "summaryPriority": " Listed first for <project type lowercase>: <theme, theme, theme>.",
+      "noteNoData": "<N> layer has / layers have no data for this county yet: <names>.",
+      "noteNotApplicable": "<N> layer covers / layers cover other states only and doesn't / don't apply in <County>: <names>.",
+      "tallyTip": "<label>: <count>. Select to see them in the table",
+      "tallyAria": "<label>: <count> layers. Show them in the table",
+      "onSiteHeading": "On the site",
+      "nearbyHeading": "Nearby, nearest first",
+      "notFoundHeading": "Not found within <max> (site only: Not on the site)",
+      "emptyOnSite": "Nothing screened touches the site.",
+      "emptyNearby": "Nothing first shows up in the rings.",
+      "emptyNotFound": "Every screened layer was found.",
+      "moreInTable": "and <N> more in the table",
+      "listMax": 8,
+      "themeSummariesHeading": "Theme summaries",
+      "themeSquaresLead": "Each square is a layer, coloured by where it first shows up:",
+      "themeOnSite": "<n> of <m> on the site",
+      "themeNoData": "None of this theme's layers have data for this county yet.",
+      "themeNotApplicable": "Not applicable in this county",
+      "themeTopFigures": 3,
+      "compositionLegendMore": "+ <N> more in the table",
+      "compositionLegendMax": 8,
+      "compositionRows": [
+        "Site",
+        "Within <max>"
+      ],
+      "compositionTip": "<class>: <pct>% (<quantity>)",
+      "tableIntro": "One row per layer. A ring counts only what falls inside it, and the shaded cell is where the layer first shows up. Polygons are acres covered, with overlapping shapes merged; lines are miles; points are a count. Open a layer for its classes, nearest features and source.",
+      "tableControls": {
+        "showLayers": "Show layers",
+        "groupBy": "Group by",
+        "groupOptions": [
+          "Theme",
+          "Distance"
+        ],
+        "columns": [
+          "Layer",
+          "Finding"
+        ],
+        "classColumn": "Class",
+        "noMatch": "No layers match."
+      },
+      "cellTouches": "touches",
+      "unnamedFeature": "Unnamed",
+      "legendHeading": "What the colours mean",
+      "chartAria": "Screened layers by where they first show up",
+      "states": {
+        "on_site": {
+          "label": "On the site",
+          "shade": "pk0",
+          "finding": "<qty>, <pct> of the site[, mostly <top class>] (polygons) or <qty> on the site[, mostly <class>]",
+          "short": "<pct> of site | <qty>",
+          "pctUnder": "under 1%"
+        },
+        "within_ring": {
+          "label": "First found <band> out",
+          "chip": "First found <band>",
+          "shade": "pk<ring 1-4>",
+          "finding": "Nearest is <d> from the boundary",
+          "distanceFormat": "<0.1 mi: 2 decimals, else 1 decimal, 0 = 'on the site'"
+        },
+        "not_found": {
+          "label": "Not found within <max>",
+          "siteOnlyLabel": "Not on the site",
+          "caption": "Not found",
+          "shade": "pkn",
+          "finding": "None within <max>",
+          "short": "None"
+        },
+        "no_data_for_county": {
+          "chip": "No data yet",
+          "legend": "No data for this county yet",
+          "shade": "pkx",
+          "finding": "No data for this county yet",
+          "short": "No data"
+        },
+        "not_applicable": {
+          "chip": "Not applicable",
+          "legend": "Doesn't apply in this state",
+          "shade": "pkna",
+          "finding": "Covers <states> only (or: Doesn't cover this county)",
+          "short": "Not applicable"
+        }
+      },
+      "sourceLine": "<agency> · loaded <Mon D, YYYY> · updated <frequency lowercase>"
+    },
+    "map": {
+      "pageTitle": "Map",
+      "notFinished": "The latest report hasn't finished.",
+      "notFinishedHint": "The map shows a run once it's measured. Follow it on the Report.",
+      "loading": "Loading…",
+      "noLayers": "No datasets reach this far.",
+      "layersHeading": "Layers",
+      "layersNote": "Only datasets that reach the report's largest distance are listed. The map shows the data loaded now; if a dataset has been reloaded since the report ran, it may differ from what the report counted.",
+      "zoomTo": "Zoom to:",
+      "truncated": "<layer>: first <N> features shown",
+      "ringsLabel": "Distance rings (<d1>, <d2>, ...)"
+    },
+    "deepDive": {
+      "navLabel": "Deep dive",
+      "lockReason": "Coming next"
+    },
+    "findingsReport": {
+      "pageTitle": "Findings report",
+      "empty": "No findings report yet.",
+      "emptyBody": "Claude drafts a Critical Issues Assessment from the latest report, in ESA's format: each topic's setting and recommendations, Table 1, and the critical issues. You review and edit it here.",
+      "draftButton": "Draft findings report",
+      "draftModal": {
+        "title": "Draft findings report",
+        "body": "Claude drafts a Critical Issues Assessment from the latest report: each topic's setting and recommendations, Table 1 and the critical issues. It takes a minute or two. Review and edit everything before it goes to the client.",
+        "submit": "Draft",
+        "cancel": "Cancel"
+      },
+      "drafting": "Drafting the findings report…",
+      "draftingHint": "This usually takes a minute or two. The page updates when the draft is ready.",
+      "failed": "The draft didn't finish.",
+      "stale": "The project has changed since this was drafted.",
+      "staleHint": "It describes an earlier report. Draft it again to use the latest one.",
+      "ready": {
+        "badge": "Generated draft · review before sending",
+        "actions": [
+          "Draft again",
+          "Download Word",
+          "Download PDF",
+          "Report"
+        ],
+        "byline": "Drafted <date, time> by <name>[ · edited <date, time> by <name>]",
+        "unsaved": "Unsaved changes",
+        "save": "Save",
+        "sections": [
+          "Letter",
+          "Critical issues and further actions"
+        ],
+        "figureLoadError": "The <figure> figure didn't load.",
+        "figureDrawError": "The <figure> figure didn't finish drawing."
+      }
+    },
+    "toasts": {
+      "note": "No Due Diligence specific toasts in the bundle. Generic app toasts: 'The page you are trying to access was not found, or you do not have permission to view it.' (info); 'There was an error authorizing with the application. The application will force log you out in 3 seconds, please try to login again.' (danger); API errors surface the server's error text as a danger toast. Admin data-load toasts: '<Source>: load queued for <County>.' and '<N> loads queued for <County>. The worker runs them one at a time.' and '<County>: parcel load queued. It runs on the worker and takes a few minutes.'"
+    }
+  },
+  "apiEndpoints": [
+    "GET /api/projects",
+    "POST /api/projects",
+    "GET /api/projects/{projectID}",
+    "PUT /api/projects/{projectID}",
+    "DELETE /api/projects/{projectID}",
+    "GET /api/projects/{projectID}/area",
+    "PUT /api/projects/{projectID}/area",
+    "DELETE /api/projects/{projectID}/area",
+    "POST /api/projects/{projectID}/area-file",
+    "POST /api/projects/{projectID}/screening-runs  body {Miles: number[]}",
+    "GET /api/projects/{projectID}/screening-runs/latest/report",
+    "GET /api/projects/{projectID}/screening-runs/{runID}/map",
+    "GET /api/projects/{projectID}/screening-runs/{runID}/layers/{layerID}/features",
+    "GET /api/projects/{projectID}/assessments/latest",
+    "POST /api/projects/{projectID}/assessments",
+    "GET|PUT /api/projects/{projectID}/assessments/{assessmentID}",
+    "PUT /api/projects/{projectID}/assessments/{assessmentID}/sections/{sectionID}",
+    "GET /api/projects/{projectID}/assessments/{assessmentID}/word|pdf",
+    "GET /api/counties",
+    "GET /api/counties/parcel-data",
+    "GET /api/screening-layers/load-status",
+    "POST /api/screening-layers/loads"
+  ],
+  "project2": {
+    "id": 2,
+    "name": "Parcel check (Santa Clara)",
+    "area": "none (GET /area returns 204)",
+    "latestReport": "none (204)",
+    "navLocks": {
+      "Proximity": "Define the area first",
+      "Report": "Run the report first",
+      "Map": "Run the report first",
+      "Deep dive": "Coming next",
+      "Findings report": "Run the report first"
+    },
+    "setupBadge": "Not defined",
+    "countyLine": "Santa Clara County, CA · 496,633 parcels loaded 11/18/2026"
+  },
+  "gaps": [
+    "No screening-category or layer lookup endpoint exists; themes and layer metadata come from the report response (all 29 layers are returned for every run, including no-data and not-applicable ones).",
+    "Theme ids are ScreeningCategoryID; there is no explicit SortOrder, the report returns themes in id order 1-11.",
+    "Area definition method enum (AreaDefinitionMethodID 1, 2) is not in the bundle; labels are a guess from which projects use them.",
+    "Only one run exists for project 4 (run 3, Complete). Queued, Running and Failed copy comes from the bundle, not a live run; no FailureMessage example exists.",
+    "Findings report (assessments) for project 4 returns 204: no draft exists, so section content and Table 1 structure were not observed.",
+    "Deep dive has no page or data; it is a locked nav item ('Coming next').",
+    "Nearest named features: the report API only returns NearbyFeatures for FAA airports (point layer). Other layers' names (namedFeaturesInRunExtent) come from the map features endpoint and are not distance-sorted; zoning, plan, wetlands and flood layers have no feature names.",
+    "Ring outline geometries (map endpoint OutlineGeoJson, ~5 KB each) and full feature geometries were not copied.",
+    "Toasts: no Due Diligence specific success/error toast strings were found; errors come from the API.",
+    "Composition bars (class mix per row) are derivable from classBreakdown; the colour palette is d3 category10 (#1f77b4, #d62728, #2ca02c, #9467bd, #ff7f0e, #17becf, #8c564b, #e377c2, #bcbd22, #7f7f7f), assigned in class order."
+  ]
+}

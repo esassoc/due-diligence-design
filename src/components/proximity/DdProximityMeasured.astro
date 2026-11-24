@@ -1,0 +1,149 @@
+---
+// DdProximityMeasured: What Will Be Measured. The ring area tiles for the
+// current rings (re-rendered from state) and the 29 layers by theme in four
+// columns, with a quiet No Data Yet badge where the county has no data.
+//
+// bcn-lego-checked: esa-stat is a single big KPI with label/sub; the Gold tile
+// row is a joined strip of small swatch + label + value tiles that re-renders
+// from client state, so the tiles are markup from proximity-model and the
+// card is the shared card surface (white, 1px border-subtle, 8px corners).
+import DdCountBadge from '../common/DdCountBadge.astro';
+import { themes, layersForTheme, layers } from '../../data/dd';
+import { DEFAULT_STATE } from '../../lib/dd-store';
+import { tilesHtml } from './proximity-model';
+import './proximity.css';
+
+const initial = DEFAULT_STATE.rings;
+
+// Four columns, filled in Theme Order, each closing once it holds its share
+// of the rows (a theme name plus its layers).
+const rowsOf = (n: number): number => n + 1;
+const total = themes.reduce((sum, t) => sum + rowsOf(layersForTheme(t.id).length), 0);
+const columns: (typeof themes)[] = [[], [], [], []];
+let acc = 0;
+for (const t of themes) {
+  const col = Math.min(3, Math.floor((acc / total) * 4 + 1e-9));
+  columns[col].push(t);
+  acc += rowsOf(layersForTheme(t.id).length);
+}
+---
+<section class="prox-measured" data-prox-measured aria-labelledby="prox-measured-title">
+  <header class="prox-measured__head">
+    <h2 class="dd-t-display-20 prox-measured__title" id="prox-measured-title">What Will Be Measured</h2>
+    <p class="dd-t-13 prox-measured__lede">Each ring counts only what falls inside it, so nothing is counted twice.</p>
+  </header>
+
+  <div class="prox-measured__group">
+    <h3 class="prox-measured__label dd-t-14-medium">Rings <span data-prox-ring-count><DdCountBadge value={initial.length + 1} /></span></h3>
+    <div class="prox-measured__tiles" data-prox-tiles style={`--n:${initial.length + 2}`} set:html={tilesHtml(initial)}></div>
+  </div>
+
+  <div class="prox-measured__group">
+    <h3 class="prox-measured__label prox-measured__label--rule dd-t-14-medium">Layers <DdCountBadge value={layers.length} /></h3>
+    <div class="prox-measured__themes">
+      {columns.map((col) => (
+        <div class="prox-measured__col">
+          {col.map((t) => {
+            const ls = layersForTheme(t.id);
+            return (
+              <div class="prox-measured__theme">
+                <h4 class="prox-measured__theme-name dd-t-14-medium">{t.name} <DdCountBadge value={ls.length} /></h4>
+                <ul class="prox-measured__layers" role="list">
+                  {ls.map((l) => (
+                    <li class="prox-measured__layer dd-t-13">
+                      <span>{l.name}</span>
+                      {l.result.status === 'no_data_for_county' && <DdCountBadge value="No Data Yet" />}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+  import { getState, onState, type DdState } from '../../lib/dd-store';
+  import { tilesHtml } from './proximity-model';
+
+  const root = document.querySelector<HTMLElement>('[data-prox-measured]');
+  if (root) {
+    const tiles = root.querySelector<HTMLElement>('[data-prox-tiles]')!;
+    const count = root.querySelector<HTMLElement>('[data-prox-ring-count] .esa-badge__text');
+    let drawn = '';
+    const render = (s: DdState): void => {
+      const key = s.rings.join(',');
+      if (key === drawn) return;
+      drawn = key;
+      tiles.innerHTML = tilesHtml(s.rings);
+      tiles.style.setProperty('--n', String(tiles.children.length));
+      if (count) count.textContent = String(s.rings.length + 1);
+    };
+    render(getState());
+    onState(render);
+  }
+</script>
+
+<style>
+  .prox-measured {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px;
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+    background: var(--dd-surface-raised);
+  }
+  .prox-measured__head { display: flex; flex-direction: column; gap: 6px; }
+  .prox-measured__title { margin: 0; }
+  .prox-measured__lede { margin: 0; color: var(--dd-text-muted); }
+  .prox-measured__group { display: flex; flex-direction: column; gap: 12px; }
+  .prox-measured__label { display: flex; align-items: center; gap: 8px; margin: 0; }
+  .prox-measured__label--rule { padding-bottom: 12px; border-bottom: 1px solid var(--dd-border-subtle); }
+
+  .prox-measured__tiles {
+    display: grid;
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .prox-measured :global(.prox-tile) {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 16px;
+  }
+  .prox-measured :global(.prox-tile + .prox-tile) { box-shadow: inset 1px 0 0 var(--dd-border-subtle); /* neutral tile divider */ }
+  .prox-measured :global(.prox-tile--total) { background: var(--dd-bg); }
+  .prox-measured :global(.prox-tile__label) {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--dd-text);
+    white-space: nowrap;
+  }
+  .prox-measured :global(.prox-tile__unit) { color: var(--dd-text-muted); }
+
+  .prox-measured__themes {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 24px;
+  }
+  .prox-measured__col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  .prox-measured__theme { display: flex; flex-direction: column; gap: 6px; }
+  .prox-measured__theme-name { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--dd-text); }
+  .prox-measured__layers { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .prox-measured__layer {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--dd-text-muted);
+  }
+  .prox-measured__layer > :global(.dd-count-badge) { flex: none; }
+</style>

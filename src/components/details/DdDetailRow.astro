@@ -1,0 +1,44 @@
+---
+// DdDetailRow: one row of the Project Details card. Label column on the left
+// (label, "Required" in text-subtle, optional help text), control on the right.
+//
+// bcn-lego-checked: esa-form-field stacks its label above the control; the
+// approved card puts the label in a fixed 224px column beside it, with the
+// Required marker as a word rather than an asterisk.
+interface Props {
+  label: string;
+  required?: boolean;
+  help?: string;
+  /** id of the control the label names (for <label for>); omit for groups. */
+  for?: string;
+  /** id given to the label text, for aria-labelledby on groups. */
+  labelId?: string;
+}
+const { label, required = false, help, for: htmlFor, labelId } = Astro.props;
+const Tag = htmlFor ? 'label' : 'p';
+---
+<div class="dd-detail-row">
+  <div class="dd-detail-row__meta">
+    <Tag class="dd-detail-row__label" for={htmlFor} id={labelId}>
+      <span class="dd-t-14-strong">{label}</span>
+      {required && <span class="dd-detail-row__required dd-t-12">Required</span>}
+    </Tag>
+    {help && <p class="dd-detail-row__help dd-t-13">{help}</p>}
+  </div>
+  <div class="dd-detail-row__control"><slot /></div>
+</div>
+
+<style>
+  .dd-detail-row {
+    display: grid;
+    grid-template-columns: 224px minmax(0, 1fr);
+    gap: 24px;
+    padding: 24px;
+  }
+  .dd-detail-row + .dd-detail-row { border-top: 1px solid var(--dd-border-subtle); }
+  .dd-detail-row__meta { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; }
+  .dd-detail-row__label { display: flex; align-items: baseline; gap: 8px; margin: 0; color: var(--dd-text); }
+  .dd-detail-row__required { color: var(--dd-text-subtle); }
+  .dd-detail-row__help { margin: 0; color: var(--dd-text-muted); }
+  .dd-detail-row__control { min-width: 0; }
+</style>

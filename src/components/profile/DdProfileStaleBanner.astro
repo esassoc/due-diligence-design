@@ -1,0 +1,67 @@
+---
+// DdProfileStaleBanner: the quiet notice that the inputs changed since the run
+// (getState().stale), with Run Again. Hidden otherwise.
+import EsaAlertBox from '@esa/ecology/esa-alert-box.astro';
+import EsaButton from '@esa/ecology/esa-button.astro';
+---
+<div class="dd-stale" data-profile-stale hidden>
+  <EsaAlertBox variant="warning">
+    <div class="dd-stale__row">
+      <div class="dd-stale__text">
+        <p class="dd-t-14-medium" data-stale-title>The site boundary has changed since this report ran.</p>
+        <p class="dd-t-13" data-stale-hint>These results describe the earlier boundary. Run the report again to measure the current one.</p>
+      </div>
+      <EsaButton variant="primary" size="sm" data-stale-run>Run Again</EsaButton>
+    </div>
+  </EsaAlertBox>
+</div>
+
+<script>
+  import { getState, runStatus, startRun, onState } from '../../lib/dd-store';
+
+  const root = document.querySelector<HTMLElement>('[data-profile-stale]');
+  if (root) {
+    const COPY = {
+      rings: {
+        title: 'The search distances have changed since this report ran.',
+        hint: 'These results use the earlier distances. Run the report again to measure the current ones.',
+      },
+      boundary: {
+        title: 'The site boundary has changed since this report ran.',
+        hint: 'These results describe the earlier boundary. Run the report again to measure the current one.',
+      },
+    } as const;
+    const paint = (): void => {
+      const s = getState();
+      root.hidden = !(s.stale && runStatus(s) === 'complete');
+      const copy = COPY[s.staleReason === 'rings' ? 'rings' : 'boundary'];
+      const title = root.querySelector('[data-stale-title]');
+      const hint = root.querySelector('[data-stale-hint]');
+      if (title) title.textContent = copy.title;
+      if (hint) hint.textContent = copy.hint;
+    };
+    paint();
+    onState(paint);
+    window.setInterval(paint, 500);
+    root.querySelector('[data-stale-run]')?.addEventListener('click', () => {
+      startRun();
+      window.scrollTo({ top: 0 });
+    });
+  }
+</script>
+
+<style>
+  .dd-stale[hidden] { display: none; }
+  .dd-stale :global(.esa-alert-box) {
+    align-items: center;
+    padding: 14px 16px;
+    border-radius: 8px;
+    background: var(--dd-warning-surface);
+    border-color: var(--dd-warning-border);
+    color: var(--dd-warning-text);
+  }
+  .dd-stale :global(.esa-alert-box__body) { flex: 1; }
+  .dd-stale__row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .dd-stale__text p { margin: 0; }
+  .dd-stale__text p + p { color: var(--dd-text-muted); margin-top: 2px; }
+</style>

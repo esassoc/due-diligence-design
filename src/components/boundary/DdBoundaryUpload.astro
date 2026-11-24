@@ -1,0 +1,163 @@
+---
+// DdBoundaryUpload: the "Upload a Boundary File" card under the Site Boundary
+// map. esa-file-upload takes the file; a supported file opens the preview on
+// the map (the map card listens for dd:boundary-file), an unsupported one shows
+// the error here. The right column is the file the current boundary came from.
+// Hidden while the boundary is Not Defined (the map's chooser carries upload then).
+//
+// bcn-lego-checked: esa-file-upload is the dropzone and esa-alert-box the error;
+// the Current File row (file glyph, name over meta, Download) has no esa- lego
+// (esa-file-list rows carry a size and a remove button, not a download), so it
+// is plain markup inside this card, with esa-button for Download.
+import EsaButton from '@esa/ecology/esa-button.astro';
+import EsaBadge from '@esa/ecology/esa-badge.astro';
+import EsaAlertBox from '@esa/ecology/esa-alert-box.astro';
+import DdIcon from '../common/DdIcon.astro';
+import { uiCopy } from '../../data/dd';
+
+interface Props {
+  /** File the current boundary was read from. */
+  fileName?: string;
+  /** "1 polygon · 359 ac · 2026-11-18" */
+  fileMeta: string;
+}
+const { fileName = 'cottonwood_boundary.kml', fileMeta } = Astro.props;
+const setup = uiCopy.setup as Record<string, string>;
+const formats = ['GeoJSON', 'KML', 'KMZ', 'Shapefile (.zip)', 'File Geodatabase (.zip)'];
+---
+<section class="dd-bupload" data-dd-bupload data-upload-hint={setup.uploadHint} aria-labelledby="dd-bupload-title">
+  <h2 id="dd-bupload-title" class="dd-t-display-20 dd-bupload__title">Upload a Boundary File</h2>
+  <div class="dd-bupload__body">
+    <div class="dd-bupload__drop">
+      <esa-file-upload
+        data-upload
+        label="Drop a file to replace the boundary"
+        accept=".zip,.geojson,.json,.kml,.kmz"
+        max-size-mb="50"
+      ></esa-file-upload>
+      <div class="dd-bupload__formats">
+        {formats.map((f) => <EsaBadge value={f} size="xs" />)}
+      </div>
+      <div class="dd-bupload__error" data-error hidden>
+        <EsaAlertBox variant="danger" title="Couldn't Read the File">
+          <span data-error-text></span>
+        </EsaAlertBox>
+      </div>
+    </div>
+    <div class="dd-bupload__current">
+      <span class="dd-t-13 dd-bupload__label">Current File</span>
+      <div class="dd-bupload__file">
+        <DdIcon name="file" size="sm" />
+        <div class="dd-bupload__file-text">
+          <span class="dd-t-14 dd-bupload__file-name" data-current-name>{fileName}</span>
+          <span class="dd-t-12 dd-bupload__file-meta">{fileMeta}</span>
+        </div>
+        <EsaButton variant="ghost" size="sm" data-download><DdIcon name="download" size="sm" /> Download</EsaButton>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import '@esa/ecology/esa-file-upload';
+  import { getState, onState, toast, type DdState } from '../../lib/dd-store';
+  import {
+    readBoundaryFile, emitBoundaryFile, BOUNDARY_FILE_EVENT, BOUNDARY_CURRENT_EVENT, BOUNDARY_BROWSE_EVENT,
+    type BoundaryFileResult,
+  } from './boundary-file';
+
+  const root = document.querySelector<HTMLElement>('[data-dd-bupload]');
+  if (root) {
+    const hint = root.dataset.uploadHint ?? '';
+    const errorBox = root.querySelector<HTMLElement>('[data-error]')!;
+    const errorText = root.querySelector<HTMLElement>('[data-error-text]')!;
+    const currentName = root.querySelector<HTMLElement>('[data-current-name]')!;
+
+    const uploader = (): HTMLElement => root.querySelector<HTMLElement>('[data-upload]')!;
+
+    /** Swap in a fresh esa-file-upload so the picked file's row does not linger. */
+    const resetUploader = (): void => {
+      const el = uploader();
+      el.replaceWith(el.cloneNode(false));
+    };
+
+    root.addEventListener('change', (e) => {
+      const target = e.target as HTMLElement;
+      if (!target.matches('[data-upload]')) return;
+      const files = (e as CustomEvent<{ files: File[] }>).detail?.files ?? [];
+      if (!files.length) return;
+      emitBoundaryFile(readBoundaryFile(files[0], hint));
+      resetUploader();
+    });
+
+    window.addEventListener(BOUNDARY_FILE_EVENT, (e) => {
+      const r = (e as CustomEvent<BoundaryFileResult>).detail;
+      if (r.ok) { errorBox.hidden = true; return; }
+      errorText.textContent = `${r.name}: ${r.message}`;
+      errorBox.hidden = getState().boundary !== 'defined';
+    });
+
+    window.addEventListener(BOUNDARY_CURRENT_EVENT, (e) => {
+      currentName.textContent = (e as CustomEvent<{ name: string }>).detail.name;
+      errorBox.hidden = true;
+    });
+
+    // The map's "Upload Boundary File" choice opens this lego's file browser.
+    window.addEventListener(BOUNDARY_BROWSE_EVENT, () => {
+      const el = uploader() as HTMLElement & { openFileBrowser?: () => void };
+      el.openFileBrowser?.();
+    });
+
+    root.querySelector('[data-download]')?.addEventListener('click', () => toast('Downloading'));
+
+    const render = (s: DdState): void => { root.hidden = s.boundary !== 'defined'; };
+    render(getState());
+    onState(render);
+  }
+</script>
+
+<style>
+  .dd-bupload {
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .dd-bupload[hidden] { display: none; }
+  .dd-bupload__title { margin: 0; color: var(--dd-text); }
+  .dd-bupload__body { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; align-items: start; }
+  .dd-bupload__drop { display: flex; flex-direction: column; gap: 10px; }
+  .dd-bupload__drop esa-file-upload {
+    --form-border-color: var(--dd-border);
+    --form-border-color-focus: var(--dd-brand-solid);
+    --color-content-brand: var(--dd-brand-text);
+    --spacing-600: 16px; /* the zone's block padding hook: compact, as in the Gold */
+  }
+  .dd-bupload__formats { display: flex; flex-wrap: wrap; gap: 6px; }
+  .dd-bupload__formats :global(.esa-badge) {
+    --badge-bg: var(--dd-border-subtle);
+    --badge-text-color: var(--dd-text-muted);
+    --badge-border-color: transparent;
+    border-radius: 4px;
+    padding: 1px 6px;
+  }
+  .dd-bupload__error[hidden] { display: none; }
+  .dd-bupload__current { display: flex; flex-direction: column; gap: 8px; }
+  .dd-bupload__label { color: var(--dd-text-muted); }
+  .dd-bupload__file {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 12px 12px 16px;
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+    color: var(--dd-text);
+  }
+  .dd-bupload__file-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .dd-bupload__file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dd-bupload__file-meta { color: var(--dd-text-muted); }
+  .dd-bupload__file :global(.esa-button__label) { display: inline-flex; align-items: center; gap: 6px; }
+</style>

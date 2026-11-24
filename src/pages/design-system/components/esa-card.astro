@@ -1,0 +1,136 @@
+---
+import ComponentDoc from '../../../layouts/ComponentDoc.astro';
+import Section from '@esa/docs/Section.astro';
+import Preview from '@esa/docs/Preview.astro';
+import ApiTable from '@esa/docs/ApiTable.astro';
+import PropsTable from '@esa/docs/PropsTable.astro';
+import Card from '@esa/ecology/esa-card.astro';
+
+// Prose only — names, types and defaults are generated from the component
+// source by src/data/component-api.ts, so this table cannot drift.
+const describe = {
+  title: "Header title. Presence (or meta, or a header/actions slot) renders the header band.",
+  meta: 'Identifying facts about the record, as {label, value} pairs. Renders as a definition list under the title, each label beside its value. Both parts are required. A period pair states its calendar: "Calendar Q3 2026", not "Q3".',
+  subtitle: "Deprecated 2026-08-16 in favour of meta; still renders. A free-text line cannot name what its facts are.",
+  icon: "Lucide icon name shown left of the title.",
+  variant: "Surface treatment: bordered, shadowed, or sunken.",
+  headerVariant: "Header band tint.",
+  padding: "Body and header padding scale.",
+};
+
+const slots = [
+  { name: 'default', type: 'slot', description: 'Card body content.' },
+  { name: 'header', type: 'slot', description: 'Replaces the title block entirely with custom markup.' },
+  { name: 'actions', type: 'slot', description: 'Right-aligned controls in the header band.' },
+  { name: 'footer', type: 'slot', description: 'Bottom band below the body.' },
+];
+---
+<ComponentDoc name="Card" category="Display" slug="esa-card" type=".astro" status="stable"
+  summary="Surface container with an optional header (icon, title, meta pairs, actions), body, and footer. Variants, header tints, and padding scales.">
+
+  <Section id="preview" title="Preview">
+    <Preview align="start" code={`<Card
+  title="Quarterly report"
+  meta={[{ label: 'Reporting period', value: 'Calendar Q3 2026' }]}>
+  <p>Body content for the card.</p>
+</Card>`}>
+      <div style="width: 320px;">
+        <Card title="Quarterly report" meta={[{ label: 'Reporting period', value: 'Calendar Q3 2026' }]}>
+          <p style="margin: 0;">Body content for the card.</p>
+        </Card>
+      </div>
+    </Preview>
+  </Section>
+
+  <Section id="meta" title="Meta pairs">
+    <p>Each entry in <code>meta</code> is a <code>{`{ label, value }`}</code> pair: the label is the field's name in the record, the value is what is stored there. Both parts are required, so the header can carry several facts without the reader having to work out how they relate.</p>
+    <p>A pair identifies the record: which project, which permit, which period. A figure the card exists to report is a stat, so put it in an <code>esa-stat</code> in the body, where it reads at stat scale.</p>
+    <Preview align="start" code={`<Card
+  title="Eelgrass restoration"
+  meta={[
+    { label: 'Permit', value: 'USACE Section 404' },
+    { label: 'County', value: 'Marin' },
+    { label: 'Received', value: 'Mar 4, 2026' },
+  ]}>
+  <p>Body content for the card.</p>
+</Card>`}>
+      <div style="width: 420px; max-width: 100%;">
+        <Card
+          title="Eelgrass restoration"
+          meta={[
+            { label: 'Permit', value: 'USACE Section 404' },
+            { label: 'County', value: 'Marin' },
+            { label: 'Received', value: 'Mar 4, 2026' },
+          ]}>
+          <p style="margin: 0;">Body content for the card.</p>
+        </Card>
+      </div>
+    </Preview>
+  </Section>
+
+  <Section id="variants" title="Variants">
+    <Preview align="start" code={`<Card title="Default">…</Card>
+<Card variant="elevated" title="Elevated">…</Card>
+<Card variant="filled" title="Filled">…</Card>`}>
+      <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+        <div style="width: 240px;"><Card title="Default"><p style="margin: 0;">Default card.</p></Card></div>
+        <div style="width: 240px;"><Card variant="elevated" title="Elevated"><p style="margin: 0;">Elevated card.</p></Card></div>
+        <div style="width: 240px;"><Card variant="filled" title="Filled"><p style="margin: 0;">Filled card.</p></Card></div>
+      </div>
+    </Preview>
+  </Section>
+
+  <Section id="header-variants" title="Header variants">
+    <Preview align="start" code={`<Card headerVariant="primary" title="Primary header" meta={[{ label: 'Status', value: 'Active' }]}>…</Card>
+<Card headerVariant="muted" title="Muted header">…</Card>`}>
+      <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+        <div style="width: 260px;"><Card headerVariant="primary" title="Primary header" meta={[{ label: 'Status', value: 'Active' }]}><p style="margin: 0;">Tinted header band.</p></Card></div>
+        <div style="width: 260px;"><Card headerVariant="muted" title="Muted header"><p style="margin: 0;">Subtle sunken header.</p></Card></div>
+      </div>
+    </Preview>
+  </Section>
+
+  <Section id="padding" title="Padding">
+    <Preview align="start" code={`<Card padding="compact" title="Compact">…</Card>
+<Card padding="default" title="Default">…</Card>
+<Card padding="spacious" title="Spacious">…</Card>`}>
+      <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+        <div style="width: 200px;"><Card padding="compact" title="Compact"><p style="margin: 0;">Tighter body.</p></Card></div>
+        <div style="width: 200px;"><Card padding="default" title="Default"><p style="margin: 0;">Standard body.</p></Card></div>
+        <div style="width: 200px;"><Card padding="spacious" title="Spacious"><p style="margin: 0;">Roomy body.</p></Card></div>
+      </div>
+    </Preview>
+  </Section>
+
+  <Section id="slots" title="Actions & footer">
+    <p>The <code>actions</code> slot sits at the right of the header; the <code>footer</code> slot renders a bottom band.</p>
+    <Preview align="start" code={`<Card title="Quarterly report" meta={[{ label: 'Reporting period', value: 'Calendar Q3 2026' }]} icon="info">
+  <button slot="actions" type="button">Edit</button>
+  <p>Body content.</p>
+  <span slot="footer">Last updated 2 hours ago</span>
+</Card>`}>
+      <div style="width: 420px; max-width: 100%;">
+        <Card title="Quarterly report" meta={[{ label: 'Reporting period', value: 'Calendar Q3 2026' }]} icon="info">
+          <button slot="actions" type="button">Edit</button>
+          <p style="margin: 0;">The actions slot sits at the right of the header; the footer slot renders a bottom band.</p>
+          <span slot="footer">Last updated 2 hours ago</span>
+        </Card>
+      </div>
+    </Preview>
+  </Section>
+
+  <Section id="api" title="API">
+    <ApiTable slug="esa-card" describe={describe} />
+    <h3 style="margin-top: 1.5rem;">Slots</h3>
+    <PropsTable rows={slots} />
+  </Section>
+
+  <Section id="accessibility" title="Accessibility">
+    <ul class="a11y">
+      <li>Renders a plain <code>&lt;div&gt;</code> — add <code>role</code>/landmarks at the call site if the card is interactive or a region.</li>
+      <li>The title is an <code>&lt;h3&gt;</code>; keep heading order sensible within the surrounding page.</li>
+      <li>The header icon is <code>aria-hidden</code> — it decorates the title, not replaces it.</li>
+    </ul>
+  </Section>
+
+</ComponentDoc>

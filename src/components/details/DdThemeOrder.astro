@@ -1,0 +1,280 @@
+---
+// DdThemeOrder: the eleven themes as a reorderable list. The first three sit
+// in a brand-surface group ("Listed First for a Data Center") with filled
+// number squares; the rest under "Other Themes" with plain numbers. Drag a row
+// by its grip (HTML5 drag and drop) or focus a grip and press Alt+ArrowUp /
+// Alt+ArrowDown. Changing Project Type (the `dd:details-type` window event,
+// detail: type id) re-seeds the first three from the type's priority themes,
+// unless the user has reordered by hand (then only the overline changes).
+// Persists to the store as `themeOrder` and shows the Saved toast.
+//
+// bcn-lego-checked: no esa-* lego offers a sortable list (checked esa-card,
+// esa-link-column, esa-checkbox-group, esa-chip-group, esa-tab-layout,
+// esa-sidebar-nav); none take drag handles or keyboard reordering. The grip is
+// a focusable role="button" span rather than a styled <button> because it is a
+// 16px handle inside a row, not a button the kit would render.
+import DdIcon from '../common/DdIcon.astro';
+import { THEME_CONFIG } from './dd-details-model';
+
+interface Props {
+  /** Project type id the order is seeded from before any saved order exists. */
+  typeId: string;
+}
+const { typeId } = Astro.props;
+
+const priority = THEME_CONFIG.priority[typeId] ?? [];
+const seeded = [
+  ...priority,
+  ...THEME_CONFIG.themes.map((t) => t.id).filter((id) => !priority.includes(id)).sort((a, b) => a - b),
+];
+const nameOf = (id: number): string => THEME_CONFIG.themes.find((t) => t.id === id)?.name ?? '';
+const typeName = THEME_CONFIG.typeNames[typeId] ?? '';
+const article = /^[aeiou]/i.test(typeName) ? 'an' : 'a';
+const groups = [
+  { key: 'first', title: priority.length ? `Listed First for ${article} ${typeName}` : '', ids: seeded.slice(0, priority.length), offset: 0 },
+  { key: 'rest', title: priority.length ? 'Other Themes' : '', ids: seeded.slice(priority.length), offset: priority.length },
+].filter((g) => g.ids.length);
+---
+<div
+  class="dd-theme-order"
+  data-dd-theme-order
+  data-type={typeId}
+  data-config={JSON.stringify(THEME_CONFIG)}
+>
+  <p class="dd-sr-only" id="dd-theme-order-hint">Press Alt and the up or down arrow to move a theme.</p>
+  <div class="dd-theme-order__list" data-list>
+    {groups.map((g) => (
+      <div class:list={['dd-theme-order__group', `dd-theme-order__group--${g.key}`]}>
+        {g.title && <p class="dd-theme-order__overline dd-t-overline">{g.title}</p>}
+        <ol class="dd-theme-order__rows" start={g.offset + 1}>
+          {g.ids.map((id, i) => (
+            <li class="dd-theme-order__row" data-id={id}>
+              <span class="dd-theme-order__grip" role="button" tabindex="0" aria-label={`Move ${nameOf(id)}, position ${g.offset + i + 1} of ${seeded.length}`} aria-describedby="dd-theme-order-hint">
+                <DdIcon name="grip-vertical" size="sm" />
+              </span>
+              <span class="dd-theme-order__num dd-t-12-strong" aria-hidden="true">{g.offset + i + 1}</span>
+              <span class="dd-theme-order__name dd-t-14">{nameOf(id)}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    ))}
+  </div>
+</div>
+
+<style>
+  .dd-theme-order {
+    width: 520px;
+    max-width: 100%;
+  }
+  .dd-theme-order :global(.dd-theme-order__list) {
+    border: 1px solid var(--dd-border);
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--dd-surface-raised);
+  }
+  .dd-theme-order :global(.dd-theme-order__group) { padding: 12px 14px 12px 12px; }
+  .dd-theme-order :global(.dd-theme-order__group--first) {
+    background: var(--dd-brand-surface);
+    border-bottom: 1px solid var(--dd-brand-border);
+  }
+  .dd-theme-order :global(.dd-theme-order__overline) {
+    margin: 0 0 4px 2px;
+    color: var(--dd-text-muted);
+  }
+  .dd-theme-order :global(.dd-theme-order__group--first .dd-theme-order__overline) { color: var(--dd-brand-text); }
+  .dd-theme-order :global(.dd-theme-order__rows) { list-style: none; margin: 0; padding: 0; }
+  .dd-theme-order :global(.dd-theme-order__row) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    border-radius: 4px;
+    color: var(--dd-text);
+  }
+  .dd-theme-order :global(.dd-theme-order__row.is-dragging) { opacity: 0.4; }
+  .dd-theme-order :global(.dd-theme-order__row.is-drop-before) { box-shadow: inset 0 2px 0 var(--dd-brand-solid); }
+  .dd-theme-order :global(.dd-theme-order__row.is-drop-after) { box-shadow: inset 0 -2px 0 var(--dd-brand-solid); }
+  .dd-theme-order :global(.dd-theme-order__grip) {
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 24px;
+    border-radius: 4px;
+    color: var(--dd-border-strong);
+    cursor: grab;
+  }
+  .dd-theme-order :global(.dd-theme-order__group--first .dd-theme-order__grip) { color: var(--dd-text-muted); }
+  .dd-theme-order :global(.dd-theme-order__grip:hover) { color: var(--dd-text); background: var(--dd-surface-hover); }
+  .dd-theme-order :global(.dd-theme-order__grip:focus-visible) { outline: 2px solid var(--dd-focus-ring); outline-offset: 1px; }
+  .dd-theme-order :global(.dd-theme-order__grip svg) { stroke-width: 1.5; }
+  .dd-theme-order :global(.dd-theme-order__num) {
+    display: inline-grid;
+    place-items: center;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    color: var(--dd-text-muted);
+  }
+  .dd-theme-order :global(.dd-theme-order__group--first .dd-theme-order__num) {
+    background: var(--dd-brand-solid);
+    color: var(--dd-on-brand);
+  }
+</style>
+
+<script>
+  import { getState, setState, toast } from '../../lib/dd-store';
+  import { iconSvg } from '../../lib/icons';
+  import { announce } from '@esa/ecology/announcer';
+
+  interface Config {
+    themes: { id: number; name: string }[];
+    priority: Record<string, number[]>;
+    typeNames: Record<string, string>;
+  }
+
+  const root = document.querySelector<HTMLElement>('[data-dd-theme-order]');
+  if (root) {
+    const cfg = JSON.parse(root.dataset.config ?? '{}') as Config;
+    const list = root.querySelector<HTMLElement>('[data-list]')!;
+    const nameOf = (id: number): string => cfg.themes.find((t) => t.id === id)?.name ?? '';
+    const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+
+    let typeId = getState().details.typeId ?? root.dataset.type ?? '';
+
+    const seed = (type: string): number[] => {
+      const first = cfg.priority[type] ?? [];
+      const rest = cfg.themes.map((t) => t.id).filter((id) => !first.includes(id)).sort((a, b) => a - b);
+      return [...first, ...rest];
+    };
+    const valid = (o: number[] | null): o is number[] =>
+      Array.isArray(o) && o.length === cfg.themes.length && cfg.themes.every((t) => o.includes(t.id));
+
+    const stored = getState().themeOrder;
+    let order: number[] = valid(stored) ? [...stored] : seed(typeId);
+
+    function rowHtml(id: number, pos: number): string {
+      const name = esc(nameOf(id));
+      return `<li class="dd-theme-order__row" data-id="${id}">
+        <span class="dd-theme-order__grip" role="button" tabindex="0" aria-label="Move ${name}, position ${pos} of ${order.length}" aria-describedby="dd-theme-order-hint">${iconSvg('grip-vertical', 16, 1.5)}</span>
+        <span class="dd-theme-order__num dd-t-12-strong" aria-hidden="true">${pos}</span>
+        <span class="dd-theme-order__name dd-t-14">${name}</span>
+      </li>`;
+    }
+
+    function render(focusId?: number): void {
+      const n = (cfg.priority[typeId] ?? []).length;
+      const typeName = cfg.typeNames[typeId] ?? '';
+      const article = /^[aeiou]/i.test(typeName) ? 'an' : 'a';
+      const groups = [
+        { key: 'first', title: n ? `Listed First for ${article} ${esc(typeName)}` : '', ids: order.slice(0, n), offset: 0 },
+        { key: 'rest', title: n ? 'Other Themes' : '', ids: order.slice(n), offset: n },
+      ].filter((g) => g.ids.length);
+      list.innerHTML = groups
+        .map(
+          (g) => `<div class="dd-theme-order__group dd-theme-order__group--${g.key}">
+            ${g.title ? `<p class="dd-theme-order__overline dd-t-overline">${g.title}</p>` : ''}
+            <ol class="dd-theme-order__rows" start="${g.offset + 1}">${g.ids.map((id, i) => rowHtml(id, g.offset + i + 1)).join('')}</ol>
+          </div>`,
+        )
+        .join('');
+      if (focusId !== undefined) {
+        list.querySelector<HTMLElement>(`[data-id="${focusId}"] .dd-theme-order__grip`)?.focus();
+      }
+    }
+
+    function move(id: number, to: number): void {
+      const from = order.indexOf(id);
+      if (from < 0 || to < 0 || to >= order.length || from === to) return;
+      order.splice(from, 1);
+      order.splice(to, 0, id);
+      render(id);
+      announce(`${nameOf(id)} moved to position ${to + 1} of ${order.length}.`);
+      setState({ themeOrder: [...order] });
+      toast('Saved');
+    }
+
+    render();
+
+    // Keyboard: Alt+ArrowUp / Alt+ArrowDown on a focused grip.
+    list.addEventListener('keydown', (e) => {
+      const grip = (e.target as HTMLElement).closest<HTMLElement>('.dd-theme-order__grip');
+      if (!grip || !e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+      e.preventDefault();
+      const id = Number(grip.closest<HTMLElement>('[data-id]')?.dataset.id);
+      move(id, order.indexOf(id) + (e.key === 'ArrowUp' ? -1 : 1));
+    });
+
+    // Drag and drop: a row becomes draggable only while its grip is held.
+    let dragId: number | null = null;
+    const clearMarks = (): void =>
+      list.querySelectorAll('.is-drop-before, .is-drop-after').forEach((el) => el.classList.remove('is-drop-before', 'is-drop-after'));
+
+    list.addEventListener('pointerdown', (e) => {
+      const grip = (e.target as HTMLElement).closest('.dd-theme-order__grip');
+      const row = grip?.closest<HTMLElement>('.dd-theme-order__row');
+      if (row) row.draggable = true;
+    });
+    list.addEventListener('pointerup', () => {
+      list.querySelectorAll<HTMLElement>('.dd-theme-order__row[draggable="true"]').forEach((r) => (r.draggable = false));
+    });
+    list.addEventListener('dragstart', (e) => {
+      const row = (e.target as HTMLElement).closest<HTMLElement>('.dd-theme-order__row');
+      if (!row || !row.draggable) return;
+      dragId = Number(row.dataset.id);
+      row.classList.add('is-dragging');
+      e.dataTransfer?.setData('text/plain', String(dragId));
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    });
+    const targetFor = (e: DragEvent): { row: HTMLElement; after: boolean } | null => {
+      const row = (e.target as HTMLElement).closest<HTMLElement>('.dd-theme-order__row');
+      if (!row) return null;
+      const r = row.getBoundingClientRect();
+      return { row, after: e.clientY > r.top + r.height / 2 };
+    };
+    list.addEventListener('dragover', (e) => {
+      if (dragId === null) return;
+      const t = targetFor(e);
+      if (!t) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      clearMarks();
+      t.row.classList.add(t.after ? 'is-drop-after' : 'is-drop-before');
+    });
+    list.addEventListener('drop', (e) => {
+      if (dragId === null) return;
+      e.preventDefault();
+      const t = targetFor(e);
+      clearMarks();
+      const id = dragId;
+      dragId = null;
+      if (!t) return;
+      const overId = Number(t.row.dataset.id);
+      if (overId === id) { render(); return; }
+      const without = order.filter((x) => x !== id);
+      move(id, without.indexOf(overId) + (t.after ? 1 : 0));
+    });
+    list.addEventListener('dragend', () => {
+      dragId = null;
+      clearMarks();
+      list.querySelectorAll<HTMLElement>('.dd-theme-order__row').forEach((r) => {
+        r.classList.remove('is-dragging');
+        r.draggable = false;
+      });
+    });
+
+    // Project Type changed. If the order is still the previous type's seed
+    // (never reordered by hand), re-seed the first three for the new type.
+    // A hand-made order is kept; only the Listed First overline changes.
+    // The form saves the type and shows the toast.
+    window.addEventListener('dd:details-type', (e) => {
+      const untouched = order.join(',') === seed(typeId).join(',');
+      typeId = (e as CustomEvent<string>).detail;
+      if (untouched) {
+        order = seed(typeId);
+        setState({ themeOrder: [...order] });
+      }
+      render();
+    });
+  }
+</script>

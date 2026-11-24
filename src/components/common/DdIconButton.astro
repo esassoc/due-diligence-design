@@ -1,0 +1,55 @@
+---
+// DdIconButton: a square icon-only button for glyphs outside the hub icon
+// registry.
+//
+// bcn-lego-checked: esa-button `iconOnly` renders only its `icon` prop, which
+// resolves through the hub icon registry (about 60 glyphs) with no `paths`
+// fallback, and drops slotted content; esa-icon-button has the same limit. The
+// Figma chrome needs Lucide glyphs the registry lacks (panel-left, layers,
+// ruler, grip-vertical, undo-2...). This is the smallest wrapper that keeps the
+// esa-button ghost look (32px, 6px corners, hover wash) with DdIcon inside.
+// Candidate for /request-lego: a `paths` prop on esa-button iconOnly.
+import DdIcon from './DdIcon.astro';
+
+interface Props {
+  icon: string;
+  label: string;
+  size?: 'sm' | 'md';
+  /** Pressed / selected state, e.g. an active map tool. */
+  pressed?: boolean;
+  class?: string;
+  [attr: string]: unknown;
+}
+const { icon, label, size = 'md', pressed, class: cls, ...rest } = Astro.props;
+---
+<button
+  type="button"
+  class:list={['dd-icon-button', `dd-icon-button--${size}`, cls]}
+  aria-label={label}
+  title={label}
+  aria-pressed={pressed === undefined ? undefined : String(pressed)}
+  {...rest}
+>
+  <DdIcon name={icon} size={size === 'md' ? 'sm' : 'xs'} />
+</button>
+
+<style>
+  .dd-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-150, 6px);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+  }
+  .dd-icon-button--sm { width: 28px; height: 28px; }
+  .dd-icon-button:hover { background: var(--dd-surface-hover); }
+  .dd-icon-button[aria-pressed='true'] { background: var(--dd-brand-surface); color: var(--dd-brand-text); }
+  .dd-icon-button:disabled { opacity: 0.45; cursor: default; }
+  .dd-icon-button:disabled:hover { background: transparent; }
+</style>

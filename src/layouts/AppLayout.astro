@@ -1,0 +1,49 @@
+---
+// AppLayout: the Due Diligence app frame. Top bar over a side nav + main
+// column; the main column centres a 1160px content well (Figma "content",
+// x 88 inside main) and leaves room for the floating pager bar.
+import BaseLayout from './BaseLayout.astro';
+import DdTopbar from '../components/shell/DdTopbar.astro';
+import DdSideNav from '../components/shell/DdSideNav.astro';
+import DdPagerBar from '../components/shell/DdPagerBar.astro';
+import type { StepKey } from '../data/dd';
+
+interface Props {
+  title: string;
+  current: StepKey | 'projects';
+  /** Wider well for map-first pages. */
+  wide?: boolean;
+}
+const { title, current, wide = false } = Astro.props;
+const isStep = current !== 'projects';
+---
+<BaseLayout title={`${title} · Due Diligence`}>
+  <div class="dd-app">
+    <div class="dd-app__top"><DdTopbar /></div>
+    <div class="dd-app__body">
+      <aside class="dd-app__side"><DdSideNav current={current} /></aside>
+      <main class="dd-app__main">
+        <div class:list={['dd-app__well', { 'dd-app__well--wide': wide }]}>
+          <slot />
+        </div>
+      </main>
+    </div>
+    {isStep && <DdPagerBar current={current as StepKey} />}
+  </div>
+</BaseLayout>
+
+<style is:global>
+  body { background: var(--dd-bg); color: var(--dd-text); }
+</style>
+
+<style>
+  .dd-app { min-height: 100vh; display: flex; flex-direction: column; }
+  .dd-app__body { flex: 1; display: grid; grid-template-columns: 264px minmax(0, 1fr); }
+  .dd-app__top { position: sticky; top: 0; z-index: 30; }
+  .dd-app__side { position: sticky; top: 52px; align-self: start; height: calc(100vh - 52px); overflow-y: auto; background: var(--dd-chrome-sidebar-bg); }
+  :global(html[data-dd-sidebar-collapsed]) .dd-app__body { grid-template-columns: 0 minmax(0, 1fr); }
+  :global(html[data-dd-sidebar-collapsed]) .dd-app__side { visibility: hidden; }
+  .dd-app__main { min-width: 0; padding: 28px 40px 140px; }
+  .dd-app__well { max-width: 1160px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+  .dd-app__well--wide { max-width: 1160px; }
+</style>

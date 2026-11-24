@@ -1,0 +1,36 @@
+---
+// DdPageTitle: "Cottonwood  /  Page Title" in one Besley H1, project in
+// text-muted, the slash in border-strong, page title in text (Radial's
+// pattern; Andy, page title 2026-11-24). A right-hand `actions` slot holds a
+// page's run line or buttons; a `below` slot holds a toolbar row.
+//
+// bcn-lego-checked: esa-page-header renders title + lede + actions with the
+// hub's fluid heading role; the approved H1 is the fixed Display/A · Besley 22
+// with a two-tone project prefix, and no lede (no text about the page).
+interface Props {
+  project?: string;
+  title: string;
+}
+const { project, title } = Astro.props;
+---
+<header class="dd-page-title">
+  <div class="dd-page-title__row">
+    <h1 class="dd-t-display-22 dd-page-title__h1">
+      {project && <span class="dd-page-title__project">{project}</span>}
+      {project && <span class="dd-page-title__slash" aria-hidden="true">/</span>}
+      <span>{title}</span>
+    </h1>
+    <div class="dd-page-title__actions"><slot name="actions" /></div>
+  </div>
+  <slot name="below" />
+</header>
+
+<style>
+  .dd-page-title { display: flex; flex-direction: column; gap: 16px; }
+  .dd-page-title__row { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 36px; }
+  .dd-page-title__h1 { margin: 0; color: var(--dd-text); }
+  .dd-page-title__project { color: var(--dd-text-muted); }
+  .dd-page-title__slash { color: var(--dd-border-strong); margin: 0 0.4em; }
+  .dd-page-title__actions { display: flex; align-items: center; gap: 12px; }
+  .dd-page-title__actions:empty { display: none; }
+</style>

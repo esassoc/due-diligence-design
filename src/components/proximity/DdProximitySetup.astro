@@ -1,0 +1,35 @@
+---
+// DdProximitySetup: the Search Distances card, the ring map on the left and the
+// distances panel on the right, in one white card.
+//
+// bcn-lego-checked: esa-card pads its body and stacks header/body/footer; this
+// card is a two-column split with a full-bleed map, so it is a plain card
+// surface (white, 1px border-subtle, 8px corners) around the two sections.
+import DdProximityMap from './DdProximityMap.astro';
+import DdProximityPanel from './DdProximityPanel.astro';
+const target = `${import.meta.env.BASE_URL}app/cottonwood/site-boundary/`;
+---
+<script is:inline define:vars={{ target }}>
+  // No boundary, no rings: send the user to define the area first, before the
+  // old site draws. Reads the same sessionStorage key as dd-store.
+  try {
+    const s = JSON.parse(sessionStorage.getItem('dd-proto-state') || '{}');
+    if (s.boundary && s.boundary !== 'defined') location.replace(target);
+  } catch (e) { /* no storage: stay */ }
+</script>
+<section class="prox-setup" aria-label="Search Distances">
+  <DdProximityMap />
+  <DdProximityPanel />
+</section>
+
+<style>
+  .prox-setup {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 418px;
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+    background: var(--dd-surface-raised);
+    overflow: hidden;
+  }
+  .prox-setup > :global(.prox-panel) { box-shadow: inset 1px 0 0 var(--dd-border-subtle); /* neutral pane divider */ }
+</style>

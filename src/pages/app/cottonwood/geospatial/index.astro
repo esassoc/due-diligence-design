@@ -1,0 +1,18 @@
+---
+// Geospatial: the step's map, with the layer tree, legend, identify and measure.
+import AppLayout from '../../../../layouts/AppLayout.astro';
+import DdPageTitle from '../../../../components/shell/DdPageTitle.astro';
+import DdGeoMap from '../../../../components/geospatial/DdGeoMap.astro';
+import { project } from '../../../../data/dd';
+---
+
+<!-- manifest:
+  layout: stack(lg)
+  sections:
+    - page title -> dd-page-title
+    - map card -> dd-geo-map
+-->
+<AppLayout title="Geospatial" current="geospatial">
+  <DdPageTitle project={project.ProjectName} title="Geospatial" />
+  <DdGeoMap />
+</AppLayout>

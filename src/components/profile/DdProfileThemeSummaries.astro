@@ -1,0 +1,298 @@
+---
+// DdProfileThemeSummaries: one collapsible card per theme in Theme Order. The
+// first three open. Open: up to three big figures, the class composition
+// (Site vs Within 5 mi) with legend, and the distance-lane mini chart with
+// each layer's value. "See N in the Table" jumps to that theme in All Layers.
+//
+// bcn-lego-checked: esa-collapsible's summary takes a title string only and
+// puts the caret on the right; the Figma row leads with the caret and carries
+// the summary line, a No Data Yet count and a table link. Built on native
+// <details>/<summary>. esa-stat's value/label roles do not land on the
+// Figma's 24px stat over a 13px label; the lane chart has no lego.
+import DdIcon from '../common/DdIcon.astro';
+import DdCountBadge from '../common/DdCountBadge.astro';
+import DdProfileMixBar from './DdProfileMixBar.astro';
+import {
+  themes, layersForTheme, layerById, outerRings, siteRing, maxMiles, mi, laneShort, firstRing,
+  topFigures, layerStat, byNearest, valueText, lanePos, compositionMix, classColor,
+  type Layer,
+} from './profile-model';
+
+const R = outerRings.length;
+const within = `Within ${mi(maxMiles)}`;
+const lineCase = (s: string): string => s.replace(/on the site/g, 'on the Site');
+
+const cards = themes.map((t, i) => {
+  const ls = layersForTheme(t.id);
+  const figs = topFigures(t).map((f) => layerById(f.layerId)).filter((l): l is Layer => Boolean(l));
+  const stats = figs.map((l) => ({ ...layerStat(l), id: l.id }));
+  const compLayer = [...figs, ...ls].find((l) => l.result.composition);
+  const comp = compLayer?.result.composition ?? null;
+  const allNoData = t.statusCounts.no_data_for_county === ls.length;
+  const lanes = [...ls].sort(byNearest).map((l) => {
+    const ring = firstRing(l);
+    const dots = ring && ring > 0
+      ? [...new Set([l.result.nearestMiles ?? 0, ...(l.result.nearbyFeatures ?? []).map((f) => f.miles)])]
+          .filter((m) => m > 0 && m <= maxMiles)
+          .sort((a, b) => a - b)
+      : [];
+    return { layer: l, ring, dots };
+  });
+  return { theme: t, open: i < 3, ls, stats, compLayer, comp, allNoData, lanes };
+});
+---
+<section class="dd-themes" data-profile-results aria-labelledby="dd-themes-title">
+  <h2 id="dd-themes-title" class="dd-t-display-20 dd-themes__title">Theme Summaries</h2>
+
+  {cards.map((c) => (
+    <div class="dd-tcard" data-filter-theme={c.theme.id}>
+      <details class="dd-tcard__details" open={c.open}>
+        <summary class="dd-tcard__summary">
+          <span class="dd-tcard__chev"><DdIcon name="chevron-right" size="xs" /></span>
+          <span class="dd-tcard__name dd-t-14-strong">{c.theme.name}</span>
+          <span class="dd-tcard__line dd-t-13">
+            {c.allNoData && <span class="dd-tcard__hatch" aria-hidden="true" />}
+            {lineCase(c.theme.summaryLine)}
+            {!c.allNoData && c.theme.statusCounts.no_data_for_county > 0 && (
+              <span class="dd-tcard__nodata"><span class="dd-tcard__hatch" aria-hidden="true" />No Data Yet <DdCountBadge value={c.theme.statusCounts.no_data_for_county} /></span>
+            )}
+          </span>
+        </summary>
+
+        {c.ls.length > 0 && !c.allNoData && (
+          <div class="dd-tcard__body">
+            <div class="dd-tcard__left">
+              {c.stats.length > 0 && (
+                <dl class="dd-tcard__stats">
+                  {c.stats.map((s) => (
+                    <div class="dd-tcard__stat" data-stat={s.id}>
+                      <dt class="dd-t-stat" data-stat-value>{s.value}</dt>
+                      <dd class="dd-t-13-medium">{s.label}</dd>
+                      <dd class="dd-t-12 dd-muted" data-stat-sub>{s.sub}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+
+              {c.comp && c.compLayer && (
+                <div class="dd-tcard__comp">
+                  <p class="dd-t-13-medium dd-tcard__comphead">{c.compLayer.name}</p>
+                  {c.comp.rows.map((r, ri) => {
+                    const m = compositionMix(c.compLayer!, ri);
+                    return m ? (
+                      <div class="dd-tcard__comprow" data-comp-row={ri}>
+                        <span class="dd-t-12 dd-muted">{r.label}</span>
+                        <DdProfileMixBar title={c.compLayer!.name} band={r.label} mix={m} size={10} />
+                      </div>
+                    ) : null;
+                  })}
+                  <ul class="dd-tcard__legend dd-t-12">
+                    {c.comp.rows[c.comp.rows.length - 1].classes.slice(0, c.comp.legendShown).map((k) => (
+                      <li><span class="dd-tcard__sw" style={`background:${classColor(c.compLayer!, k.className)}`} />{k.className.split(',')[0]}</li>
+                    ))}
+                    {c.comp.legendMoreText && <li><span class="dd-tcard__sw" style="background:var(--dd-class-rest)" />{c.comp.legendMoreText}</li>}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <div class="dd-lanes" style={`--rings:${R}`}>
+              <div class="dd-lanes__row dd-lanes__row--head dd-t-12 dd-muted" aria-hidden="true">
+                <span />
+                <span class="dd-lanes__h">On Site</span>
+                {outerRings.map((r) => <span class="dd-lanes__h" data-ring={r.ringIndex} data-short={laneShort(r, false)} data-full={laneShort(r, true)}>{laneShort(r, r.ringIndex === R)}</span>)}
+                <span />
+              </div>
+              {c.lanes.map(({ layer, ring, dots }) => (
+                <esa-popover trigger="hover" position="bottom" has-arrow="false" offset="4" class="dd-lanes__pop" data-filter-layer={layer.id}>
+                  <div class="dd-lanes__row" tabindex="0" data-lane-layer={layer.id}>
+                    <span class="dd-lanes__name dd-t-13">{layer.name}</span>
+                    <span class="dd-lanes__site">{ring === 0 && <span class="dd-lanes__pill" />}</span>
+                    {outerRings.map((r) => <span class:list={['dd-lanes__lane', { 'dd-lanes__lane--near': r.ringIndex === 1 }]} data-ring={r.ringIndex} />)}
+                    {dots.length > 0 && (
+                      <span class="dd-lanes__track" aria-hidden="true">
+                        <span class="dd-lanes__line" style={`width:${(lanePos(dots[dots.length - 1]) * 100).toFixed(2)}%`} />
+                        {dots.map((m) => <span class="dd-lanes__dot" data-miles={m} style={`left:${(lanePos(m) * 100).toFixed(2)}%`} />)}
+                      </span>
+                    )}
+                    <span class="dd-lanes__val dd-t-13" data-lane-val>{valueText(layer)}</span>
+                  </div>
+                  <div slot="content" class="dd-lanepop">
+                    <div class="dd-lanepop__head"><span class="dd-t-14-medium">{layer.name}</span></div>
+                    <table class="dd-lanepop__table">
+                      <tbody>
+                        {[siteRing, ...outerRings].map((r, i) => (
+                          <tr data-ring={r.ringIndex}>
+                            <td class="dd-t-13 dd-muted">{r.displayLabel}</td>
+                            <td class="dd-t-13-medium dd-lanepop__num">{layer.result.byRing?.[i]?.cell || 'None'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <p class="dd-t-12 dd-muted dd-lanepop__foot" data-lane-finding={layer.id}>{layer.result.finding}</p>
+                  </div>
+                </esa-popover>
+              ))}
+            </div>
+          </div>
+        )}
+      </details>
+      <a class="dd-tcard__link dd-t-13" href="#dd-layers" data-show-theme={c.theme.id}>See {c.ls.length} in the Table</a>
+    </div>
+  ))}
+</section>
+
+<script>
+  import '@esa/ecology/esa-popover';
+  import { applyFilters, onFilters, SHOW_THEME_EVENT } from './profile-filters';
+  import { onRingView, effKey, effFinding, shownLanePos, layerOf, type RingView } from './profile-rings';
+  import { outerRings, valueText } from './profile-model';
+
+  const root = document.querySelector<HTMLElement>('.dd-themes');
+  if (root) {
+    // Follow the rings the run measured: drop unmeasured lanes, re-place dots,
+    // and read layers only found beyond the measured extent as not found.
+    const lastData = outerRings[outerRings.length - 1]?.ringIndex ?? 0;
+    const applyRings = (v: RingView): void => {
+      root.querySelectorAll<HTMLElement>('.dd-lanes').forEach((el) => el.style.setProperty('--rings', String(v.shown.length)));
+      root.querySelectorAll<HTMLElement>('[data-ring]').forEach((el) => {
+        el.toggleAttribute('data-ring-off', !v.isShown(Number(el.dataset.ring)));
+      });
+      const lastShown = v.shown[v.shown.length - 1];
+      root.querySelectorAll<HTMLElement>('.dd-lanes__h[data-ring]').forEach((h) => {
+        h.textContent = Number(h.dataset.ring) === lastShown ? h.dataset.full! : h.dataset.short!;
+      });
+      root.querySelectorAll<HTMLElement>('[data-lane-layer]').forEach((row) => {
+        const l = layerOf(row.dataset.laneLayer);
+        if (!l) return;
+        const none = effKey(l, v) === 'none';
+        const val = row.querySelector('[data-lane-val]');
+        if (val) val.textContent = none ? 'Not Found' : valueText(l);
+        let far = 0;
+        row.querySelectorAll<HTMLElement>('.dd-lanes__dot').forEach((d) => {
+          const pos = shownLanePos(Number(d.dataset.miles), v);
+          d.hidden = pos === null;
+          if (pos !== null) { d.style.left = `${(pos * 100).toFixed(2)}%`; far = Math.max(far, pos); }
+        });
+        const line = row.querySelector<HTMLElement>('.dd-lanes__line');
+        if (line) line.style.width = `${(far * 100).toFixed(2)}%`;
+      });
+      root.querySelectorAll<HTMLElement>('[data-lane-finding]').forEach((p) => {
+        const l = layerOf(p.dataset.laneFinding);
+        if (l) p.textContent = effFinding(l, v);
+      });
+      root.querySelectorAll<HTMLElement>('[data-stat]').forEach((st) => {
+        const l = layerOf(st.dataset.stat);
+        if (!l || effKey(l, v) !== 'none') return;
+        const value = st.querySelector('[data-stat-value]');
+        const sub = st.querySelector('[data-stat-sub]');
+        if (value) value.textContent = 'None';
+        if (sub) sub.textContent = v.within;
+      });
+      // The composition's outer row is measured to the data's outermost ring.
+      root.querySelectorAll<HTMLElement>('[data-comp-row="1"]').forEach((r) => { r.hidden = !v.isShown(lastData); });
+    };
+    onRingView(applyRings);
+
+    applyFilters(root);
+    onFilters((f) => applyFilters(root, f));
+    root.querySelectorAll<HTMLAnchorElement>('[data-show-theme]').forEach((a) => {
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent<number>(SHOW_THEME_EVENT, { detail: Number(a.dataset.showTheme) }));
+      });
+    });
+  }
+</script>
+
+<style>
+  .dd-themes { display: flex; flex-direction: column; gap: 12px; }
+  .dd-themes[hidden] { display: none; }
+  .dd-themes [data-ring-off], .dd-themes :global([hidden]) { display: none !important; }
+  .dd-themes__title { margin: 8px 0 4px; }
+
+  .dd-tcard {
+    position: relative;
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+  }
+  .dd-tcard__summary {
+    display: grid; grid-template-columns: 16px 232px 1fr; align-items: center; gap: 8px;
+    padding: 16px 200px 16px 20px; cursor: pointer; list-style: none;
+  }
+  .dd-tcard__summary::-webkit-details-marker { display: none; }
+  .dd-tcard__chev { display: inline-flex; color: var(--dd-text-muted); transition: transform 150ms ease; }
+  .dd-tcard__details[open] .dd-tcard__chev { transform: rotate(90deg); }
+  .dd-tcard__name { color: var(--dd-text); }
+  .dd-tcard__line { display: inline-flex; align-items: center; gap: 8px; color: var(--dd-text-muted); }
+  .dd-tcard__nodata { display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; }
+  .dd-tcard__hatch {
+    display: inline-block; width: 10px; height: 10px; border-radius: 2px; box-sizing: border-box;
+    border: 1px solid var(--dd-border); background: repeating-linear-gradient(135deg, var(--dd-border-strong) 0 1px, var(--dd-surface-raised) 1px 3px);
+  }
+  .dd-tcard__link { position: absolute; top: 16px; right: 24px; color: var(--dd-brand-text); text-decoration: none; line-height: 20px; }
+  .dd-tcard__link:hover { text-decoration: underline; }
+
+  .dd-tcard__body {
+    display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 1fr); gap: 32px;
+    padding: 4px 24px 24px 48px;
+  }
+  .dd-tcard__left { display: flex; flex-direction: column; gap: 24px; }
+
+  .dd-tcard__stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0; }
+  .dd-tcard__stat { display: flex; flex-direction: column; gap: 2px; }
+  .dd-tcard__stat dt { color: var(--dd-text); margin-bottom: 2px; }
+  .dd-tcard__stat dd { margin: 0; color: var(--dd-text); }
+  .dd-tcard__stat dd + dd { color: var(--dd-text-muted); }
+
+  .dd-tcard__comp { display: flex; flex-direction: column; gap: 10px; }
+  .dd-tcard__comphead { margin: 0 0 2px; color: var(--dd-text); }
+  .dd-tcard__comprow { display: grid; grid-template-columns: 84px 1fr; align-items: center; gap: 0; }
+  .dd-tcard__legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 4px 0 0 84px; padding: 0; list-style: none; color: var(--dd-text-muted); }
+  .dd-tcard__legend li { display: inline-flex; align-items: center; gap: 6px; }
+  .dd-tcard__sw { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+
+  /* Distance-lane mini chart: every row is the same grid, so the lane washes line up. */
+  .dd-lanes { container-type: inline-size; align-self: start; }
+  .dd-lanes__pop { display: block; }
+  .dd-lanes__row {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 52px repeat(var(--rings), 76px) 76px;
+    column-gap: 4px;
+    width: 100cqw;
+    align-items: stretch;
+    min-height: 26px;
+    outline-offset: -1px;
+  }
+  .dd-lanes__row--head { min-height: 22px; align-items: end; }
+  .dd-lanes__h { padding: 0 6px 4px; white-space: nowrap; }
+  .dd-lanes__name { align-self: center; color: var(--dd-text); padding-right: 8px; }
+  .dd-lanes__site { background: var(--dd-data-on-site-band); display: flex; align-items: center; justify-content: center; }
+  .dd-lanes__lane { background: var(--dd-data-far-band); }
+  .dd-lanes__lane--near { background: var(--dd-data-nearby-band); }
+  .dd-lanes__pill { width: 36px; height: 8px; border-radius: 4px; background: var(--dd-data-on-site); }
+  .dd-lanes__val { align-self: center; text-align: right; color: var(--dd-text); white-space: nowrap; }
+  .dd-lanes__row:hover .dd-lanes__name, .dd-lanes__row:focus-visible .dd-lanes__name { color: var(--dd-brand-text); }
+
+  .dd-lanes__track {
+    position: absolute; top: 0; bottom: 0;
+    left: calc(100% - 76px - var(--rings) * 80px);
+    width: calc(var(--rings) * 80px - 4px);
+    pointer-events: none;
+  }
+  .dd-lanes__line { position: absolute; left: 0; top: 50%; height: 1px; background: var(--dd-data-nearby-far); }
+  .dd-lanes__dot {
+    position: absolute; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%;
+    box-sizing: border-box; background: var(--dd-data-nearby-far); border: 1.5px solid var(--dd-data-nearby);
+  }
+
+  .dd-lanepop { width: 280px; display: flex; flex-direction: column; gap: 8px; color: var(--dd-text); white-space: normal; }
+  .dd-lanepop__table { width: 100%; border-collapse: collapse; }
+  .dd-lanepop__table td { padding: 2px 0; }
+  .dd-lanepop__num { text-align: right; }
+  .dd-lanepop__foot { margin: 0; padding-top: 8px; border-top: 1px solid var(--dd-border-subtle); }
+
+  .dd-themes :global([data-off-toolbar]) { display: none !important; }
+</style>

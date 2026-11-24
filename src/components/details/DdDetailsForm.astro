@@ -1,0 +1,202 @@
+---
+// DdDetailsForm: the Project Details card. Six label-column rows (Project
+// Name, County, Project Type, Theme Order, Project Stage, Anything Else We
+// Should Know). Every edit autosaves into the store's `details` and shows the
+// Saved toast; there is no Save button. County is locked (disabled, lock
+// glyph) while a site boundary is defined and becomes a select when the
+// boundary is cleared.
+import EsaCard from '@esa/ecology/esa-card.astro';
+import DdIcon from '../common/DdIcon.astro';
+import DdDetailRow from './DdDetailRow.astro';
+import DdTypeTiles from './DdTypeTiles.astro';
+import DdStageStepper from './DdStageStepper.astro';
+import DdThemeOrder from './DdThemeOrder.astro';
+import { COUNTIES, DEFAULT_DETAILS, PROJECT_TYPES } from './dd-details-model';
+
+const d = DEFAULT_DETAILS;
+const countyOptions = COUNTIES.map((c) => ({ label: c.name, value: c.name }));
+const typeNames = Object.fromEntries(PROJECT_TYPES.map((t) => [t.id, t.name]));
+---
+<div class="dd-details-form" data-dd-details-form data-defaults={JSON.stringify(d)} data-type-names={JSON.stringify(typeNames)}>
+  <EsaCard padding="none">
+    <DdDetailRow label="Project Name" required for="dd-detail-name">
+      <esa-text-field
+        id="dd-detail-name"
+        class="dd-details-form__field"
+        aria-label="Project Name"
+        name="name"
+        placeholder="Project name"
+        value={d.name}
+        required
+        maxlength="200"
+      ></esa-text-field>
+    </DdDetailRow>
+
+    <DdDetailRow label="County" required labelId="dd-detail-county-label">
+      <div class="dd-details-form__county" data-county-locked>
+        <div class="dd-details-form__locked">
+          <esa-text-field
+            class="dd-details-form__field"
+            aria-label="County"
+            value={d.county}
+            disabled
+          ></esa-text-field>
+          <DdIcon name="lock" size="sm" class="dd-details-form__lock" label="Locked" />
+        </div>
+        <p class="dd-details-form__note dd-t-12">Set by the site boundary. Clear the boundary to change it.</p>
+      </div>
+      <div class="dd-details-form__county" data-county-open hidden>
+        <esa-select
+          id="dd-detail-county"
+          class="dd-details-form__field"
+          aria-label="County"
+          name="county"
+          value={d.county}
+          options={JSON.stringify(countyOptions)}
+        ></esa-select>
+      </div>
+    </DdDetailRow>
+
+    <DdDetailRow label="Project Type" required help="Sets which themes lead the Theme Order below.">
+      <DdTypeTiles value={d.typeId} id="dd-detail-type" />
+    </DdDetailRow>
+
+    <DdDetailRow label="Theme Order" help="The order themes take in the Site Profile and the report. Drag to change it for this project.">
+      <DdThemeOrder typeId={d.typeId} />
+    </DdDetailRow>
+
+    <DdDetailRow label="Project Stage" required>
+      <div class="dd-details-form__stage">
+        <DdStageStepper value={d.stageId} id="dd-detail-stage" />
+      </div>
+    </DdDetailRow>
+
+    <DdDetailRow label="Anything Else We Should Know" for="dd-detail-description">
+      <esa-textarea
+        id="dd-detail-description"
+        aria-label="Anything Else We Should Know"
+        name="description"
+        rows="4"
+        maxlength="2000"
+        placeholder="For example: existing uses on the site, known constraints, client concerns"
+        value={d.description}
+      ></esa-textarea>
+    </DdDetailRow>
+  </EsaCard>
+</div>
+
+<style>
+  .dd-details-form {
+    --card-bg: var(--dd-surface-raised);
+    --card-border-color: var(--dd-border-subtle);
+  }
+  .dd-details-form__field { display: block; width: 400px; max-width: 100%; }
+  .dd-details-form__county[hidden] { display: none; }
+  .dd-details-form__locked { position: relative; width: 400px; max-width: 100%; }
+  .dd-details-form :global(.dd-details-form__lock) {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--dd-text-muted);
+    pointer-events: none;
+  }
+  .dd-details-form__note { margin: 8px 0 0; color: var(--dd-text-muted); }
+  .dd-details-form__stage { padding-top: 4px; }
+</style>
+
+<script>
+  import '@esa/ecology/esa-text-field';
+  import '@esa/ecology/esa-select';
+  import '@esa/ecology/esa-textarea';
+  import { getState, setState, onState, toast, autosave, type DdState } from '../../lib/dd-store';
+  import { nameInnerControls } from './dd-a11y';
+
+  interface Details {
+    projectType?: string;
+    name: string;
+    county: string;
+    typeId: string;
+    stageId: string;
+    description: string;
+  }
+  type ValueEl = HTMLElement & { value: string; errorText?: string };
+
+  const root = document.querySelector<HTMLElement>('[data-dd-details-form]');
+  if (root) {
+    const defaults = JSON.parse(root.dataset.defaults ?? '{}') as Details;
+    const typeNames = JSON.parse(root.dataset.typeNames ?? '{}') as Record<string, string>;
+    void nameInnerControls(root);
+    const current = (): Details => ({ ...defaults, ...(getState().details as Partial<Details>) });
+    const save = (patch: Partial<Details>): void => {
+      setState({ details: { ...getState().details, ...patch } });
+    };
+
+    const nameEl = root.querySelector<ValueEl>('#dd-detail-name')!;
+    const countyEl = root.querySelector<ValueEl>('#dd-detail-county')!;
+    const typeEl = root.querySelector<HTMLElement>('#dd-detail-type')!;
+    const stageEl = root.querySelector<HTMLElement>('#dd-detail-stage')!;
+    const descEl = root.querySelector<ValueEl>('#dd-detail-description')!;
+    const locked = root.querySelector<HTMLElement>('[data-county-locked]')!;
+    const open = root.querySelector<HTMLElement>('[data-county-open]')!;
+    const lockedField = locked.querySelector<ValueEl>('esa-text-field')!;
+
+    // Restore saved values.
+    const v = current();
+    nameEl.value = v.name;
+    countyEl.value = v.county;
+    lockedField.value = v.county;
+    descEl.value = v.description;
+    typeEl.dispatchEvent(new CustomEvent('dd:set', { detail: v.typeId }));
+    stageEl.dispatchEvent(new CustomEvent('dd:set', { detail: v.stageId }));
+
+    // County: locked while the boundary is defined.
+    const syncCounty = (s: DdState): void => {
+      const isLocked = s.boundary === 'defined';
+      locked.hidden = !isLocked;
+      open.hidden = isLocked;
+      lockedField.value = current().county;
+    };
+    syncCounty(getState());
+    onState(syncCounty);
+
+    // Project Name: required. An empty name shows the error and is not saved.
+    let pendingName = v.name;
+    const saveName = autosave(() => save({ name: pendingName }));
+    nameEl.addEventListener('change', () => {
+      const value = nameEl.value.trim();
+      if (!value) {
+        nameEl.errorText = 'Add a name. Other changes still save.';
+        return;
+      }
+      nameEl.errorText = '';
+      pendingName = value;
+      saveName();
+    });
+
+    countyEl.addEventListener('change', () => {
+      save({ county: String(countyEl.value) });
+      toast('Saved');
+    });
+
+    typeEl.addEventListener('dd:type-change', (e) => {
+      const typeId = (e as CustomEvent<string>).detail;
+      // projectType = display name, read by the side nav.
+      save({ typeId, projectType: typeNames[typeId] ?? '' });
+      window.dispatchEvent(new CustomEvent<string>('dd:details-type', { detail: typeId }));
+      toast('Saved');
+    });
+
+    stageEl.addEventListener('dd:stage-change', (e) => {
+      save({ stageId: (e as CustomEvent<string>).detail });
+      toast('Saved');
+    });
+
+    let pendingDesc = v.description;
+    const saveDesc = autosave(() => save({ description: pendingDesc }));
+    descEl.addEventListener('change', () => {
+      pendingDesc = descEl.value;
+      saveDesc();
+    });
+  }
+</script>

@@ -1,0 +1,6647 @@
+{
+ "meta": {
+  "purpose": "Mock dataset for the Due Diligence design and prototype: project Cottonwood, following QA's data model (qa-data.json, extracted 2026-11-24).",
+  "built": "2026-11-24",
+  "source": "qa-data.json (QA build 0.1.0-alpha.78). Layer metadata (source agency, loaded date, update frequency, source line, coverage) is copied verbatim from QA; per-layer results are mock values for a site in Sacramento County.",
+  "conventions": [
+   "name / theme fields are Title Case display labels; qaName / qaTheme keep QA's sentence-case strings. Units stay lowercase.",
+   "Ring quantities are per ring (donut), not cumulative. Status is the first ring with featureCount > 0.",
+   "Cells, findings, short text and distances use QA's formulas (statusRules below). Every count in this file is computed, not typed.",
+   "Feature names, parcel APNs, deep dive findings and the failure message are illustrative, not real records."
+  ],
+  "assumptions": [
+   "No Data Yet = the four layers QA has never loaded for any county (isLoadable false, 0 features): Wildfire Hazard Potential 2023, Soil Map Units, Farmland Classification, Cropland Data Layer 2025. Sole Source Aquifers and US Landslide Inventory are loaded but have 0 Sacramento features, so they read Not Found, as QA does for Umatilla.",
+   "Not Applicable = none: both California-only layers (Legal Delta Boundary, CARB Air Districts) have Sacramento features. The NA state is on Hermiston Solar (QA project 4 data).",
+   "Brief flavor mapped to QA layers: Flood Zones 13% AE -> FEMA Flood Hazard Zones class mix (the layer covers 100% because Zone X counts); Zoning 80% AG-80 and Plan 70% Agriculture -> class shares on 100%-covered layers; Protected Lands -> PAD-US 4.1; National Highway System -> Primary Roads; Fire Hazard Severity Zones -> dropped (Wildfire Hazard Potential is No Data); Past Fire Perimeters -> Interagency Fire Perimeter History; County Parcels -> project Parcels (4), not a layer.",
+   "Ring areas use QA's buffer geometry approximated as area + perimeter x d + pi x d^2 with a 3.2 mi perimeter."
+  ]
+ },
+ "statusRules": {
+  "order": [
+   "on_site",
+   "within_ring_1",
+   "within_ring_2",
+   "within_ring_3",
+   "not_found",
+   "no_data_for_county",
+   "not_applicable"
+  ],
+  "rule": "project4.layers[].project4.status values: on_site, within_ring_1 (0 to 1/4 mi), within_ring_2 (1/4 to 1 mi), within_ring_3 (1 to 5 mi), not_found, no_data_for_county, not_applicable. The app's internal state key is the first ring index with FeatureCount > 0, or 'none' / 'nodata' / 'na'. A layer's status is decided by FeatureCount per ring, not quantity. Ring quantities are per ring (donut), not cumulative.",
+  "noDataRule": "no_data_for_county when the layer has no completed load for the county; a loaded layer with 0 features in the rings is not_found.",
+  "notApplicableRule": "not_applicable when coveredStates excludes the project's state; finding \"Covers <states> only\".",
+  "cellFormat": "blank when featureCount = 0; >= 100 integer with commas; 10 to 100 one decimal; < 10 two decimals; trailing zeros trimmed; + \" ac\" / \" mi\"; points are a bare count.",
+  "distanceFormat": "<0.1 mi: 2 decimals, else 1 decimal, 0 = 'on the site'",
+  "onSiteFinding": "polygon: \"<qty>, <pct> of the site[, mostly <top on-site class>]\"; line: \"<qty> on the site[, mostly <class>]\"; \"mostly\" only when the layer has 2+ classes; first letter lowercased unless the class starts with a code. pct rounds to whole %, \"under 1%\" below 0.5%.",
+  "withinRingFinding": "Nearest is <d> from the boundary",
+  "notFoundFinding": "None within 5 mi",
+  "noDataFinding": "No data for this county yet",
+  "states": {
+   "on_site": {
+    "label": "On the site",
+    "shade": "pk0",
+    "finding": "<qty>, <pct> of the site[, mostly <top class>] (polygons) or <qty> on the site[, mostly <class>]",
+    "short": "<pct> of site | <qty>",
+    "pctUnder": "under 1%"
+   },
+   "within_ring": {
+    "label": "First found <band> out",
+    "chip": "First found <band>",
+    "shade": "pk<ring 1-4>",
+    "finding": "Nearest is <d> from the boundary",
+    "distanceFormat": "<0.1 mi: 2 decimals, else 1 decimal, 0 = 'on the site'"
+   },
+   "not_found": {
+    "label": "Not found within <max>",
+    "siteOnlyLabel": "Not on the site",
+    "caption": "Not found",
+    "shade": "pkn",
+    "finding": "None within <max>",
+    "short": "None"
+   },
+   "no_data_for_county": {
+    "chip": "No data yet",
+    "legend": "No data for this county yet",
+    "shade": "pkx",
+    "finding": "No data for this county yet",
+    "short": "No data"
+   },
+   "not_applicable": {
+    "chip": "Not applicable",
+    "legend": "Doesn't apply in this state",
+    "shade": "pkna",
+    "finding": "Covers <states> only (or: Doesn't cover this county)",
+    "short": "Not applicable"
+   }
+  }
+ },
+ "project": {
+  "ProjectID": 7,
+  "ProjectName": "Cottonwood",
+  "CountyID": 4,
+  "County": "Sacramento County, CA",
+  "ProjectTypeID": 4,
+  "ProjectType": "Data center",
+  "ProjectTypeDisplay": "Data Center",
+  "ProjectStageID": 1,
+  "ProjectStage": "Site screening",
+  "ProjectStageDisplay": "Site Screening",
+  "Description": "Two-phase data center campus, about 300 MW at build-out. The client wants a go or no-go before its purchase option expires on 2027-02-15. Interconnection would come from the 230 kV line that crosses the site.",
+  "Acres": 358.97,
+  "AreaLabel": "359.0 acres",
+  "AreaDefinitionMethodID": 2,
+  "AreaDefinitionMethod": "Parcel selection (QA enum name unconfirmed)",
+  "LatestScreeningRunID": 9,
+  "CreateDate": "2026-11-21T22:14:36.210Z",
+  "CreateUserFullName": "Andy Lovseth",
+  "UpdateDate": "2026-11-24T17:41:52.004Z",
+  "Parcels": [
+   {
+    "apn": "134-0120-012-0000",
+    "acres": 160.12,
+    "owner": "Private (agricultural)",
+    "situsAddress": "12850 Grant Line Rd"
+   },
+   {
+    "apn": "134-0120-018-0000",
+    "acres": 99.4,
+    "owner": "Private (agricultural)",
+    "situsAddress": null
+   },
+   {
+    "apn": "134-0130-004-0000",
+    "acres": 79.85,
+    "owner": "Private (agricultural)",
+    "situsAddress": "13200 Grant Line Rd"
+   },
+   {
+    "apn": "134-0130-009-0000",
+    "acres": 19.6,
+    "owner": "Private (rural residential)",
+    "situsAddress": "13350 Grant Line Rd"
+   }
+  ],
+  "countyLine": "Sacramento County, CA · 508,143 parcels loaded 11/18/2026",
+  "countyLocked": true,
+  "countyLockedNote": "The county is set by the area. Clear the area to change it.",
+  "locationDescription": "East of State Route 99 along Grant Line Road, between Elk Grove and Wilton (illustrative).",
+  "center": [
+   38.392,
+   -121.318
+  ]
+ },
+ "run": {
+  "screeningRunID": 9,
+  "status": "Complete",
+  "statusID": 3,
+  "createDate": "2026-11-24T17:42:07.318Z",
+  "startDate": "2026-11-24T17:42:31.502Z",
+  "completeDate": "2026-11-24T17:43:09.877Z",
+  "createdBy": "Andy Lovseth",
+  "failureMessage": null,
+  "isStale": false,
+  "runLabel": "Run Nov 24, 2026, 9:42 AM by Andy Lovseth",
+  "reportAcres": 359.02,
+  "countyDisplayName": "Sacramento County, CA",
+  "miles": [
+   0.25,
+   1,
+   5
+  ],
+  "facts": [
+   "359.0 acres",
+   "Sacramento County, CA",
+   "Data center",
+   "Screened out to 5 mi",
+   "25 layers checked"
+  ],
+  "factsDisplay": [
+   "359.0 acres",
+   "Sacramento County, CA",
+   "Data Center",
+   "Screened Out to 5 mi",
+   "25 Layers Checked"
+  ]
+ },
+ "runStates": {
+  "note": "Sample run objects for state design. Queued, Running and Failed copy is QA's (uiCopy.report). Per-theme progress and the failure message are design-only: QA exposes neither.",
+  "queued": {
+   "countyDisplayName": "Sacramento County, CA",
+   "reportAcres": 359.02,
+   "miles": [
+    0.25,
+    1,
+    5
+   ],
+   "screeningRunID": 10,
+   "status": "Queued",
+   "statusID": 1,
+   "createDate": "2026-11-24T19:12:44.120Z",
+   "startDate": null,
+   "completeDate": null,
+   "createdBy": "Andy Lovseth",
+   "failureMessage": null,
+   "isStale": false,
+   "uiText": "Waiting to start…",
+   "pollEverySeconds": 3
+  },
+  "running": {
+   "countyDisplayName": "Sacramento County, CA",
+   "reportAcres": 359.02,
+   "miles": [
+    0.25,
+    1,
+    5
+   ],
+   "screeningRunID": 10,
+   "status": "Running",
+   "statusID": 2,
+   "createDate": "2026-11-24T19:12:44.120Z",
+   "startDate": "2026-11-24T19:12:58.004Z",
+   "completeDate": null,
+   "createdBy": "Andy Lovseth",
+   "failureMessage": null,
+   "isStale": false,
+   "uiText": "Measuring every core dataset in each ring…",
+   "hint": "This usually takes under a minute. The page updates when the report is ready.",
+   "elapsedSeconds": 21,
+   "progress": {
+    "layersToMeasure": 25,
+    "layersMeasured": 18,
+    "ringsPerLayer": 4,
+    "skippedNoData": 4,
+    "skippedNotApplicable": 0,
+    "byTheme": [
+     {
+      "themeId": 6,
+      "name": "Infrastructure",
+      "state": "done",
+      "layersToMeasure": 4,
+      "layersMeasured": 4,
+      "skippedNoData": 0,
+      "skippedNotApplicable": 0
+     },
+     {
+      "themeId": 2,
+      "name": "Wetlands and Water",
+      "state": "done",
+      "layersToMeasure": 4,
+      "layersMeasured": 4,
+      "skippedNoData": 0,
+      "skippedNotApplicable": 0
+     },
+     {
+      "themeId": 1,
+      "name": "Land Use and Zoning",
+      "state": "done",
+      "layersToMeasure": 2,
+      "layersMeasured": 2,
+      "skippedNoData": 0,
+      "skippedNotApplicable": 0
+     },
+     {
+      "themeId": 3,
+      "name": "Natural Hazards",
+      "state": "done",
+      "layersToMeasure": 5,
+      "layersMeasured": 5,
+      "skippedNoData": 1,
+      "skippedNotApplicable": 0
+     },
+     {
+      "themeId": 4,
+      "name": "Biological Resources",
+      "state": "done",
+      "layersToMeasure": 2,
+      "layersMeasured": 2,
+      "skippedNoData": 0,
+      "skippedNotApplicable": 0
+     },
+     {
+      "themeId": 5,
+      "name": "Soils and Agriculture",
+      "state": "skipped",
+      "layersToMeasure": 0,
+      "layersMeasured": 0,
+      "skippedNoData": 3,
+      "skippedNotApplicable": 0
+     },
+     {
+      "themeId": 7,
+      "name": "Protected and Special Areas",
+      "state": "measuring",
+      "layersToMeasure": 2,
+      "layersMeasured": 1,
+      "skippedNoData": 0,
+      "skippedNotApplicable": 0
+     },
+     {
+      "themeId": 8,
+      "name": "Cultural Resources",
+      "state": "waiting",
+      "layersToMeasure": 1,
+      "layersMeasured": 0,
+      "skippedNoData": 0,
+      "skippedNotApplicable": 0
+     },
+     {
+      "themeId": 9,
+      "name": "Air Quality",
+      "state": "waiting",
+      "layersToMeasure": 2,
+      "layersMeasured": 0,
+      "skippedNoData": 0,
+      "skippedNotApplicable": 0
+     },
+     {
+      "themeId": 10,
+      "name": "Contamination",
+      "state": "waiting",
+      "layersToMeasure": 1,
+      "layersMeasured": 0,
+      "skippedNoData": 0,
+      "skippedNotApplicable": 0
+     },
+     {
+      "themeId": 11,
+      "name": "Community",
+      "state": "waiting",
+      "layersToMeasure": 2,
+      "layersMeasured": 0,
+      "skippedNoData": 0,
+      "skippedNotApplicable": 0
+     }
+    ]
+   }
+  },
+  "failed": {
+   "countyDisplayName": "Sacramento County, CA",
+   "reportAcres": 359.02,
+   "miles": [
+    0.25,
+    1,
+    5
+   ],
+   "screeningRunID": 10,
+   "status": "Failed",
+   "statusID": 4,
+   "createDate": "2026-11-24T19:12:44.120Z",
+   "startDate": "2026-11-24T19:12:58.004Z",
+   "completeDate": "2026-11-24T19:14:02.551Z",
+   "createdBy": "Andy Lovseth",
+   "isStale": false,
+   "uiText": "The report didn't finish.",
+   "failureMessage": "Timed out measuring NHDPlus HR Flowlines in the 1 to 5 mi ring. Nothing was saved from this run.",
+   "failureMessageNote": "Illustrative. QA shows Run.FailureMessage verbatim and has no observed example.",
+   "previousCompleteRunID": 9
+  },
+  "stale": {
+   "screeningRunID": 9,
+   "status": "Complete",
+   "isStale": true,
+   "runLabel": "Run Nov 24, 2026, 9:42 AM by Andy Lovseth",
+   "areaEditedAt": "2026-11-24T19:05:13.640Z",
+   "areaEditedBy": "Andy Lovseth",
+   "change": "Parcel 134-0130-009-0000 (19.6 ac) removed from the area; area is now 339.4 acres.",
+   "currentAcres": 339.37,
+   "banner": "The project area has changed since this report ran.",
+   "hint": "These results describe the earlier area. Run the report again to measure the current one."
+  }
+ },
+ "rings": [
+  {
+   "ringIndex": 0,
+   "name": "Project area",
+   "bandLabel": "On the site",
+   "displayLabel": "On the Site",
+   "fromMiles": 0,
+   "toMiles": 0,
+   "uniqueAreaSqMi": 0.561,
+   "uniqueAcres": 359.02,
+   "areaLabel": "359 ac"
+  },
+  {
+   "ringIndex": 1,
+   "name": "0 to 0.25 mi",
+   "bandLabel": "0 to ¼ mi",
+   "displayLabel": "0 to ¼ mi",
+   "fromMiles": 0,
+   "toMiles": 0.25,
+   "uniqueAreaSqMi": 0.9963,
+   "uniqueAcres": 637.66,
+   "areaLabel": "1.00 sq mi"
+  },
+  {
+   "ringIndex": 2,
+   "name": "0.25 to 1 mi",
+   "bandLabel": "¼ to 1 mi",
+   "displayLabel": "¼ to 1 mi",
+   "fromMiles": 0.25,
+   "toMiles": 1,
+   "uniqueAreaSqMi": 5.3452,
+   "uniqueAcres": 3420.96,
+   "areaLabel": "5.35 sq mi"
+  },
+  {
+   "ringIndex": 3,
+   "name": "1 to 5 mi",
+   "bandLabel": "1 to 5 mi",
+   "displayLabel": "1 to 5 mi",
+   "fromMiles": 1,
+   "toMiles": 5,
+   "uniqueAreaSqMi": 88.1982,
+   "uniqueAcres": 56446.86,
+   "areaLabel": "88.20 sq mi"
+  }
+ ],
+ "ringTotal": {
+  "name": "Total within 5 mi",
+  "displayLabel": "Total Within 5 mi",
+  "cumulativeAreaSqMi": 95.1008,
+  "areaLabel": "95.10 sq mi"
+ },
+ "proximitySelection": {
+  "presetActive": "Regional",
+  "miles": [
+   0.25,
+   1,
+   5
+  ]
+ },
+ "themes": [
+  {
+   "id": 1,
+   "qaName": "Land use and zoning",
+   "name": "Land Use and Zoning",
+   "layers": [
+    {
+     "id": 1,
+     "name": "Zoning",
+     "status": "on_site",
+     "shade": "pk0",
+     "short": "100% of site"
+    },
+    {
+     "id": 2,
+     "name": "General Plan Land Use",
+     "status": "on_site",
+     "shade": "pk0",
+     "short": "100% of site"
+    }
+   ],
+   "layerCount": 2,
+   "screenedCount": 2,
+   "onSiteCount": 2,
+   "summaryLine": "2 of 2 on the site",
+   "topFigures": [
+    {
+     "layerId": 1,
+     "name": "Zoning",
+     "short": "100% of site",
+     "status": "on_site"
+    },
+    {
+     "layerId": 2,
+     "name": "General Plan Land Use",
+     "short": "100% of site",
+     "status": "on_site"
+    }
+   ],
+   "statusCounts": {
+    "on_site": 2,
+    "within_ring_1": 0,
+    "within_ring_2": 0,
+    "within_ring_3": 0,
+    "not_found": 0,
+    "no_data_for_county": 0,
+    "not_applicable": 0
+   }
+  },
+  {
+   "id": 2,
+   "qaName": "Wetlands and water",
+   "name": "Wetlands and Water",
+   "layers": [
+    {
+     "id": 10,
+     "name": "National Wetlands Inventory",
+     "status": "on_site",
+     "shade": "pk0",
+     "short": "4% of site"
+    },
+    {
+     "id": 11,
+     "name": "NHDPlus HR Flowlines",
+     "status": "on_site",
+     "shade": "pk0",
+     "short": "1.6 mi"
+    },
+    {
+     "id": 12,
+     "name": "Wild and Scenic Rivers",
+     "status": "not_found",
+     "shade": "pkn",
+     "short": "None"
+    },
+    {
+     "id": 13,
+     "name": "Sole Source Aquifers",
+     "status": "not_found",
+     "shade": "pkn",
+     "short": "None"
+    }
+   ],
+   "layerCount": 4,
+   "screenedCount": 4,
+   "onSiteCount": 2,
+   "summaryLine": "2 of 4 on the site",
+   "topFigures": [
+    {
+     "layerId": 10,
+     "name": "National Wetlands Inventory",
+     "short": "4% of site",
+     "status": "on_site"
+    },
+    {
+     "layerId": 11,
+     "name": "NHDPlus HR Flowlines",
+     "short": "1.6 mi",
+     "status": "on_site"
+    },
+    {
+     "layerId": 12,
+     "name": "Wild and Scenic Rivers",
+     "short": "None",
+     "status": "not_found"
+    }
+   ],
+   "statusCounts": {
+    "on_site": 2,
+    "within_ring_1": 0,
+    "within_ring_2": 0,
+    "within_ring_3": 0,
+    "not_found": 2,
+    "no_data_for_county": 0,
+    "not_applicable": 0
+   }
+  },
+  {
+   "id": 3,
+   "qaName": "Natural hazards",
+   "name": "Natural Hazards",
+   "layers": [
+    {
+     "id": 20,
+     "name": "FEMA Flood Hazard Zones",
+     "status": "on_site",
+     "shade": "pk0",
+     "short": "100% of site"
+    },
+    {
+     "id": 21,
+     "name": "Quaternary Faults and Folds",
+     "status": "not_found",
+     "shade": "pkn",
+     "short": "None"
+    },
+    {
+     "id": 22,
+     "name": "US Landslide Inventory",
+     "status": "not_found",
+     "shade": "pkn",
+     "short": "None"
+    },
+    {
+     "id": 23,
+     "name": "2023 National Seismic Hazard Model (MMI)",
+     "status": "on_site",
+     "shade": "pk0",
+     "short": "100% of site"
+    },
+    {
+     "id": 24,
+     "name": "Wildfire Hazard Potential 2023",
+     "status": "no_data_for_county",
+     "shade": "pkx",
+     "short": "No data"
+    },
+    {
+     "id": 25,
+     "name": "Interagency Fire Perimeter History",
+     "status": "within_ring_2",
+     "shade": "pk2",
+     "short": "0.6 mi"
+    }
+   ],
+   "layerCount": 6,
+   "screenedCount": 5,
+   "onSiteCount": 2,
+   "summaryLine": "2 of 5 on the site",
+   "topFigures": [
+    {
+     "layerId": 20,
+     "name": "FEMA Flood Hazard Zones",
+     "short": "100% of site",
+     "status": "on_site"
+    },
+    {
+     "layerId": 23,
+     "name": "2023 National Seismic Hazard Model (MMI)",
+     "short": "100% of site",
+     "status": "on_site"
+    },
+    {
+     "layerId": 25,
+     "name": "Interagency Fire Perimeter History",
+     "short": "0.6 mi",
+     "status": "within_ring_2"
+    }
+   ],
+   "statusCounts": {
+    "on_site": 2,
+    "within_ring_1": 0,
+    "within_ring_2": 1,
+    "within_ring_3": 0,
+    "not_found": 2,
+    "no_data_for_county": 1,
+    "not_applicable": 0
+   }
+  },
+  {
+   "id": 4,
+   "qaName": "Biological resources",
+   "name": "Biological Resources",
+   "layers": [
+    {
+     "id": 30,
+     "name": "Critical Habitat (Final)",
+     "status": "within_ring_2",
+     "shade": "pk2",
+     "short": "0.9 mi"
+    },
+    {
+     "id": 31,
+     "name": "ESA Listed Species Current Range",
+     "status": "on_site",
+     "shade": "pk0",
+     "short": "100% of site"
+    }
+   ],
+   "layerCount": 2,
+   "screenedCount": 2,
+   "onSiteCount": 1,
+   "summaryLine": "1 of 2 on the site",
+   "topFigures": [
+    {
+     "layerId": 31,
+     "name": "ESA Listed Species Current Range",
+     "short": "100% of site",
+     "status": "on_site"
+    },
+    {
+     "layerId": 30,
+     "name": "Critical Habitat (Final)",
+     "short": "0.9 mi",
+     "status": "within_ring_2"
+    }
+   ],
+   "statusCounts": {
+    "on_site": 1,
+    "within_ring_1": 0,
+    "within_ring_2": 1,
+    "within_ring_3": 0,
+    "not_found": 0,
+    "no_data_for_county": 0,
+    "not_applicable": 0
+   }
+  },
+  {
+   "id": 5,
+   "qaName": "Soils and agriculture",
+   "name": "Soils and Agriculture",
+   "layers": [
+    {
+     "id": 40,
+     "name": "Soil Map Units",
+     "status": "no_data_for_county",
+     "shade": "pkx",
+     "short": "No data"
+    },
+    {
+     "id": 41,
+     "name": "Farmland Classification",
+     "status": "no_data_for_county",
+     "shade": "pkx",
+     "short": "No data"
+    },
+    {
+     "id": 42,
+     "name": "Cropland Data Layer 2025",
+     "status": "no_data_for_county",
+     "shade": "pkx",
+     "short": "No data"
+    }
+   ],
+   "layerCount": 3,
+   "screenedCount": 0,
+   "onSiteCount": 0,
+   "summaryLine": "None of this theme's layers have data for this county yet.",
+   "topFigures": [],
+   "statusCounts": {
+    "on_site": 0,
+    "within_ring_1": 0,
+    "within_ring_2": 0,
+    "within_ring_3": 0,
+    "not_found": 0,
+    "no_data_for_county": 3,
+    "not_applicable": 0
+   }
+  },
+  {
+   "id": 6,
+   "qaName": "Infrastructure",
+   "name": "Infrastructure",
+   "layers": [
+    {
+     "id": 50,
+     "name": "Primary Roads",
+     "status": "within_ring_2",
+     "shade": "pk2",
+     "short": "0.3 mi"
+    },
+    {
+     "id": 51,
+     "name": "North American Rail Network",
+     "status": "within_ring_2",
+     "shade": "pk2",
+     "short": "0.9 mi"
+    },
+    {
+     "id": 52,
+     "name": "FAA Airports",
+     "status": "within_ring_3",
+     "shade": "pk3",
+     "short": "4.3 mi"
+    },
+    {
+     "id": 53,
+     "name": "Electric Power Transmission Lines",
+     "status": "on_site",
+     "shade": "pk0",
+     "short": "0.3 mi"
+    }
+   ],
+   "layerCount": 4,
+   "screenedCount": 4,
+   "onSiteCount": 1,
+   "summaryLine": "1 of 4 on the site",
+   "topFigures": [
+    {
+     "layerId": 53,
+     "name": "Electric Power Transmission Lines",
+     "short": "0.3 mi",
+     "status": "on_site"
+    },
+    {
+     "layerId": 50,
+     "name": "Primary Roads",
+     "short": "0.3 mi",
+     "status": "within_ring_2"
+    },
+    {
+     "layerId": 51,
+     "name": "North American Rail Network",
+     "short": "0.9 mi",
+     "status": "within_ring_2"
+    }
+   ],
+   "statusCounts": {
+    "on_site": 1,
+    "within_ring_1": 0,
+    "within_ring_2": 2,
+    "within_ring_3": 1,
+    "not_found": 0,
+    "no_data_for_county": 0,
+    "not_applicable": 0
+   }
+  },
+  {
+   "id": 7,
+   "qaName": "Protected and special areas",
+   "name": "Protected and Special Areas",
+   "layers": [
+    {
+     "id": 14,
+     "name": "Legal Delta Boundary",
+     "status": "within_ring_3",
+     "shade": "pk3",
+     "short": "3.8 mi"
+    },
+    {
+     "id": 60,
+     "name": "PAD-US 4.1",
+     "status": "within_ring_1",
+     "shade": "pk1",
+     "short": "0.2 mi"
+    }
+   ],
+   "layerCount": 2,
+   "screenedCount": 2,
+   "onSiteCount": 0,
+   "summaryLine": "0 of 2 on the site",
+   "topFigures": [
+    {
+     "layerId": 60,
+     "name": "PAD-US 4.1",
+     "short": "0.2 mi",
+     "status": "within_ring_1"
+    },
+    {
+     "layerId": 14,
+     "name": "Legal Delta Boundary",
+     "short": "3.8 mi",
+     "status": "within_ring_3"
+    }
+   ],
+   "statusCounts": {
+    "on_site": 0,
+    "within_ring_1": 1,
+    "within_ring_2": 0,
+    "within_ring_3": 1,
+    "not_found": 0,
+    "no_data_for_county": 0,
+    "not_applicable": 0
+   }
+  },
+  {
+   "id": 8,
+   "qaName": "Cultural resources",
+   "name": "Cultural Resources",
+   "layers": [
+    {
+     "id": 70,
+     "name": "National Register of Historic Places",
+     "status": "within_ring_2",
+     "shade": "pk2",
+     "short": "0.8 mi"
+    }
+   ],
+   "layerCount": 1,
+   "screenedCount": 1,
+   "onSiteCount": 0,
+   "summaryLine": "0 of 1 on the site",
+   "topFigures": [
+    {
+     "layerId": 70,
+     "name": "National Register of Historic Places",
+     "short": "0.8 mi",
+     "status": "within_ring_2"
+    }
+   ],
+   "statusCounts": {
+    "on_site": 0,
+    "within_ring_1": 0,
+    "within_ring_2": 1,
+    "within_ring_3": 0,
+    "not_found": 0,
+    "no_data_for_county": 0,
+    "not_applicable": 0
+   }
+  },
+  {
+   "id": 9,
+   "qaName": "Air quality",
+   "name": "Air Quality",
+   "layers": [
+    {
+     "id": 80,
+     "name": "Ozone 8-Hour (2015) Nonattainment Areas",
+     "status": "on_site",
+     "shade": "pk0",
+     "short": "100% of site"
+    },
+    {
+     "id": 81,
+     "name": "CARB Air Districts",
+     "status": "on_site",
+     "shade": "pk0",
+     "short": "100% of site"
+    }
+   ],
+   "layerCount": 2,
+   "screenedCount": 2,
+   "onSiteCount": 2,
+   "summaryLine": "2 of 2 on the site",
+   "topFigures": [
+    {
+     "layerId": 80,
+     "name": "Ozone 8-Hour (2015) Nonattainment Areas",
+     "short": "100% of site",
+     "status": "on_site"
+    },
+    {
+     "layerId": 81,
+     "name": "CARB Air Districts",
+     "short": "100% of site",
+     "status": "on_site"
+    }
+   ],
+   "statusCounts": {
+    "on_site": 2,
+    "within_ring_1": 0,
+    "within_ring_2": 0,
+    "within_ring_3": 0,
+    "not_found": 0,
+    "no_data_for_county": 0,
+    "not_applicable": 0
+   }
+  },
+  {
+   "id": 10,
+   "qaName": "Contamination",
+   "name": "Contamination",
+   "layers": [
+    {
+     "id": 90,
+     "name": "Superfund NPL Site Boundaries",
+     "status": "not_found",
+     "shade": "pkn",
+     "short": "None"
+    }
+   ],
+   "layerCount": 1,
+   "screenedCount": 1,
+   "onSiteCount": 0,
+   "summaryLine": "0 of 1 on the site",
+   "topFigures": [
+    {
+     "layerId": 90,
+     "name": "Superfund NPL Site Boundaries",
+     "short": "None",
+     "status": "not_found"
+    }
+   ],
+   "statusCounts": {
+    "on_site": 0,
+    "within_ring_1": 0,
+    "within_ring_2": 0,
+    "within_ring_3": 0,
+    "not_found": 1,
+    "no_data_for_county": 0,
+    "not_applicable": 0
+   }
+  },
+  {
+   "id": 11,
+   "qaName": "Community",
+   "name": "Community",
+   "layers": [
+    {
+     "id": 100,
+     "name": "Census Tracts",
+     "status": "on_site",
+     "shade": "pk0",
+     "short": "100% of site"
+    },
+    {
+     "id": 101,
+     "name": "Social Vulnerability Index 2022",
+     "status": "on_site",
+     "shade": "pk0",
+     "short": "100% of site"
+    }
+   ],
+   "layerCount": 2,
+   "screenedCount": 2,
+   "onSiteCount": 2,
+   "summaryLine": "2 of 2 on the site",
+   "topFigures": [
+    {
+     "layerId": 100,
+     "name": "Census Tracts",
+     "short": "100% of site",
+     "status": "on_site"
+    },
+    {
+     "layerId": 101,
+     "name": "Social Vulnerability Index 2022",
+     "short": "100% of site",
+     "status": "on_site"
+    }
+   ],
+   "statusCounts": {
+    "on_site": 2,
+    "within_ring_1": 0,
+    "within_ring_2": 0,
+    "within_ring_3": 0,
+    "not_found": 0,
+    "no_data_for_county": 0,
+    "not_applicable": 0
+   }
+  }
+ ],
+ "themeOrder": {
+  "projectType": "Data Center",
+  "listedFirst": [
+   "Infrastructure",
+   "Wetlands and Water",
+   "Land Use and Zoning"
+  ],
+  "themeIds": [
+   6,
+   2,
+   1,
+   3,
+   4,
+   5,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "names": [
+   "Infrastructure",
+   "Wetlands and Water",
+   "Land Use and Zoning",
+   "Natural Hazards",
+   "Biological Resources",
+   "Soils and Agriculture",
+   "Protected and Special Areas",
+   "Cultural Resources",
+   "Air Quality",
+   "Contamination",
+   "Community"
+  ],
+  "note": "QA lists themes in id order 1 to 11 and names three \"Listed first\" per project type; this order puts those three first, then QA order."
+ },
+ "layers": [
+  {
+   "id": 1,
+   "themeId": 1,
+   "reportOrder": 0,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "County and city planning departments",
+   "loadedDate": "2026-11-19T22:41:09.357Z",
+   "updateFrequency": null,
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "County and city planning departments · loaded Nov 19, 2026",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "Zoning",
+   "name": "Zoning",
+   "qaTheme": "Land use and zoning",
+   "theme": "Land Use and Zoning",
+   "featuresLoadedInCounty": 44814,
+   "result": {
+    "status": "on_site",
+    "stateKey": "0",
+    "shade": "pk0",
+    "statusLabel": "On the site",
+    "chip": "On the Site",
+    "finding": "359 ac, 100% of the site, mostly AG-80, Agricultural (80-acre minimum)",
+    "short": "100% of site",
+    "tooltip": "Zoning: 359 ac, 100% of the site, mostly AG-80, Agricultural (80-acre minimum)",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 0,
+    "nearestLabel": "on the site",
+    "onSiteShare": 1.0,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 359.02,
+      "featureCount": 6,
+      "cell": "359 ac"
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 618.57,
+      "featureCount": 13,
+      "cell": "619 ac"
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 3292.4,
+      "featureCount": 39,
+      "cell": "3,292 ac"
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 55291,
+      "featureCount": 860,
+      "cell": "55,291 ac"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "AG-80, Agricultural (80-acre minimum)",
+      "byRing": [
+       {
+        "quantity": 287.2,
+        "featureCount": 3,
+        "cell": "287 ac"
+       },
+       {
+        "quantity": 410.1,
+        "featureCount": 5,
+        "cell": "410 ac"
+       },
+       {
+        "quantity": 1722.4,
+        "featureCount": 9,
+        "cell": "1,722 ac"
+       },
+       {
+        "quantity": 11600,
+        "featureCount": 38,
+        "cell": "11,600 ac"
+       }
+      ]
+     },
+     {
+      "className": "AR-10, Agricultural-Residential (10-acre minimum)",
+      "byRing": [
+       {
+        "quantity": 71.82,
+        "featureCount": 3,
+        "cell": "71.8 ac"
+       },
+       {
+        "quantity": 160.35,
+        "featureCount": 6,
+        "cell": "160 ac"
+       },
+       {
+        "quantity": 612.8,
+        "featureCount": 14,
+        "cell": "613 ac"
+       },
+       {
+        "quantity": 6120,
+        "featureCount": 92,
+        "cell": "6,120 ac"
+       }
+      ]
+     },
+     {
+      "className": "AR-5, Agricultural-Residential (5-acre minimum)",
+      "byRing": [
+       null,
+       {
+        "quantity": 48.12,
+        "featureCount": 2,
+        "cell": "48.1 ac"
+       },
+       {
+        "quantity": 418.6,
+        "featureCount": 8,
+        "cell": "419 ac"
+       },
+       {
+        "quantity": 5480,
+        "featureCount": 110,
+        "cell": "5,480 ac"
+       }
+      ]
+     },
+     {
+      "className": "AG-40, Agricultural (40-acre minimum)",
+      "byRing": [
+       null,
+       null,
+       {
+        "quantity": 241.7,
+        "featureCount": 2,
+        "cell": "242 ac"
+       },
+       {
+        "quantity": 4630,
+        "featureCount": 21,
+        "cell": "4,630 ac"
+       }
+      ]
+     },
+     {
+      "className": "AR-2, Agricultural-Residential (2-acre minimum)",
+      "byRing": [
+       null,
+       null,
+       {
+        "quantity": 188.3,
+        "featureCount": 4,
+        "cell": "188 ac"
+       },
+       {
+        "quantity": 3920,
+        "featureCount": 96,
+        "cell": "3,920 ac"
+       }
+      ]
+     },
+     {
+      "className": "M-1, Light Industrial",
+      "byRing": [
+       null,
+       null,
+       {
+        "quantity": 86.2,
+        "featureCount": 1,
+        "cell": "86.2 ac"
+       },
+       {
+        "quantity": 960,
+        "featureCount": 18,
+        "cell": "960 ac"
+       }
+      ]
+     },
+     {
+      "className": "O, Open Space",
+      "byRing": [
+       null,
+       null,
+       {
+        "quantity": 22.4,
+        "featureCount": 1,
+        "cell": "22.4 ac"
+       },
+       {
+        "quantity": 1720,
+        "featureCount": 31,
+        "cell": "1,720 ac"
+       }
+      ]
+     },
+     {
+      "className": "RD-5, Residential (5 units/ac)",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 6840,
+        "featureCount": 148,
+        "cell": "6,840 ac"
+       }
+      ]
+     },
+     {
+      "className": "SPA, Special Planning Area",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 2380,
+        "featureCount": 6,
+        "cell": "2,380 ac"
+       }
+      ]
+     },
+     {
+      "className": "RD-4, Residential (4 units/ac)",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 2310,
+        "featureCount": 61,
+        "cell": "2,310 ac"
+       }
+      ]
+     },
+     {
+      "className": "AG-20, Agricultural (20-acre minimum)",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 2210,
+        "featureCount": 14,
+        "cell": "2,210 ac"
+       }
+      ]
+     },
+     {
+      "className": "IR, Industrial Reserve",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 1480,
+        "featureCount": 4,
+        "cell": "1,480 ac"
+       }
+      ]
+     },
+     {
+      "className": "RD-7, Residential (7 units/ac)",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 1260,
+        "featureCount": 44,
+        "cell": "1,260 ac"
+       }
+      ]
+     },
+     {
+      "className": "RD-10, Residential (10 units/ac)",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 1190,
+        "featureCount": 37,
+        "cell": "1,190 ac"
+       }
+      ]
+     },
+     {
+      "className": "AR-1, Agricultural-Residential (1-acre minimum)",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 690,
+        "featureCount": 41,
+        "cell": "690 ac"
+       }
+      ]
+     },
+     {
+      "className": "M-2, Heavy Industrial",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 610,
+        "featureCount": 9,
+        "cell": "610 ac"
+       }
+      ]
+     },
+     {
+      "className": "PD, Planned Development",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 540,
+        "featureCount": 8,
+        "cell": "540 ac"
+       }
+      ]
+     },
+     {
+      "className": "RD-20, Residential (20 units/ac)",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 420,
+        "featureCount": 22,
+        "cell": "420 ac"
+       }
+      ]
+     },
+     {
+      "className": "BP, Business and Professional",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 380,
+        "featureCount": 12,
+        "cell": "380 ac"
+       }
+      ]
+     },
+     {
+      "className": "GC, General Commercial",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 310,
+        "featureCount": 26,
+        "cell": "310 ac"
+       }
+      ]
+     },
+     {
+      "className": "LC, Limited Commercial",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 145,
+        "featureCount": 17,
+        "cell": "145 ac"
+       }
+      ]
+     },
+     {
+      "className": "SC, Shopping Center",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 96,
+        "featureCount": 5,
+        "cell": "96 ac"
+       }
+      ]
+     }
+    ],
+    "composition": {
+     "rows": [
+      {
+       "label": "Site",
+       "classes": [
+        {
+         "className": "AG-80, Agricultural (80-acre minimum)",
+         "pct": 80.0,
+         "quantity": "287 ac"
+        },
+        {
+         "className": "AR-10, Agricultural-Residential (10-acre minimum)",
+         "pct": 20.0,
+         "quantity": "71.8 ac"
+        }
+       ]
+      },
+      {
+       "label": "Within 5 mi",
+       "classes": [
+        {
+         "className": "AG-80, Agricultural (80-acre minimum)",
+         "pct": 23.5,
+         "quantity": "14,020 ac"
+        },
+        {
+         "className": "AR-10, Agricultural-Residential (10-acre minimum)",
+         "pct": 11.7,
+         "quantity": "6,965 ac"
+        },
+        {
+         "className": "RD-5, Residential (5 units/ac)",
+         "pct": 11.5,
+         "quantity": "6,840 ac"
+        },
+        {
+         "className": "AR-5, Agricultural-Residential (5-acre minimum)",
+         "pct": 10.0,
+         "quantity": "5,947 ac"
+        },
+        {
+         "className": "AG-40, Agricultural (40-acre minimum)",
+         "pct": 8.2,
+         "quantity": "4,872 ac"
+        },
+        {
+         "className": "AR-2, Agricultural-Residential (2-acre minimum)",
+         "pct": 6.9,
+         "quantity": "4,108 ac"
+        },
+        {
+         "className": "SPA, Special Planning Area",
+         "pct": 4.0,
+         "quantity": "2,380 ac"
+        },
+        {
+         "className": "RD-4, Residential (4 units/ac)",
+         "pct": 3.9,
+         "quantity": "2,310 ac"
+        },
+        {
+         "className": "AG-20, Agricultural (20-acre minimum)",
+         "pct": 3.7,
+         "quantity": "2,210 ac"
+        },
+        {
+         "className": "O, Open Space",
+         "pct": 2.9,
+         "quantity": "1,742 ac"
+        },
+        {
+         "className": "IR, Industrial Reserve",
+         "pct": 2.5,
+         "quantity": "1,480 ac"
+        },
+        {
+         "className": "RD-7, Residential (7 units/ac)",
+         "pct": 2.1,
+         "quantity": "1,260 ac"
+        },
+        {
+         "className": "RD-10, Residential (10 units/ac)",
+         "pct": 2.0,
+         "quantity": "1,190 ac"
+        },
+        {
+         "className": "M-1, Light Industrial",
+         "pct": 1.8,
+         "quantity": "1,046 ac"
+        },
+        {
+         "className": "AR-1, Agricultural-Residential (1-acre minimum)",
+         "pct": 1.2,
+         "quantity": "690 ac"
+        },
+        {
+         "className": "M-2, Heavy Industrial",
+         "pct": 1.0,
+         "quantity": "610 ac"
+        },
+        {
+         "className": "PD, Planned Development",
+         "pct": 0.9,
+         "quantity": "540 ac"
+        },
+        {
+         "className": "RD-20, Residential (20 units/ac)",
+         "pct": 0.7,
+         "quantity": "420 ac"
+        },
+        {
+         "className": "BP, Business and Professional",
+         "pct": 0.6,
+         "quantity": "380 ac"
+        },
+        {
+         "className": "GC, General Commercial",
+         "pct": 0.5,
+         "quantity": "310 ac"
+        },
+        {
+         "className": "LC, Limited Commercial",
+         "pct": 0.2,
+         "quantity": "145 ac"
+        },
+        {
+         "className": "SC, Shopping Center",
+         "pct": 0.2,
+         "quantity": "96 ac"
+        }
+       ]
+      }
+     ],
+     "legendShown": 8,
+     "legendMore": 14,
+     "legendMoreText": "+ 14 more in the table",
+     "note": null
+    },
+    "nearbyFeatures": [],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 918,
+     "namedFeatureCount": 0,
+     "names": []
+    }
+   }
+  },
+  {
+   "id": 2,
+   "themeId": 1,
+   "reportOrder": 1,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "County and city planning departments",
+   "loadedDate": "2026-11-19T22:47:43.97Z",
+   "updateFrequency": null,
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "County and city planning departments · loaded Nov 19, 2026",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "General plan land use",
+   "name": "General Plan Land Use",
+   "qaTheme": "Land use and zoning",
+   "theme": "Land Use and Zoning",
+   "featuresLoadedInCounty": 157269,
+   "result": {
+    "status": "on_site",
+    "stateKey": "0",
+    "shade": "pk0",
+    "statusLabel": "On the site",
+    "chip": "On the Site",
+    "finding": "359 ac, 100% of the site, mostly agricultural Cropland",
+    "short": "100% of site",
+    "tooltip": "General Plan Land Use: 359 ac, 100% of the site, mostly agricultural Cropland",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 0,
+    "nearestLabel": "on the site",
+    "onSiteShare": 1.0,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 359.02,
+      "featureCount": 3,
+      "cell": "359 ac"
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 637.66,
+      "featureCount": 5,
+      "cell": "638 ac"
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 3420.5,
+      "featureCount": 14,
+      "cell": "3,420 ac"
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 56370,
+      "featureCount": 228,
+      "cell": "56,370 ac"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "Agricultural Cropland",
+      "byRing": [
+       {
+        "quantity": 251.31,
+        "featureCount": 1,
+        "cell": "251 ac"
+       },
+       {
+        "quantity": 402.6,
+        "featureCount": 2,
+        "cell": "403 ac"
+       },
+       {
+        "quantity": 1810.5,
+        "featureCount": 4,
+        "cell": "1,810 ac"
+       },
+       {
+        "quantity": 14300,
+        "featureCount": 18,
+        "cell": "14,300 ac"
+       }
+      ]
+     },
+     {
+      "className": "Agricultural-Residential",
+      "byRing": [
+       {
+        "quantity": 64.62,
+        "featureCount": 1,
+        "cell": "64.6 ac"
+       },
+       {
+        "quantity": 172.4,
+        "featureCount": 2,
+        "cell": "172 ac"
+       },
+       {
+        "quantity": 1120.3,
+        "featureCount": 6,
+        "cell": "1,120 ac"
+       },
+       {
+        "quantity": 13980,
+        "featureCount": 40,
+        "cell": "13,980 ac"
+       }
+      ]
+     },
+     {
+      "className": "Resource Conservation Area",
+      "byRing": [
+       {
+        "quantity": 43.09,
+        "featureCount": 1,
+        "cell": "43.1 ac"
+       },
+       {
+        "quantity": 62.66,
+        "featureCount": 1,
+        "cell": "62.7 ac"
+       },
+       {
+        "quantity": 214.6,
+        "featureCount": 2,
+        "cell": "215 ac"
+       },
+       {
+        "quantity": 2150,
+        "featureCount": 9,
+        "cell": "2,150 ac"
+       }
+      ]
+     },
+     {
+      "className": "General Agriculture (80 ac)",
+      "byRing": [
+       null,
+       null,
+       {
+        "quantity": 180.0,
+        "featureCount": 1,
+        "cell": "180 ac"
+       },
+       {
+        "quantity": 5620,
+        "featureCount": 7,
+        "cell": "5,620 ac"
+       }
+      ]
+     },
+     {
+      "className": "Industrial Intensive",
+      "byRing": [
+       null,
+       null,
+       {
+        "quantity": 95.1,
+        "featureCount": 1,
+        "cell": "95.1 ac"
+       },
+       {
+        "quantity": 1420,
+        "featureCount": 6,
+        "cell": "1,420 ac"
+       }
+      ]
+     },
+     {
+      "className": "Low Density Residential",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 9850,
+        "featureCount": 46,
+        "cell": "9,850 ac"
+       }
+      ]
+     },
+     {
+      "className": "Urban Development Area",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 2400,
+        "featureCount": 3,
+        "cell": "2,400 ac"
+       }
+      ]
+     },
+     {
+      "className": "Recreation",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 1890,
+        "featureCount": 19,
+        "cell": "1,890 ac"
+       }
+      ]
+     },
+     {
+      "className": "Medium Density Residential",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 1640,
+        "featureCount": 21,
+        "cell": "1,640 ac"
+       }
+      ]
+     },
+     {
+      "className": "Public/Quasi-Public",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 1260,
+        "featureCount": 24,
+        "cell": "1,260 ac"
+       }
+      ]
+     },
+     {
+      "className": "Commercial and Office",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 980,
+        "featureCount": 33,
+        "cell": "980 ac"
+       }
+      ]
+     },
+     {
+      "className": "Natural Preserve",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 880,
+        "featureCount": 2,
+        "cell": "880 ac"
+       }
+      ]
+     }
+    ],
+    "composition": {
+     "rows": [
+      {
+       "label": "Site",
+       "classes": [
+        {
+         "className": "Agricultural Cropland",
+         "pct": 70.0,
+         "quantity": "251 ac"
+        },
+        {
+         "className": "Agricultural-Residential",
+         "pct": 18.0,
+         "quantity": "64.6 ac"
+        },
+        {
+         "className": "Resource Conservation Area",
+         "pct": 12.0,
+         "quantity": "43.1 ac"
+        }
+       ]
+      },
+      {
+       "label": "Within 5 mi",
+       "classes": [
+        {
+         "className": "Agricultural Cropland",
+         "pct": 27.6,
+         "quantity": "16,764 ac"
+        },
+        {
+         "className": "Agricultural-Residential",
+         "pct": 25.2,
+         "quantity": "15,337 ac"
+        },
+        {
+         "className": "Low Density Residential",
+         "pct": 16.2,
+         "quantity": "9,850 ac"
+        },
+        {
+         "className": "General Agriculture (80 ac)",
+         "pct": 9.5,
+         "quantity": "5,800 ac"
+        },
+        {
+         "className": "Resource Conservation Area",
+         "pct": 4.1,
+         "quantity": "2,470 ac"
+        },
+        {
+         "className": "Urban Development Area",
+         "pct": 3.9,
+         "quantity": "2,400 ac"
+        },
+        {
+         "className": "Recreation",
+         "pct": 3.1,
+         "quantity": "1,890 ac"
+        },
+        {
+         "className": "Medium Density Residential",
+         "pct": 2.7,
+         "quantity": "1,640 ac"
+        },
+        {
+         "className": "Industrial Intensive",
+         "pct": 2.5,
+         "quantity": "1,515 ac"
+        },
+        {
+         "className": "Public/Quasi-Public",
+         "pct": 2.1,
+         "quantity": "1,260 ac"
+        },
+        {
+         "className": "Commercial and Office",
+         "pct": 1.6,
+         "quantity": "980 ac"
+        },
+        {
+         "className": "Natural Preserve",
+         "pct": 1.4,
+         "quantity": "880 ac"
+        }
+       ]
+      }
+     ],
+     "legendShown": 8,
+     "legendMore": 4,
+     "legendMoreText": "+ 4 more in the table",
+     "note": null
+    },
+    "nearbyFeatures": [],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 250,
+     "namedFeatureCount": 0,
+     "names": []
+    }
+   }
+  },
+  {
+   "id": 10,
+   "themeId": 2,
+   "reportOrder": 2,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "U.S. Fish and Wildlife Service",
+   "loadedDate": "2026-11-20T18:30:16.687Z",
+   "updateFrequency": "Continuous",
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "U.S. Fish and Wildlife Service · loaded Nov 20, 2026 · updated continuous",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "National Wetlands Inventory",
+   "name": "National Wetlands Inventory",
+   "qaTheme": "Wetlands and water",
+   "theme": "Wetlands and Water",
+   "featuresLoadedInCounty": 37031,
+   "result": {
+    "status": "on_site",
+    "stateKey": "0",
+    "shade": "pk0",
+    "statusLabel": "On the site",
+    "chip": "On the Site",
+    "finding": "14.4 ac, 4% of the site, mostly freshwater Emergent Wetland",
+    "short": "4% of site",
+    "tooltip": "National Wetlands Inventory: 14.4 ac, 4% of the site, mostly freshwater Emergent Wetland",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 0,
+    "nearestLabel": "on the site",
+    "onSiteShare": 0.0401,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 14.4,
+      "featureCount": 7,
+      "cell": "14.4 ac"
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 28.3,
+      "featureCount": 11,
+      "cell": "28.3 ac"
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 169.5,
+      "featureCount": 44,
+      "cell": "170 ac"
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 3146,
+      "featureCount": 667,
+      "cell": "3,146 ac"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "Freshwater Emergent Wetland",
+      "byRing": [
+       {
+        "quantity": 9.62,
+        "featureCount": 4,
+        "cell": "9.62 ac"
+       },
+       {
+        "quantity": 18.4,
+        "featureCount": 6,
+        "cell": "18.4 ac"
+       },
+       {
+        "quantity": 96.2,
+        "featureCount": 22,
+        "cell": "96.2 ac"
+       },
+       {
+        "quantity": 1480,
+        "featureCount": 310,
+        "cell": "1,480 ac"
+       }
+      ]
+     },
+     {
+      "className": "Riverine",
+      "byRing": [
+       {
+        "quantity": 2.87,
+        "featureCount": 2,
+        "cell": "2.87 ac"
+       },
+       {
+        "quantity": 4.1,
+        "featureCount": 2,
+        "cell": "4.1 ac"
+       },
+       {
+        "quantity": 31.6,
+        "featureCount": 7,
+        "cell": "31.6 ac"
+       },
+       {
+        "quantity": 640,
+        "featureCount": 96,
+        "cell": "640 ac"
+       }
+      ]
+     },
+     {
+      "className": "Freshwater Pond",
+      "byRing": [
+       {
+        "quantity": 1.91,
+        "featureCount": 1,
+        "cell": "1.91 ac"
+       },
+       {
+        "quantity": 3.2,
+        "featureCount": 2,
+        "cell": "3.2 ac"
+       },
+       {
+        "quantity": 22.8,
+        "featureCount": 11,
+        "cell": "22.8 ac"
+       },
+       {
+        "quantity": 410,
+        "featureCount": 188,
+        "cell": "410 ac"
+       }
+      ]
+     },
+     {
+      "className": "Freshwater Forested/Shrub Wetland",
+      "byRing": [
+       null,
+       {
+        "quantity": 2.6,
+        "featureCount": 1,
+        "cell": "2.6 ac"
+       },
+       {
+        "quantity": 18.9,
+        "featureCount": 4,
+        "cell": "18.9 ac"
+       },
+       {
+        "quantity": 520,
+        "featureCount": 72,
+        "cell": "520 ac"
+       }
+      ]
+     },
+     {
+      "className": "Lake",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 96,
+        "featureCount": 1,
+        "cell": "96 ac"
+       }
+      ]
+     }
+    ],
+    "composition": {
+     "rows": [
+      {
+       "label": "Site",
+       "classes": [
+        {
+         "className": "Freshwater Emergent Wetland",
+         "pct": 66.8,
+         "quantity": "9.62 ac"
+        },
+        {
+         "className": "Riverine",
+         "pct": 19.9,
+         "quantity": "2.87 ac"
+        },
+        {
+         "className": "Freshwater Pond",
+         "pct": 13.3,
+         "quantity": "1.91 ac"
+        }
+       ]
+      },
+      {
+       "label": "Within 5 mi",
+       "classes": [
+        {
+         "className": "Freshwater Emergent Wetland",
+         "pct": 47.8,
+         "quantity": "1,604 ac"
+        },
+        {
+         "className": "Riverine",
+         "pct": 20.2,
+         "quantity": "679 ac"
+        },
+        {
+         "className": "Freshwater Forested/Shrub Wetland",
+         "pct": 16.1,
+         "quantity": "542 ac"
+        },
+        {
+         "className": "Freshwater Pond",
+         "pct": 13.0,
+         "quantity": "438 ac"
+        },
+        {
+         "className": "Lake",
+         "pct": 2.9,
+         "quantity": "96 ac"
+        }
+       ]
+      }
+     ],
+     "legendShown": 5,
+     "legendMore": 0,
+     "legendMoreText": null,
+     "note": null
+    },
+    "nearbyFeatures": [
+     {
+      "name": "Unnamed",
+      "className": "Freshwater Emergent Wetland",
+      "miles": 0,
+      "distance": "on the site"
+     }
+    ],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 729,
+     "namedFeatureCount": 1,
+     "names": [
+      "Unnamed"
+     ]
+    }
+   }
+  },
+  {
+   "id": 11,
+   "themeId": 2,
+   "reportOrder": 3,
+   "geometry": "line",
+   "measureUnit": "miles",
+   "measureType": "length",
+   "sourceAgency": "U.S. Geological Survey",
+   "loadedDate": "2026-11-19T23:35:03.27Z",
+   "updateFrequency": "Static (March 2023)",
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "U.S. Geological Survey · loaded Nov 19, 2026 · updated static (march 2023)",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "NHDPlus HR flowlines",
+   "name": "NHDPlus HR Flowlines",
+   "qaTheme": "Wetlands and water",
+   "theme": "Wetlands and Water",
+   "featuresLoadedInCounty": 44760,
+   "result": {
+    "status": "on_site",
+    "stateKey": "0",
+    "shade": "pk0",
+    "statusLabel": "On the site",
+    "chip": "On the Site",
+    "finding": "1.6 mi on the site, mostly stream or river",
+    "short": "1.6 mi",
+    "tooltip": "NHDPlus HR Flowlines: 1.6 mi on the site, mostly stream or river",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 0,
+    "nearestLabel": "on the site",
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 1.6,
+      "featureCount": 4,
+      "cell": "1.6 mi"
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 1.53,
+      "featureCount": 5,
+      "cell": "1.53 mi"
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 8.46,
+      "featureCount": 16,
+      "cell": "8.46 mi"
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 167.0,
+      "featureCount": 234,
+      "cell": "167 mi"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "Stream or river",
+      "sourceCode": "460",
+      "byRing": [
+       {
+        "quantity": 1.18,
+        "featureCount": 2,
+        "cell": "1.18 mi"
+       },
+       {
+        "quantity": 0.92,
+        "featureCount": 2,
+        "cell": "0.92 mi"
+       },
+       {
+        "quantity": 4.86,
+        "featureCount": 6,
+        "cell": "4.86 mi"
+       },
+       {
+        "quantity": 88.4,
+        "featureCount": 64,
+        "cell": "88.4 mi"
+       }
+      ]
+     },
+     {
+      "className": "Canal or ditch",
+      "sourceCode": "336",
+      "byRing": [
+       {
+        "quantity": 0.42,
+        "featureCount": 2,
+        "cell": "0.42 mi"
+       },
+       {
+        "quantity": 0.61,
+        "featureCount": 3,
+        "cell": "0.61 mi"
+       },
+       {
+        "quantity": 3.12,
+        "featureCount": 9,
+        "cell": "3.12 mi"
+       },
+       {
+        "quantity": 61.7,
+        "featureCount": 142,
+        "cell": "61.7 mi"
+       }
+      ]
+     },
+     {
+      "className": "Artificial path",
+      "sourceCode": "558",
+      "byRing": [
+       null,
+       null,
+       {
+        "quantity": 0.48,
+        "featureCount": 1,
+        "cell": "0.48 mi"
+       },
+       {
+        "quantity": 14.6,
+        "featureCount": 22,
+        "cell": "14.6 mi"
+       }
+      ]
+     },
+     {
+      "className": "Connector",
+      "sourceCode": "334",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 2.3,
+        "featureCount": 6,
+        "cell": "2.3 mi"
+       }
+      ]
+     }
+    ],
+    "composition": {
+     "rows": [
+      {
+       "label": "Site",
+       "classes": [
+        {
+         "className": "Stream or river",
+         "pct": 73.8,
+         "quantity": "1.18 mi"
+        },
+        {
+         "className": "Canal or ditch",
+         "pct": 26.3,
+         "quantity": "0.42 mi"
+        }
+       ]
+      },
+      {
+       "label": "Within 5 mi",
+       "classes": [
+        {
+         "className": "Stream or river",
+         "pct": 53.4,
+         "quantity": "95.4 mi"
+        },
+        {
+         "className": "Canal or ditch",
+         "pct": 36.9,
+         "quantity": "65.9 mi"
+        },
+        {
+         "className": "Artificial path",
+         "pct": 8.4,
+         "quantity": "15.1 mi"
+        },
+        {
+         "className": "Connector",
+         "pct": 1.3,
+         "quantity": "2.3 mi"
+        }
+       ]
+      }
+     ],
+     "legendShown": 4,
+     "legendMore": 0,
+     "legendMoreText": null,
+     "note": null
+    },
+    "nearbyFeatures": [
+     {
+      "name": "Deer Creek",
+      "className": "Stream or river",
+      "miles": 0,
+      "distance": "on the site"
+     },
+     {
+      "name": "Laguna Creek",
+      "className": "Stream or river",
+      "miles": 0.8,
+      "distance": "0.8 mi"
+     },
+     {
+      "name": "Folsom South Canal",
+      "className": "Canal or ditch",
+      "miles": 3.2,
+      "distance": "3.2 mi"
+     },
+     {
+      "name": "Cosumnes River",
+      "className": "Stream or river",
+      "miles": 3.9,
+      "distance": "3.9 mi"
+     }
+    ],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 259,
+     "namedFeatureCount": 4,
+     "names": [
+      "Deer Creek",
+      "Laguna Creek",
+      "Folsom South Canal",
+      "Cosumnes River"
+     ]
+    }
+   }
+  },
+  {
+   "id": 12,
+   "themeId": 2,
+   "reportOrder": 4,
+   "geometry": "line",
+   "measureUnit": "miles",
+   "measureType": "length",
+   "sourceAgency": "U.S. Forest Service",
+   "loadedDate": "2026-11-19T23:43:27.363Z",
+   "updateFrequency": null,
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "U.S. Forest Service · loaded Nov 19, 2026",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "Wild and Scenic Rivers",
+   "name": "Wild and Scenic Rivers",
+   "qaTheme": "Wetlands and water",
+   "theme": "Wetlands and Water",
+   "featuresLoadedInCounty": 1,
+   "result": {
+    "status": "not_found",
+    "stateKey": "none",
+    "shade": "pkn",
+    "statusLabel": "Not found within 5 mi",
+    "chip": "Not Found Within 5 mi",
+    "finding": "None within 5 mi",
+    "short": "None",
+    "tooltip": "Wild and Scenic Rivers: None within 5 mi",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": null,
+    "nearestLabel": null,
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     }
+    ],
+    "classBreakdown": [],
+    "composition": null,
+    "nearbyFeatures": [],
+    "namedFeaturesInRunExtent": null
+   }
+  },
+  {
+   "id": 13,
+   "themeId": 2,
+   "reportOrder": 5,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "U.S. Environmental Protection Agency",
+   "loadedDate": "2026-11-19T23:43:28.337Z",
+   "updateFrequency": "Static (August 2019)",
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "U.S. Environmental Protection Agency · loaded Nov 19, 2026 · updated static (august 2019)",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "Sole source aquifers",
+   "name": "Sole Source Aquifers",
+   "qaTheme": "Wetlands and water",
+   "theme": "Wetlands and Water",
+   "featuresLoadedInCounty": 0,
+   "result": {
+    "status": "not_found",
+    "stateKey": "none",
+    "shade": "pkn",
+    "statusLabel": "Not found within 5 mi",
+    "chip": "Not Found Within 5 mi",
+    "finding": "None within 5 mi",
+    "short": "None",
+    "tooltip": "Sole Source Aquifers: None within 5 mi",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": null,
+    "nearestLabel": null,
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     }
+    ],
+    "classBreakdown": [],
+    "composition": null,
+    "nearbyFeatures": [],
+    "namedFeaturesInRunExtent": null
+   }
+  },
+  {
+   "id": 20,
+   "themeId": 3,
+   "reportOrder": 6,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "Federal Emergency Management Agency",
+   "loadedDate": "2026-11-20T00:18:41.783Z",
+   "updateFrequency": "Continuous",
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "Federal Emergency Management Agency · loaded Nov 19, 2026 · updated continuous",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "FEMA flood hazard zones",
+   "name": "FEMA Flood Hazard Zones",
+   "qaTheme": "Natural hazards",
+   "theme": "Natural Hazards",
+   "featuresLoadedInCounty": 9871,
+   "result": {
+    "status": "on_site",
+    "stateKey": "0",
+    "shade": "pk0",
+    "statusLabel": "On the site",
+    "chip": "On the Site",
+    "finding": "359 ac, 100% of the site, mostly moderate or minimal hazard (X)",
+    "short": "100% of site",
+    "tooltip": "FEMA Flood Hazard Zones: 359 ac, 100% of the site, mostly moderate or minimal hazard (X)",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 0,
+    "nearestLabel": "on the site",
+    "onSiteShare": 1.0,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 359.02,
+      "featureCount": 3,
+      "cell": "359 ac"
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 637.66,
+      "featureCount": 3,
+      "cell": "638 ac"
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 3420.9,
+      "featureCount": 5,
+      "cell": "3,421 ac"
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 56446.8,
+      "featureCount": 148,
+      "cell": "56,447 ac"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "Moderate or minimal hazard (X)",
+      "sourceCode": "X",
+      "sortOrder": 90,
+      "byRing": [
+       {
+        "quantity": 312.32,
+        "featureCount": 1,
+        "cell": "312 ac"
+       },
+       {
+        "quantity": 548.2,
+        "featureCount": 1,
+        "cell": "548 ac"
+       },
+       {
+        "quantity": 2890.4,
+        "featureCount": 2,
+        "cell": "2,890 ac"
+       },
+       {
+        "quantity": 47380.0,
+        "featureCount": 61,
+        "cell": "47,380 ac"
+       }
+      ]
+     },
+     {
+      "className": "1% annual chance flood (AE)",
+      "sourceCode": "AE",
+      "sortOrder": 20,
+      "byRing": [
+       {
+        "quantity": 41.6,
+        "featureCount": 1,
+        "cell": "41.6 ac"
+       },
+       {
+        "quantity": 84.1,
+        "featureCount": 1,
+        "cell": "84.1 ac"
+       },
+       {
+        "quantity": 470.8,
+        "featureCount": 2,
+        "cell": "471 ac"
+       },
+       {
+        "quantity": 7420.6,
+        "featureCount": 58,
+        "cell": "7,421 ac"
+       }
+      ]
+     },
+     {
+      "className": "1% annual chance flood (A)",
+      "sourceCode": "A",
+      "sortOrder": 10,
+      "byRing": [
+       {
+        "quantity": 5.1,
+        "featureCount": 1,
+        "cell": "5.1 ac"
+       },
+       {
+        "quantity": 5.36,
+        "featureCount": 1,
+        "cell": "5.36 ac"
+       },
+       {
+        "quantity": 59.7,
+        "featureCount": 1,
+        "cell": "59.7 ac"
+       },
+       {
+        "quantity": 1080.4,
+        "featureCount": 22,
+        "cell": "1,080 ac"
+       }
+      ]
+     },
+     {
+      "className": "Undetermined hazard (D)",
+      "sourceCode": "D",
+      "sortOrder": 95,
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 565.8,
+        "featureCount": 7,
+        "cell": "566 ac"
+       }
+      ]
+     }
+    ],
+    "composition": {
+     "rows": [
+      {
+       "label": "Site",
+       "classes": [
+        {
+         "className": "Moderate or minimal hazard (X)",
+         "pct": 87.0,
+         "quantity": "312 ac"
+        },
+        {
+         "className": "1% annual chance flood (AE)",
+         "pct": 11.6,
+         "quantity": "41.6 ac"
+        },
+        {
+         "className": "1% annual chance flood (A)",
+         "pct": 1.4,
+         "quantity": "5.1 ac"
+        }
+       ]
+      },
+      {
+       "label": "Within 5 mi",
+       "classes": [
+        {
+         "className": "Moderate or minimal hazard (X)",
+         "pct": 84.0,
+         "quantity": "51,131 ac"
+        },
+        {
+         "className": "1% annual chance flood (AE)",
+         "pct": 13.2,
+         "quantity": "8,017 ac"
+        },
+        {
+         "className": "1% annual chance flood (A)",
+         "pct": 1.9,
+         "quantity": "1,151 ac"
+        },
+        {
+         "className": "Undetermined hazard (D)",
+         "pct": 0.9,
+         "quantity": "566 ac"
+        }
+       ]
+      }
+     ],
+     "legendShown": 4,
+     "legendMore": 0,
+     "legendMoreText": null,
+     "note": null
+    },
+    "nearbyFeatures": [],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 159,
+     "namedFeatureCount": 0,
+     "names": []
+    }
+   }
+  },
+  {
+   "id": 21,
+   "themeId": 3,
+   "reportOrder": 7,
+   "geometry": "line",
+   "measureUnit": "miles",
+   "measureType": "length",
+   "sourceAgency": "U.S. Geological Survey",
+   "loadedDate": "2026-11-20T00:18:43.86Z",
+   "updateFrequency": null,
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "U.S. Geological Survey · loaded Nov 19, 2026",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "Quaternary faults and folds",
+   "name": "Quaternary Faults and Folds",
+   "qaTheme": "Natural hazards",
+   "theme": "Natural Hazards",
+   "featuresLoadedInCounty": 70,
+   "result": {
+    "status": "not_found",
+    "stateKey": "none",
+    "shade": "pkn",
+    "statusLabel": "Not found within 5 mi",
+    "chip": "Not Found Within 5 mi",
+    "finding": "None within 5 mi",
+    "short": "None",
+    "tooltip": "Quaternary Faults and Folds: None within 5 mi",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": null,
+    "nearestLabel": null,
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     }
+    ],
+    "classBreakdown": [],
+    "composition": null,
+    "nearbyFeatures": [],
+    "namedFeaturesInRunExtent": null
+   }
+  },
+  {
+   "id": 22,
+   "themeId": 3,
+   "reportOrder": 8,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "U.S. Geological Survey",
+   "loadedDate": "2026-11-20T00:18:52.19Z",
+   "updateFrequency": null,
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "U.S. Geological Survey · loaded Nov 19, 2026",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "US landslide inventory",
+   "name": "US Landslide Inventory",
+   "qaTheme": "Natural hazards",
+   "theme": "Natural Hazards",
+   "featuresLoadedInCounty": 0,
+   "result": {
+    "status": "not_found",
+    "stateKey": "none",
+    "shade": "pkn",
+    "statusLabel": "Not found within 5 mi",
+    "chip": "Not Found Within 5 mi",
+    "finding": "None within 5 mi",
+    "short": "None",
+    "tooltip": "US Landslide Inventory: None within 5 mi",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": null,
+    "nearestLabel": null,
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     }
+    ],
+    "classBreakdown": [],
+    "composition": null,
+    "nearbyFeatures": [],
+    "namedFeaturesInRunExtent": null
+   }
+  },
+  {
+   "id": 23,
+   "themeId": 3,
+   "reportOrder": 9,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "U.S. Geological Survey",
+   "loadedDate": "2026-11-20T00:19:02.12Z",
+   "updateFrequency": "Static (2023)",
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "U.S. Geological Survey · loaded Nov 19, 2026 · updated static (2023)",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "2023 National Seismic Hazard Model (MMI)",
+   "name": "2023 National Seismic Hazard Model (MMI)",
+   "qaTheme": "Natural hazards",
+   "theme": "Natural Hazards",
+   "featuresLoadedInCounty": 3,
+   "result": {
+    "status": "on_site",
+    "stateKey": "0",
+    "shade": "pk0",
+    "statusLabel": "On the site",
+    "chip": "On the Site",
+    "finding": "359 ac, 100% of the site",
+    "short": "100% of site",
+    "tooltip": "2023 National Seismic Hazard Model (MMI): 359 ac, 100% of the site",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 0,
+    "nearestLabel": "on the site",
+    "onSiteShare": 1.0,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 359.02,
+      "featureCount": 1,
+      "cell": "359 ac"
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 637.6637,
+      "featureCount": 1,
+      "cell": "638 ac"
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 3420.9556,
+      "featureCount": 1,
+      "cell": "3,421 ac"
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 56446.8632,
+      "featureCount": 1,
+      "cell": "56,447 ac"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "VI",
+      "byRing": [
+       {
+        "quantity": 359.02,
+        "featureCount": 1,
+        "cell": "359 ac"
+       },
+       {
+        "quantity": 637.6637,
+        "featureCount": 1,
+        "cell": "638 ac"
+       },
+       {
+        "quantity": 3420.9556,
+        "featureCount": 1,
+        "cell": "3,421 ac"
+       },
+       {
+        "quantity": 56446.8632,
+        "featureCount": 1,
+        "cell": "56,447 ac"
+       }
+      ]
+     }
+    ],
+    "composition": null,
+    "nearbyFeatures": [],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 4,
+     "namedFeatureCount": 0,
+     "names": []
+    }
+   }
+  },
+  {
+   "id": 24,
+   "themeId": 3,
+   "reportOrder": 10,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "U.S. Forest Service",
+   "loadedDate": null,
+   "updateFrequency": "Static (2023)",
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "U.S. Forest Service · updated static (2023)",
+   "accessMethod": "ArcGIS image service",
+   "isLoadable": false,
+   "qaName": "Wildfire hazard potential 2023",
+   "name": "Wildfire Hazard Potential 2023",
+   "qaTheme": "Natural hazards",
+   "theme": "Natural Hazards",
+   "featuresLoadedInCounty": 0,
+   "result": {
+    "status": "no_data_for_county",
+    "stateKey": "nodata",
+    "shade": "pkx",
+    "statusLabel": "No data yet",
+    "chip": "No Data Yet",
+    "finding": "No data for this county yet",
+    "short": "No data",
+    "tooltip": "Wildfire Hazard Potential 2023: No data for this county yet",
+    "hasData": false,
+    "appliesInCounty": true,
+    "nearestMiles": null,
+    "nearestLabel": null,
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     }
+    ],
+    "classBreakdown": [],
+    "composition": null,
+    "nearbyFeatures": [],
+    "namedFeaturesInRunExtent": null
+   }
+  },
+  {
+   "id": 25,
+   "themeId": 3,
+   "reportOrder": 11,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "National Interagency Fire Center",
+   "loadedDate": "2026-11-20T00:19:07.553Z",
+   "updateFrequency": "Annual",
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "National Interagency Fire Center · loaded Nov 19, 2026 · updated annual",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "Interagency fire perimeter history",
+   "name": "Interagency Fire Perimeter History",
+   "qaTheme": "Natural hazards",
+   "theme": "Natural Hazards",
+   "featuresLoadedInCounty": 295,
+   "result": {
+    "status": "within_ring_2",
+    "stateKey": "2",
+    "shade": "pk2",
+    "statusLabel": "First found ¼ to 1 mi out",
+    "chip": "First Found ¼ to 1 mi",
+    "finding": "Nearest is 0.6 mi from the boundary",
+    "short": "0.6 mi",
+    "tooltip": "Interagency Fire Perimeter History: Nearest is 0.6 mi from the boundary",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 0.597,
+    "nearestLabel": "0.6 mi",
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 6.8,
+      "featureCount": 1,
+      "cell": "6.8 ac"
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 182.1,
+      "featureCount": 4,
+      "cell": "182 ac"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "2020",
+      "byRing": [
+       null,
+       null,
+       {
+        "quantity": 6.8,
+        "featureCount": 1,
+        "cell": "6.8 ac"
+       },
+       null
+      ]
+     },
+     {
+      "className": "2021",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 128.6,
+        "featureCount": 1,
+        "cell": "129 ac"
+       }
+      ]
+     },
+     {
+      "className": "2018",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 41.2,
+        "featureCount": 2,
+        "cell": "41.2 ac"
+       }
+      ]
+     },
+     {
+      "className": "2023",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 12.3,
+        "featureCount": 1,
+        "cell": "12.3 ac"
+       }
+      ]
+     }
+    ],
+    "composition": {
+     "rows": [
+      {
+       "label": "Site",
+       "classes": []
+      },
+      {
+       "label": "Within 5 mi",
+       "classes": [
+        {
+         "className": "2021",
+         "pct": 68.1,
+         "quantity": "129 ac"
+        },
+        {
+         "className": "2018",
+         "pct": 21.8,
+         "quantity": "41.2 ac"
+        },
+        {
+         "className": "2023",
+         "pct": 6.5,
+         "quantity": "12.3 ac"
+        },
+        {
+         "className": "2020",
+         "pct": 3.6,
+         "quantity": "6.8 ac"
+        }
+       ]
+      }
+     ],
+     "legendShown": 4,
+     "legendMore": 0,
+     "legendMoreText": null,
+     "note": null
+    },
+    "nearbyFeatures": [
+     {
+      "name": "GRANT",
+      "className": "2020",
+      "miles": 0.6,
+      "distance": "0.6 mi"
+     },
+     {
+      "name": "BOND",
+      "className": "2021",
+      "miles": 2.4,
+      "distance": "2.4 mi"
+     },
+     {
+      "name": "EXCELSIOR",
+      "className": "2018",
+      "miles": 3.7,
+      "distance": "3.7 mi"
+     },
+     {
+      "name": "DEER CREEK",
+      "className": "2023",
+      "miles": 4.4,
+      "distance": "4.4 mi"
+     }
+    ],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 5,
+     "namedFeatureCount": 4,
+     "names": [
+      "GRANT",
+      "BOND",
+      "EXCELSIOR",
+      "DEER CREEK"
+     ]
+    }
+   }
+  },
+  {
+   "id": 30,
+   "themeId": 4,
+   "reportOrder": 12,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "U.S. Fish and Wildlife Service",
+   "loadedDate": "2026-11-20T00:19:15.613Z",
+   "updateFrequency": "Continuous",
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "U.S. Fish and Wildlife Service · loaded Nov 19, 2026 · updated continuous",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "Critical habitat (final)",
+   "name": "Critical Habitat (Final)",
+   "qaTheme": "Biological resources",
+   "theme": "Biological Resources",
+   "featuresLoadedInCounty": 15,
+   "result": {
+    "status": "within_ring_2",
+    "stateKey": "2",
+    "shade": "pk2",
+    "statusLabel": "First found ¼ to 1 mi out",
+    "chip": "First Found ¼ to 1 mi",
+    "finding": "Nearest is 0.9 mi from the boundary",
+    "short": "0.9 mi",
+    "tooltip": "Critical Habitat (Final): Nearest is 0.9 mi from the boundary",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 0.912,
+    "nearestLabel": "0.9 mi",
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 14.2,
+      "featureCount": 1,
+      "cell": "14.2 ac"
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 4051.3,
+      "featureCount": 4,
+      "cell": "4,051 ac"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "Endangered",
+      "byRing": [
+       null,
+       null,
+       {
+        "quantity": 14.2,
+        "featureCount": 1,
+        "cell": "14.2 ac"
+       },
+       {
+        "quantity": 1840.5,
+        "featureCount": 2,
+        "cell": "1,840 ac"
+       }
+      ]
+     },
+     {
+      "className": "Threatened",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 2210.8,
+        "featureCount": 2,
+        "cell": "2,211 ac"
+       }
+      ]
+     }
+    ],
+    "composition": {
+     "rows": [
+      {
+       "label": "Site",
+       "classes": []
+      },
+      {
+       "label": "Within 5 mi",
+       "classes": [
+        {
+         "className": "Threatened",
+         "pct": 54.4,
+         "quantity": "2,211 ac"
+        },
+        {
+         "className": "Endangered",
+         "pct": 45.6,
+         "quantity": "1,855 ac"
+        }
+       ]
+      }
+     ],
+     "legendShown": 2,
+     "legendMore": 0,
+     "legendMoreText": null,
+     "note": null
+    },
+    "nearbyFeatures": [
+     {
+      "name": "Vernal pool tadpole shrimp",
+      "className": "Endangered",
+      "miles": 0.9,
+      "distance": "0.9 mi"
+     },
+     {
+      "name": "Vernal pool fairy shrimp",
+      "className": "Threatened",
+      "miles": 1.7,
+      "distance": "1.7 mi"
+     },
+     {
+      "name": "Sacramento Orcutt grass",
+      "className": "Endangered",
+      "miles": 3.9,
+      "distance": "3.9 mi"
+     },
+     {
+      "name": "Slender Orcutt grass",
+      "className": "Threatened",
+      "miles": 4.6,
+      "distance": "4.6 mi"
+     }
+    ],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 5,
+     "namedFeatureCount": 4,
+     "names": [
+      "Vernal pool tadpole shrimp",
+      "Vernal pool fairy shrimp",
+      "Sacramento Orcutt grass",
+      "Slender Orcutt grass"
+     ]
+    }
+   }
+  },
+  {
+   "id": 31,
+   "themeId": 4,
+   "reportOrder": 13,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "U.S. Fish and Wildlife Service",
+   "loadedDate": "2026-11-20T18:50:12.453Z",
+   "updateFrequency": "Continuous",
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "U.S. Fish and Wildlife Service · loaded Nov 20, 2026 · updated continuous",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "ESA listed species current range",
+   "name": "ESA Listed Species Current Range",
+   "qaTheme": "Biological resources",
+   "theme": "Biological Resources",
+   "featuresLoadedInCounty": 50,
+   "result": {
+    "status": "on_site",
+    "stateKey": "0",
+    "shade": "pk0",
+    "statusLabel": "On the site",
+    "chip": "On the Site",
+    "finding": "359 ac, 100% of the site, mostly listed",
+    "short": "100% of site",
+    "tooltip": "ESA Listed Species Current Range: 359 ac, 100% of the site, mostly listed",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 0,
+    "nearestLabel": "on the site",
+    "onSiteShare": 1.0,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 359.02,
+      "featureCount": 6,
+      "cell": "359 ac"
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 637.6637,
+      "featureCount": 6,
+      "cell": "638 ac"
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 3420.9556,
+      "featureCount": 6,
+      "cell": "3,421 ac"
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 56446.8632,
+      "featureCount": 9,
+      "cell": "56,447 ac"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "Listed",
+      "byRing": [
+       {
+        "quantity": 359.02,
+        "featureCount": 5,
+        "cell": "359 ac"
+       },
+       {
+        "quantity": 637.6637,
+        "featureCount": 5,
+        "cell": "638 ac"
+       },
+       {
+        "quantity": 3420.9556,
+        "featureCount": 5,
+        "cell": "3,421 ac"
+       },
+       {
+        "quantity": 56446.8632,
+        "featureCount": 7,
+        "cell": "56,447 ac"
+       }
+      ]
+     },
+     {
+      "className": "Candidate for Listing",
+      "byRing": [
+       {
+        "quantity": 359.02,
+        "featureCount": 1,
+        "cell": "359 ac"
+       },
+       {
+        "quantity": 637.6637,
+        "featureCount": 1,
+        "cell": "638 ac"
+       },
+       {
+        "quantity": 3420.9556,
+        "featureCount": 1,
+        "cell": "3,421 ac"
+       },
+       {
+        "quantity": 56446.8632,
+        "featureCount": 1,
+        "cell": "56,447 ac"
+       }
+      ]
+     },
+     {
+      "className": "Petitioned for Listing, Under Review",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 23707.6825,
+        "featureCount": 1,
+        "cell": "23,708 ac"
+       }
+      ]
+     }
+    ],
+    "composition": {
+     "rows": [
+      {
+       "label": "Site",
+       "classes": [
+        {
+         "className": "Listed",
+         "pct": 50.0,
+         "quantity": "359 ac"
+        },
+        {
+         "className": "Candidate for Listing",
+         "pct": 50.0,
+         "quantity": "359 ac"
+        }
+       ]
+      },
+      {
+       "label": "Within 5 mi",
+       "classes": [
+        {
+         "className": "Listed",
+         "pct": 41.8,
+         "quantity": "60,865 ac"
+        },
+        {
+         "className": "Candidate for Listing",
+         "pct": 41.8,
+         "quantity": "60,865 ac"
+        },
+        {
+         "className": "Petitioned for Listing, Under Review",
+         "pct": 16.3,
+         "quantity": "23,708 ac"
+        }
+       ]
+      }
+     ],
+     "legendShown": 3,
+     "legendMore": 0,
+     "legendMoreText": null,
+     "note": "Shares of each class within the row. Overlapping classes (ranges) can each cover the whole row."
+    },
+    "nearbyFeatures": [
+     {
+      "name": "Valley elderberry longhorn beetle",
+      "className": "Listed",
+      "miles": 0,
+      "distance": "on the site"
+     },
+     {
+      "name": "Giant garter snake",
+      "className": "Listed",
+      "miles": 0,
+      "distance": "on the site"
+     },
+     {
+      "name": "Vernal pool fairy shrimp",
+      "className": "Listed",
+      "miles": 0,
+      "distance": "on the site"
+     },
+     {
+      "name": "Vernal pool tadpole shrimp",
+      "className": "Listed",
+      "miles": 0,
+      "distance": "on the site"
+     },
+     {
+      "name": "California tiger salamander",
+      "className": "Listed",
+      "miles": 0,
+      "distance": "on the site"
+     },
+     {
+      "name": "Monarch butterfly",
+      "className": "Candidate for Listing",
+      "miles": 0,
+      "distance": "on the site"
+     },
+     {
+      "name": "Western spadefoot",
+      "className": "Petitioned for Listing, Under Review",
+      "miles": 1.6,
+      "distance": "1.6 mi"
+     }
+    ],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 27,
+     "namedFeatureCount": 7,
+     "names": [
+      "Valley elderberry longhorn beetle",
+      "Giant garter snake",
+      "Vernal pool fairy shrimp",
+      "Vernal pool tadpole shrimp",
+      "California tiger salamander",
+      "Monarch butterfly",
+      "Western spadefoot"
+     ]
+    }
+   }
+  },
+  {
+   "id": 40,
+   "themeId": 5,
+   "reportOrder": 14,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "NRCS SSURGO (Esri Living Atlas)",
+   "loadedDate": null,
+   "updateFrequency": "Annual",
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "NRCS SSURGO (Esri Living Atlas) · updated annual",
+   "accessMethod": "Not yet available",
+   "isLoadable": false,
+   "qaName": "Soil map units",
+   "name": "Soil Map Units",
+   "qaTheme": "Soils and agriculture",
+   "theme": "Soils and Agriculture",
+   "featuresLoadedInCounty": 0,
+   "result": {
+    "status": "no_data_for_county",
+    "stateKey": "nodata",
+    "shade": "pkx",
+    "statusLabel": "No data yet",
+    "chip": "No Data Yet",
+    "finding": "No data for this county yet",
+    "short": "No data",
+    "tooltip": "Soil Map Units: No data for this county yet",
+    "hasData": false,
+    "appliesInCounty": true,
+    "nearestMiles": null,
+    "nearestLabel": null,
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     }
+    ],
+    "classBreakdown": [],
+    "composition": null,
+    "nearbyFeatures": [],
+    "namedFeaturesInRunExtent": null
+   }
+  },
+  {
+   "id": 41,
+   "themeId": 5,
+   "reportOrder": 15,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "NRCS SSURGO (Esri Living Atlas)",
+   "loadedDate": null,
+   "updateFrequency": "Annual",
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "NRCS SSURGO (Esri Living Atlas) · updated annual",
+   "accessMethod": "Not yet available",
+   "isLoadable": false,
+   "qaName": "Farmland classification",
+   "name": "Farmland Classification",
+   "qaTheme": "Soils and agriculture",
+   "theme": "Soils and Agriculture",
+   "featuresLoadedInCounty": 0,
+   "result": {
+    "status": "no_data_for_county",
+    "stateKey": "nodata",
+    "shade": "pkx",
+    "statusLabel": "No data yet",
+    "chip": "No Data Yet",
+    "finding": "No data for this county yet",
+    "short": "No data",
+    "tooltip": "Farmland Classification: No data for this county yet",
+    "hasData": false,
+    "appliesInCounty": true,
+    "nearestMiles": null,
+    "nearestLabel": null,
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     }
+    ],
+    "classBreakdown": [],
+    "composition": null,
+    "nearbyFeatures": [],
+    "namedFeaturesInRunExtent": null
+   }
+  },
+  {
+   "id": 42,
+   "themeId": 5,
+   "reportOrder": 16,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "USDA National Agricultural Statistics Service",
+   "loadedDate": null,
+   "updateFrequency": "Annual",
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "USDA National Agricultural Statistics Service · updated annual",
+   "accessMethod": "ArcGIS image service",
+   "isLoadable": false,
+   "qaName": "Cropland Data Layer 2025",
+   "name": "Cropland Data Layer 2025",
+   "qaTheme": "Soils and agriculture",
+   "theme": "Soils and Agriculture",
+   "featuresLoadedInCounty": 0,
+   "result": {
+    "status": "no_data_for_county",
+    "stateKey": "nodata",
+    "shade": "pkx",
+    "statusLabel": "No data yet",
+    "chip": "No Data Yet",
+    "finding": "No data for this county yet",
+    "short": "No data",
+    "tooltip": "Cropland Data Layer 2025: No data for this county yet",
+    "hasData": false,
+    "appliesInCounty": true,
+    "nearestMiles": null,
+    "nearestLabel": null,
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     }
+    ],
+    "classBreakdown": [],
+    "composition": null,
+    "nearbyFeatures": [],
+    "namedFeaturesInRunExtent": null
+   }
+  },
+  {
+   "id": 50,
+   "themeId": 6,
+   "reportOrder": 17,
+   "geometry": "line",
+   "measureUnit": "miles",
+   "measureType": "length",
+   "sourceAgency": "U.S. Census Bureau (TIGERweb)",
+   "loadedDate": "2026-11-20T01:05:16.147Z",
+   "updateFrequency": "Annual",
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "U.S. Census Bureau (TIGERweb) · loaded Nov 19, 2026 · updated annual",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "Primary roads",
+   "name": "Primary Roads",
+   "qaTheme": "Infrastructure",
+   "theme": "Infrastructure",
+   "featuresLoadedInCounty": 93,
+   "result": {
+    "status": "within_ring_2",
+    "stateKey": "2",
+    "shade": "pk2",
+    "statusLabel": "First found ¼ to 1 mi out",
+    "chip": "First Found ¼ to 1 mi",
+    "finding": "Nearest is 0.3 mi from the boundary",
+    "short": "0.3 mi",
+    "tooltip": "Primary Roads: Nearest is 0.3 mi from the boundary",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 0.312,
+    "nearestLabel": "0.3 mi",
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 1.42,
+      "featureCount": 2,
+      "cell": "1.42 mi"
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 8.6,
+      "featureCount": 6,
+      "cell": "8.6 mi"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "State highway",
+      "sourceCode": "S",
+      "byRing": [
+       null,
+       null,
+       {
+        "quantity": 1.42,
+        "featureCount": 2,
+        "cell": "1.42 mi"
+       },
+       {
+        "quantity": 8.6,
+        "featureCount": 6,
+        "cell": "8.6 mi"
+       }
+      ]
+     }
+    ],
+    "composition": null,
+    "nearbyFeatures": [
+     {
+      "name": "State Rte 99",
+      "className": "State highway",
+      "miles": 0.3,
+      "distance": "0.3 mi"
+     }
+    ],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 8,
+     "namedFeatureCount": 1,
+     "names": [
+      "State Rte 99"
+     ]
+    }
+   }
+  },
+  {
+   "id": 51,
+   "themeId": 6,
+   "reportOrder": 18,
+   "geometry": "line",
+   "measureUnit": "miles",
+   "measureType": "length",
+   "sourceAgency": "Bureau of Transportation Statistics",
+   "loadedDate": "2026-11-20T01:05:18.82Z",
+   "updateFrequency": null,
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "Bureau of Transportation Statistics · loaded Nov 19, 2026",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "North American Rail Network",
+   "name": "North American Rail Network",
+   "qaTheme": "Infrastructure",
+   "theme": "Infrastructure",
+   "featuresLoadedInCounty": 1974,
+   "result": {
+    "status": "within_ring_2",
+    "stateKey": "2",
+    "shade": "pk2",
+    "statusLabel": "First found ¼ to 1 mi out",
+    "chip": "First Found ¼ to 1 mi",
+    "finding": "Nearest is 0.9 mi from the boundary",
+    "short": "0.9 mi",
+    "tooltip": "North American Rail Network: Nearest is 0.9 mi from the boundary",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 0.884,
+    "nearestLabel": "0.9 mi",
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 0.34,
+      "featureCount": 1,
+      "cell": "0.34 mi"
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 11.6,
+      "featureCount": 14,
+      "cell": "11.6 mi"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "M",
+      "byRing": [
+       null,
+       null,
+       {
+        "quantity": 0.34,
+        "featureCount": 1,
+        "cell": "0.34 mi"
+       },
+       {
+        "quantity": 9.8,
+        "featureCount": 8,
+        "cell": "9.8 mi"
+       }
+      ]
+     },
+     {
+      "className": "Y",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 1.2,
+        "featureCount": 4,
+        "cell": "1.2 mi"
+       }
+      ]
+     },
+     {
+      "className": "S",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 0.6,
+        "featureCount": 2,
+        "cell": "0.6 mi"
+       }
+      ]
+     }
+    ],
+    "composition": {
+     "rows": [
+      {
+       "label": "Site",
+       "classes": []
+      },
+      {
+       "label": "Within 5 mi",
+       "classes": [
+        {
+         "className": "M",
+         "pct": 84.9,
+         "quantity": "10.1 mi"
+        },
+        {
+         "className": "Y",
+         "pct": 10.1,
+         "quantity": "1.2 mi"
+        },
+        {
+         "className": "S",
+         "pct": 5.0,
+         "quantity": "0.6 mi"
+        }
+       ]
+      }
+     ],
+     "legendShown": 3,
+     "legendMore": 0,
+     "legendMoreText": null,
+     "note": null
+    },
+    "nearbyFeatures": [
+     {
+      "name": "UP",
+      "className": "M",
+      "miles": 0.9,
+      "distance": "0.9 mi"
+     }
+    ],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 15,
+     "namedFeatureCount": 1,
+     "names": [
+      "UP"
+     ]
+    }
+   }
+  },
+  {
+   "id": 52,
+   "themeId": 6,
+   "reportOrder": 19,
+   "geometry": "point",
+   "measureUnit": "count",
+   "measureType": "count",
+   "sourceAgency": "Federal Aviation Administration",
+   "loadedDate": "2026-11-20T01:05:20.32Z",
+   "updateFrequency": null,
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "Federal Aviation Administration · loaded Nov 19, 2026",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "FAA airports",
+   "name": "FAA Airports",
+   "qaTheme": "Infrastructure",
+   "theme": "Infrastructure",
+   "featuresLoadedInCounty": 57,
+   "result": {
+    "status": "within_ring_3",
+    "stateKey": "3",
+    "shade": "pk3",
+    "statusLabel": "First found 1 to 5 mi out",
+    "chip": "First Found 1 to 5 mi",
+    "finding": "Nearest is 4.3 mi from the boundary",
+    "short": "4.3 mi",
+    "tooltip": "FAA Airports: Nearest is 4.3 mi from the boundary",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 4.27,
+    "nearestLabel": "4.3 mi",
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 2,
+      "featureCount": 2,
+      "cell": "2"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "Heliport",
+      "sourceCode": "HP",
+      "sortOrder": 20,
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 1,
+        "featureCount": 1,
+        "cell": "1"
+       }
+      ]
+     },
+     {
+      "className": "Airport",
+      "sourceCode": "AD",
+      "sortOrder": 10,
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 1,
+        "featureCount": 1,
+        "cell": "1"
+       }
+      ]
+     }
+    ],
+    "composition": {
+     "rows": [
+      {
+       "label": "Site",
+       "classes": []
+      },
+      {
+       "label": "Within 5 mi",
+       "classes": [
+        {
+         "className": "Heliport",
+         "pct": 50.0,
+         "quantity": "1"
+        },
+        {
+         "className": "Airport",
+         "pct": 50.0,
+         "quantity": "1"
+        }
+       ]
+      }
+     ],
+     "legendShown": 2,
+     "legendMore": 0,
+     "legendMoreText": null,
+     "note": null
+    },
+    "nearbyFeatures": [
+     {
+      "name": "Methodist Hospital of Sacramento",
+      "className": "Heliport",
+      "miles": 4.3,
+      "distance": "4.3 mi"
+     },
+     {
+      "name": "Franklin Field",
+      "className": "Airport",
+      "miles": 4.8,
+      "distance": "4.8 mi"
+     }
+    ],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 2,
+     "namedFeatureCount": 2,
+     "names": [
+      "Methodist Hospital of Sacramento",
+      "Franklin Field"
+     ]
+    }
+   }
+  },
+  {
+   "id": 53,
+   "themeId": 6,
+   "reportOrder": 20,
+   "geometry": "line",
+   "measureUnit": "miles",
+   "measureType": "length",
+   "sourceAgency": "HIFLD (via Esri)",
+   "loadedDate": "2026-11-20T01:05:21.623Z",
+   "updateFrequency": null,
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "HIFLD (via Esri) · loaded Nov 19, 2026",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "Electric power transmission lines",
+   "name": "Electric Power Transmission Lines",
+   "qaTheme": "Infrastructure",
+   "theme": "Infrastructure",
+   "featuresLoadedInCounty": 691,
+   "result": {
+    "status": "on_site",
+    "stateKey": "0",
+    "shade": "pk0",
+    "statusLabel": "On the site",
+    "chip": "On the Site",
+    "finding": "0.3 mi on the site, mostly 220-287",
+    "short": "0.3 mi",
+    "tooltip": "Electric Power Transmission Lines: 0.3 mi on the site, mostly 220-287",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 0,
+    "nearestLabel": "on the site",
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 0.3,
+      "featureCount": 2,
+      "cell": "0.3 mi"
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 0.79,
+      "featureCount": 2,
+      "cell": "0.79 mi"
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 2.73,
+      "featureCount": 4,
+      "cell": "2.73 mi"
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 36.4,
+      "featureCount": 17,
+      "cell": "36.4 mi"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "220-287",
+      "byRing": [
+       {
+        "quantity": 0.17,
+        "featureCount": 1,
+        "cell": "0.17 mi"
+       },
+       {
+        "quantity": 0.41,
+        "featureCount": 1,
+        "cell": "0.41 mi"
+       },
+       {
+        "quantity": 1.52,
+        "featureCount": 2,
+        "cell": "1.52 mi"
+       },
+       {
+        "quantity": 14.6,
+        "featureCount": 6,
+        "cell": "14.6 mi"
+       }
+      ]
+     },
+     {
+      "className": "100-161",
+      "byRing": [
+       {
+        "quantity": 0.13,
+        "featureCount": 1,
+        "cell": "0.13 mi"
+       },
+       {
+        "quantity": 0.38,
+        "featureCount": 1,
+        "cell": "0.38 mi"
+       },
+       {
+        "quantity": 1.21,
+        "featureCount": 2,
+        "cell": "1.21 mi"
+       },
+       {
+        "quantity": 21.8,
+        "featureCount": 11,
+        "cell": "21.8 mi"
+       }
+      ]
+     }
+    ],
+    "composition": {
+     "rows": [
+      {
+       "label": "Site",
+       "classes": [
+        {
+         "className": "220-287",
+         "pct": 56.7,
+         "quantity": "0.17 mi"
+        },
+        {
+         "className": "100-161",
+         "pct": 43.3,
+         "quantity": "0.13 mi"
+        }
+       ]
+      },
+      {
+       "label": "Within 5 mi",
+       "classes": [
+        {
+         "className": "100-161",
+         "pct": 58.5,
+         "quantity": "23.5 mi"
+        },
+        {
+         "className": "220-287",
+         "pct": 41.5,
+         "quantity": "16.7 mi"
+        }
+       ]
+      }
+     ],
+     "legendShown": 2,
+     "legendMore": 0,
+     "legendMoreText": null,
+     "note": null
+    },
+    "nearbyFeatures": [
+     {
+      "name": "SACRAMENTO MUNICIPAL UTIL DIST",
+      "className": "220-287",
+      "miles": 0,
+      "distance": "on the site"
+     },
+     {
+      "name": "PACIFIC GAS & ELECTRIC CO",
+      "className": "100-161",
+      "miles": 0,
+      "distance": "on the site"
+     }
+    ],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 25,
+     "namedFeatureCount": 2,
+     "names": [
+      "SACRAMENTO MUNICIPAL UTIL DIST",
+      "PACIFIC GAS & ELECTRIC CO"
+     ]
+    }
+   }
+  },
+  {
+   "id": 14,
+   "themeId": 7,
+   "reportOrder": 21,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "California Department of Water Resources",
+   "loadedDate": null,
+   "updateFrequency": "Static",
+   "restrictionNote": null,
+   "coveredStates": "California",
+   "sourceLine": "California Department of Water Resources · updated static",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "Legal Delta boundary",
+   "name": "Legal Delta Boundary",
+   "qaTheme": "Protected and special areas",
+   "theme": "Protected and Special Areas",
+   "featuresLoadedInCounty": 1,
+   "result": {
+    "status": "within_ring_3",
+    "stateKey": "3",
+    "shade": "pk3",
+    "statusLabel": "First found 1 to 5 mi out",
+    "chip": "First Found 1 to 5 mi",
+    "finding": "Nearest is 3.8 mi from the boundary",
+    "short": "3.8 mi",
+    "tooltip": "Legal Delta Boundary: Nearest is 3.8 mi from the boundary",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 3.81,
+    "nearestLabel": "3.8 mi",
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 2140.0,
+      "featureCount": 1,
+      "cell": "2,140 ac"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "Unclassified",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 2140.0,
+        "featureCount": 1,
+        "cell": "2,140 ac"
+       }
+      ]
+     }
+    ],
+    "composition": null,
+    "nearbyFeatures": [
+     {
+      "name": "Legal Delta",
+      "className": "Unclassified",
+      "miles": 3.8,
+      "distance": "3.8 mi"
+     }
+    ],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 1,
+     "namedFeatureCount": 1,
+     "names": [
+      "Legal Delta"
+     ]
+    }
+   }
+  },
+  {
+   "id": 60,
+   "themeId": 7,
+   "reportOrder": 22,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "U.S. Geological Survey",
+   "loadedDate": "2026-11-20T01:05:44.097Z",
+   "updateFrequency": "Static (4.1)",
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "U.S. Geological Survey · loaded Nov 19, 2026 · updated static (4.1)",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "PAD-US 4.1",
+   "name": "PAD-US 4.1",
+   "qaTheme": "Protected and special areas",
+   "theme": "Protected and Special Areas",
+   "featuresLoadedInCounty": 2201,
+   "result": {
+    "status": "within_ring_1",
+    "stateKey": "1",
+    "shade": "pk1",
+    "statusLabel": "First found 0 to ¼ mi out",
+    "chip": "First Found 0 to ¼ mi",
+    "finding": "Nearest is 0.2 mi from the boundary",
+    "short": "0.2 mi",
+    "tooltip": "PAD-US 4.1: Nearest is 0.2 mi from the boundary",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 0.204,
+    "nearestLabel": "0.2 mi",
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 6.4,
+      "featureCount": 1,
+      "cell": "6.4 ac"
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 159.0,
+      "featureCount": 4,
+      "cell": "159 ac"
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 2690.0,
+      "featureCount": 25,
+      "cell": "2,690 ac"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "Local",
+      "sourceCode": "LOC",
+      "sortOrder": 30,
+      "byRing": [
+       null,
+       {
+        "quantity": 6.4,
+        "featureCount": 1,
+        "cell": "6.4 ac"
+       },
+       {
+        "quantity": 38.6,
+        "featureCount": 3,
+        "cell": "38.6 ac"
+       },
+       {
+        "quantity": 640.0,
+        "featureCount": 14,
+        "cell": "640 ac"
+       }
+      ]
+     },
+     {
+      "className": "Non-Governmental Organization",
+      "sourceCode": "NGO",
+      "sortOrder": 50,
+      "byRing": [
+       null,
+       null,
+       {
+        "quantity": 120.4,
+        "featureCount": 1,
+        "cell": "120 ac"
+       },
+       {
+        "quantity": 1460.0,
+        "featureCount": 4,
+        "cell": "1,460 ac"
+       }
+      ]
+     },
+     {
+      "className": "Special District",
+      "sourceCode": "DIST",
+      "sortOrder": 40,
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 380.0,
+        "featureCount": 5,
+        "cell": "380 ac"
+       }
+      ]
+     },
+     {
+      "className": "State",
+      "sourceCode": "STAT",
+      "sortOrder": 20,
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 210.0,
+        "featureCount": 2,
+        "cell": "210 ac"
+       }
+      ]
+     }
+    ],
+    "composition": {
+     "rows": [
+      {
+       "label": "Site",
+       "classes": []
+      },
+      {
+       "label": "Within 5 mi",
+       "classes": [
+        {
+         "className": "Non-Governmental Organization",
+         "pct": 55.3,
+         "quantity": "1,580 ac"
+        },
+        {
+         "className": "Local",
+         "pct": 24.0,
+         "quantity": "685 ac"
+        },
+        {
+         "className": "Special District",
+         "pct": 13.3,
+         "quantity": "380 ac"
+        },
+        {
+         "className": "State",
+         "pct": 7.4,
+         "quantity": "210 ac"
+        }
+       ]
+      }
+     ],
+     "legendShown": 4,
+     "legendMore": 0,
+     "legendMoreText": null,
+     "note": null
+    },
+    "nearbyFeatures": [
+     {
+      "name": "Grant Line Open Space",
+      "className": "Local",
+      "miles": 0.2,
+      "distance": "0.2 mi"
+     },
+     {
+      "name": "Wilton Oak Woodland Easement",
+      "className": "Non-Governmental Organization",
+      "miles": 0.7,
+      "distance": "0.7 mi"
+     },
+     {
+      "name": "Elk Grove Regional Park",
+      "className": "Local",
+      "miles": 3.1,
+      "distance": "3.1 mi"
+     },
+     {
+      "name": "Cosumnes River Preserve",
+      "className": "Non-Governmental Organization",
+      "miles": 4.6,
+      "distance": "4.6 mi"
+     }
+    ],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 30,
+     "namedFeatureCount": 4,
+     "names": [
+      "Grant Line Open Space",
+      "Wilton Oak Woodland Easement",
+      "Elk Grove Regional Park",
+      "Cosumnes River Preserve"
+     ]
+    }
+   }
+  },
+  {
+   "id": 70,
+   "themeId": 8,
+   "reportOrder": 23,
+   "geometry": "point",
+   "measureUnit": "count",
+   "measureType": "count",
+   "sourceAgency": "National Park Service",
+   "loadedDate": "2026-11-20T01:05:45.533Z",
+   "updateFrequency": null,
+   "restrictionNote": "For general reference only; NPS says it does not satisfy Section 106 consultation or review.",
+   "coveredStates": null,
+   "sourceLine": "National Park Service · loaded Nov 19, 2026",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "National Register of Historic Places",
+   "name": "National Register of Historic Places",
+   "qaTheme": "Cultural resources",
+   "theme": "Cultural Resources",
+   "featuresLoadedInCounty": 153,
+   "result": {
+    "status": "within_ring_2",
+    "stateKey": "2",
+    "shade": "pk2",
+    "statusLabel": "First found ¼ to 1 mi out",
+    "chip": "First Found ¼ to 1 mi",
+    "finding": "Nearest is 0.8 mi from the boundary",
+    "short": "0.8 mi",
+    "tooltip": "National Register of Historic Places: Nearest is 0.8 mi from the boundary",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 0.76,
+    "nearestLabel": "0.8 mi",
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 1,
+      "featureCount": 1,
+      "cell": "1"
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 4,
+      "featureCount": 4,
+      "cell": "4"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "Building",
+      "byRing": [
+       null,
+       null,
+       {
+        "quantity": 1,
+        "featureCount": 1,
+        "cell": "1"
+       },
+       {
+        "quantity": 3,
+        "featureCount": 3,
+        "cell": "3"
+       }
+      ]
+     },
+     {
+      "className": "District",
+      "byRing": [
+       null,
+       null,
+       null,
+       {
+        "quantity": 1,
+        "featureCount": 1,
+        "cell": "1"
+       }
+      ]
+     }
+    ],
+    "composition": {
+     "rows": [
+      {
+       "label": "Site",
+       "classes": []
+      },
+      {
+       "label": "Within 5 mi",
+       "classes": [
+        {
+         "className": "Building",
+         "pct": 80.0,
+         "quantity": "4"
+        },
+        {
+         "className": "District",
+         "pct": 20.0,
+         "quantity": "1"
+        }
+       ]
+      }
+     ],
+     "legendShown": 2,
+     "legendMore": 0,
+     "legendMoreText": null,
+     "note": null
+    },
+    "nearbyFeatures": [
+     {
+      "name": "Wilton Grange Hall",
+      "className": "Building",
+      "miles": 0.76,
+      "distance": "0.8 mi"
+     },
+     {
+      "name": "Sheldon Ranch House",
+      "className": "Building",
+      "miles": 2.9,
+      "distance": "2.9 mi"
+     },
+     {
+      "name": "Elk Grove Historic District",
+      "className": "District",
+      "miles": 3.4,
+      "distance": "3.4 mi"
+     },
+     {
+      "name": "Cosumnes Schoolhouse",
+      "className": "Building",
+      "miles": 4.1,
+      "distance": "4.1 mi"
+     },
+     {
+      "name": "Rhoads Barn",
+      "className": "Building",
+      "miles": 4.7,
+      "distance": "4.7 mi"
+     }
+    ],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 5,
+     "namedFeatureCount": 5,
+     "names": [
+      "Wilton Grange Hall",
+      "Sheldon Ranch House",
+      "Elk Grove Historic District",
+      "Cosumnes Schoolhouse",
+      "Rhoads Barn"
+     ]
+    }
+   }
+  },
+  {
+   "id": 80,
+   "themeId": 9,
+   "reportOrder": 24,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "U.S. Environmental Protection Agency",
+   "loadedDate": "2026-11-20T01:05:46.847Z",
+   "updateFrequency": null,
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "U.S. Environmental Protection Agency · loaded Nov 19, 2026",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "Ozone 8-hour (2015) nonattainment areas",
+   "name": "Ozone 8-Hour (2015) Nonattainment Areas",
+   "qaTheme": "Air quality",
+   "theme": "Air Quality",
+   "featuresLoadedInCounty": 5,
+   "result": {
+    "status": "on_site",
+    "stateKey": "0",
+    "shade": "pk0",
+    "statusLabel": "On the site",
+    "chip": "On the Site",
+    "finding": "359 ac, 100% of the site",
+    "short": "100% of site",
+    "tooltip": "Ozone 8-Hour (2015) Nonattainment Areas: 359 ac, 100% of the site",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 0,
+    "nearestLabel": "on the site",
+    "onSiteShare": 1.0,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 359.02,
+      "featureCount": 1,
+      "cell": "359 ac"
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 637.6637,
+      "featureCount": 1,
+      "cell": "638 ac"
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 3420.9556,
+      "featureCount": 1,
+      "cell": "3,421 ac"
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 56446.8632,
+      "featureCount": 1,
+      "cell": "56,447 ac"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "Severe 15",
+      "byRing": [
+       {
+        "quantity": 359.02,
+        "featureCount": 1,
+        "cell": "359 ac"
+       },
+       {
+        "quantity": 637.6637,
+        "featureCount": 1,
+        "cell": "638 ac"
+       },
+       {
+        "quantity": 3420.9556,
+        "featureCount": 1,
+        "cell": "3,421 ac"
+       },
+       {
+        "quantity": 56446.8632,
+        "featureCount": 1,
+        "cell": "56,447 ac"
+       }
+      ]
+     }
+    ],
+    "composition": null,
+    "nearbyFeatures": [
+     {
+      "name": "Sacramento Metro, CA",
+      "className": "Severe 15",
+      "miles": 0,
+      "distance": "on the site"
+     }
+    ],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 4,
+     "namedFeatureCount": 1,
+     "names": [
+      "Sacramento Metro, CA"
+     ]
+    }
+   }
+  },
+  {
+   "id": 81,
+   "themeId": 9,
+   "reportOrder": 25,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "California Air Resources Board",
+   "loadedDate": null,
+   "updateFrequency": null,
+   "restrictionNote": null,
+   "coveredStates": "California",
+   "sourceLine": "California Air Resources Board",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "CARB air districts",
+   "name": "CARB Air Districts",
+   "qaTheme": "Air quality",
+   "theme": "Air Quality",
+   "featuresLoadedInCounty": 9,
+   "result": {
+    "status": "on_site",
+    "stateKey": "0",
+    "shade": "pk0",
+    "statusLabel": "On the site",
+    "chip": "On the Site",
+    "finding": "359 ac, 100% of the site",
+    "short": "100% of site",
+    "tooltip": "CARB Air Districts: 359 ac, 100% of the site",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 0,
+    "nearestLabel": "on the site",
+    "onSiteShare": 1.0,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 359.02,
+      "featureCount": 1,
+      "cell": "359 ac"
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 637.6637,
+      "featureCount": 1,
+      "cell": "638 ac"
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 3420.9556,
+      "featureCount": 1,
+      "cell": "3,421 ac"
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 56446.8632,
+      "featureCount": 1,
+      "cell": "56,447 ac"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "Sacramento Metropolitan AQMD",
+      "byRing": [
+       {
+        "quantity": 359.02,
+        "featureCount": 1,
+        "cell": "359 ac"
+       },
+       {
+        "quantity": 637.6637,
+        "featureCount": 1,
+        "cell": "638 ac"
+       },
+       {
+        "quantity": 3420.9556,
+        "featureCount": 1,
+        "cell": "3,421 ac"
+       },
+       {
+        "quantity": 56446.8632,
+        "featureCount": 1,
+        "cell": "56,447 ac"
+       }
+      ]
+     }
+    ],
+    "composition": null,
+    "nearbyFeatures": [
+     {
+      "name": "Sacramento Metropolitan AQMD",
+      "className": "Sacramento Metropolitan AQMD",
+      "miles": 0,
+      "distance": "on the site"
+     }
+    ],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 4,
+     "namedFeatureCount": 1,
+     "names": [
+      "Sacramento Metropolitan AQMD"
+     ]
+    }
+   }
+  },
+  {
+   "id": 90,
+   "themeId": 10,
+   "reportOrder": 26,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "U.S. Environmental Protection Agency",
+   "loadedDate": "2026-11-20T01:05:50.277Z",
+   "updateFrequency": null,
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "U.S. Environmental Protection Agency · loaded Nov 19, 2026",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "Superfund NPL site boundaries",
+   "name": "Superfund NPL Site Boundaries",
+   "qaTheme": "Contamination",
+   "theme": "Contamination",
+   "featuresLoadedInCounty": 10,
+   "result": {
+    "status": "not_found",
+    "stateKey": "none",
+    "shade": "pkn",
+    "statusLabel": "Not found within 5 mi",
+    "chip": "Not Found Within 5 mi",
+    "finding": "None within 5 mi",
+    "short": "None",
+    "tooltip": "Superfund NPL Site Boundaries: None within 5 mi",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": null,
+    "nearestLabel": null,
+    "onSiteShare": null,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 0,
+      "featureCount": 0,
+      "cell": ""
+     }
+    ],
+    "classBreakdown": [],
+    "composition": null,
+    "nearbyFeatures": [],
+    "namedFeaturesInRunExtent": null
+   }
+  },
+  {
+   "id": 100,
+   "themeId": 11,
+   "reportOrder": 27,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "U.S. Census Bureau (TIGERweb)",
+   "loadedDate": "2026-11-20T01:06:19.117Z",
+   "updateFrequency": "Decennial",
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "U.S. Census Bureau (TIGERweb) · loaded Nov 19, 2026 · updated decennial",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "Census tracts",
+   "name": "Census Tracts",
+   "qaTheme": "Community",
+   "theme": "Community",
+   "featuresLoadedInCounty": 700,
+   "result": {
+    "status": "on_site",
+    "stateKey": "0",
+    "shade": "pk0",
+    "statusLabel": "On the site",
+    "chip": "On the Site",
+    "finding": "359 ac, 100% of the site",
+    "short": "100% of site",
+    "tooltip": "Census Tracts: 359 ac, 100% of the site",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 0,
+    "nearestLabel": "on the site",
+    "onSiteShare": 1.0,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 359.02,
+      "featureCount": 2,
+      "cell": "359 ac"
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 637.6637,
+      "featureCount": 2,
+      "cell": "638 ac"
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 3420.9556,
+      "featureCount": 3,
+      "cell": "3,421 ac"
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 56446.8632,
+      "featureCount": 21,
+      "cell": "56,447 ac"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "Unclassified",
+      "byRing": [
+       {
+        "quantity": 359.02,
+        "featureCount": 2,
+        "cell": "359 ac"
+       },
+       {
+        "quantity": 637.6637,
+        "featureCount": 2,
+        "cell": "638 ac"
+       },
+       {
+        "quantity": 3420.9556,
+        "featureCount": 3,
+        "cell": "3,421 ac"
+       },
+       {
+        "quantity": 56446.8632,
+        "featureCount": 21,
+        "cell": "56,447 ac"
+       }
+      ]
+     }
+    ],
+    "composition": null,
+    "nearbyFeatures": [
+     {
+      "name": "Census Tract 94.05",
+      "className": "Unclassified",
+      "miles": 0,
+      "distance": "on the site"
+     },
+     {
+      "name": "Census Tract 94.06",
+      "className": "Unclassified",
+      "miles": 0,
+      "distance": "on the site"
+     },
+     {
+      "name": "Census Tract 94.08",
+      "className": "Unclassified",
+      "miles": 0.4,
+      "distance": "0.4 mi"
+     },
+     {
+      "name": "Census Tract 94.13",
+      "className": "Unclassified",
+      "miles": 1.3,
+      "distance": "1.3 mi"
+     }
+    ],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 28,
+     "namedFeatureCount": 4,
+     "names": [
+      "Census Tract 94.05",
+      "Census Tract 94.06",
+      "Census Tract 94.08",
+      "Census Tract 94.13"
+     ]
+    }
+   }
+  },
+  {
+   "id": 101,
+   "themeId": 11,
+   "reportOrder": 28,
+   "geometry": "polygon",
+   "measureUnit": "acres",
+   "measureType": "area",
+   "sourceAgency": "CDC/ATSDR",
+   "loadedDate": "2026-11-20T01:06:22.28Z",
+   "updateFrequency": "Biennial",
+   "restrictionNote": null,
+   "coveredStates": null,
+   "sourceLine": "CDC/ATSDR · loaded Nov 19, 2026 · updated biennial",
+   "accessMethod": "ArcGIS feature or map service",
+   "isLoadable": true,
+   "qaName": "Social Vulnerability Index 2022",
+   "name": "Social Vulnerability Index 2022",
+   "qaTheme": "Community",
+   "theme": "Community",
+   "featuresLoadedInCounty": 699,
+   "result": {
+    "status": "on_site",
+    "stateKey": "0",
+    "shade": "pk0",
+    "statusLabel": "On the site",
+    "chip": "On the Site",
+    "finding": "359 ac, 100% of the site",
+    "short": "100% of site",
+    "tooltip": "Social Vulnerability Index 2022: 359 ac, 100% of the site",
+    "hasData": true,
+    "appliesInCounty": true,
+    "nearestMiles": 0,
+    "nearestLabel": "on the site",
+    "onSiteShare": 1.0,
+    "byRing": [
+     {
+      "ring": "On the site",
+      "quantity": 359.02,
+      "featureCount": 2,
+      "cell": "359 ac"
+     },
+     {
+      "ring": "0 to ¼ mi",
+      "quantity": 637.6637,
+      "featureCount": 2,
+      "cell": "638 ac"
+     },
+     {
+      "ring": "¼ to 1 mi",
+      "quantity": 3420.9556,
+      "featureCount": 3,
+      "cell": "3,421 ac"
+     },
+     {
+      "ring": "1 to 5 mi",
+      "quantity": 56446.8632,
+      "featureCount": 21,
+      "cell": "56,447 ac"
+     }
+    ],
+    "classBreakdown": [
+     {
+      "className": "Unclassified",
+      "byRing": [
+       {
+        "quantity": 359.02,
+        "featureCount": 2,
+        "cell": "359 ac"
+       },
+       {
+        "quantity": 637.6637,
+        "featureCount": 2,
+        "cell": "638 ac"
+       },
+       {
+        "quantity": 3420.9556,
+        "featureCount": 3,
+        "cell": "3,421 ac"
+       },
+       {
+        "quantity": 56446.8632,
+        "featureCount": 21,
+        "cell": "56,447 ac"
+       }
+      ]
+     }
+    ],
+    "composition": null,
+    "nearbyFeatures": [
+     {
+      "name": "Census Tract 94.05; Sacramento County; California",
+      "className": "Unclassified",
+      "miles": 0,
+      "distance": "on the site"
+     },
+     {
+      "name": "Census Tract 94.06; Sacramento County; California",
+      "className": "Unclassified",
+      "miles": 0,
+      "distance": "on the site"
+     },
+     {
+      "name": "Census Tract 94.08; Sacramento County; California",
+      "className": "Unclassified",
+      "miles": 0.4,
+      "distance": "0.4 mi"
+     },
+     {
+      "name": "Census Tract 94.13; Sacramento County; California",
+      "className": "Unclassified",
+      "miles": 1.3,
+      "distance": "1.3 mi"
+     }
+    ],
+    "namedFeaturesInRunExtent": {
+     "featureCount": 28,
+     "namedFeatureCount": 4,
+     "names": [
+      "Census Tract 94.05; Sacramento County; California",
+      "Census Tract 94.06; Sacramento County; California",
+      "Census Tract 94.08; Sacramento County; California",
+      "Census Tract 94.13; Sacramento County; California"
+     ]
+    }
+   }
+  }
+ ],
+ "statusCounts": {
+  "on_site": 12,
+  "within_ring_1": 1,
+  "within_ring_2": 5,
+  "within_ring_3": 2,
+  "not_found": 5,
+  "no_data_for_county": 4,
+  "not_applicable": 0
+ },
+ "statusCountsUI": {
+  "onTheSite": 12,
+  "nearby": 8,
+  "notFound": 5,
+  "noDataYet": 4,
+  "notApplicable": 0,
+  "screened": 25,
+  "total": 29
+ },
+ "screeningSummary": {
+  "sentence": "12 of the 25 screened layers touch the site, 8 more first show up within 5 mi and 5 were not found. Listed first for data center: infrastructure, wetlands and water, land use and zoning.",
+  "sentenceNote": "QA formula (uiCopy.report.summarySentenceMulti + summaryPriority). Brief rule 12 bans generated prose over a visualization; kept here so the prototype can reproduce QA, not as a design recommendation.",
+  "note": "4 layers have no data for this county yet: Wildfire Hazard Potential 2023, Soil Map Units, Farmland Classification, Cropland Data Layer 2025.",
+  "noteNotApplicable": null,
+  "tally": [
+   {
+    "key": "0",
+    "label": "On the site",
+    "chip": "On the Site",
+    "caption": "On the Site",
+    "count": 12
+   },
+   {
+    "key": "1",
+    "label": "First found 0 to ¼ mi out",
+    "chip": "First Found 0 to ¼ mi",
+    "caption": "0 to ¼ mi",
+    "count": 1
+   },
+   {
+    "key": "2",
+    "label": "First found ¼ to 1 mi out",
+    "chip": "First Found ¼ to 1 mi",
+    "caption": "¼ to 1 mi",
+    "count": 5
+   },
+   {
+    "key": "3",
+    "label": "First found 1 to 5 mi out",
+    "chip": "First Found 1 to 5 mi",
+    "caption": "1 to 5 mi",
+    "count": 2
+   },
+   {
+    "key": "none",
+    "label": "Not found within 5 mi",
+    "chip": "Not Found Within 5 mi",
+    "caption": "Not Found",
+    "count": 5
+   }
+  ],
+  "tallySum": 25,
+  "onTheSite": [
+   {
+    "name": "Electric Power Transmission Lines",
+    "short": "0.3 mi"
+   },
+   {
+    "name": "National Wetlands Inventory",
+    "short": "4% of site"
+   },
+   {
+    "name": "NHDPlus HR Flowlines",
+    "short": "1.6 mi"
+   },
+   {
+    "name": "Zoning",
+    "short": "100% of site"
+   },
+   {
+    "name": "General Plan Land Use",
+    "short": "100% of site"
+   },
+   {
+    "name": "FEMA Flood Hazard Zones",
+    "short": "100% of site"
+   },
+   {
+    "name": "2023 National Seismic Hazard Model (MMI)",
+    "short": "100% of site"
+   },
+   {
+    "name": "ESA Listed Species Current Range",
+    "short": "100% of site"
+   },
+   {
+    "name": "Ozone 8-Hour (2015) Nonattainment Areas",
+    "short": "100% of site"
+   },
+   {
+    "name": "CARB Air Districts",
+    "short": "100% of site"
+   },
+   {
+    "name": "Census Tracts",
+    "short": "100% of site"
+   },
+   {
+    "name": "Social Vulnerability Index 2022",
+    "short": "100% of site"
+   }
+  ],
+  "onTheSiteShown": [
+   {
+    "name": "Electric Power Transmission Lines",
+    "short": "0.3 mi"
+   },
+   {
+    "name": "National Wetlands Inventory",
+    "short": "4% of site"
+   },
+   {
+    "name": "NHDPlus HR Flowlines",
+    "short": "1.6 mi"
+   },
+   {
+    "name": "Zoning",
+    "short": "100% of site"
+   },
+   {
+    "name": "General Plan Land Use",
+    "short": "100% of site"
+   },
+   {
+    "name": "FEMA Flood Hazard Zones",
+    "short": "100% of site"
+   },
+   {
+    "name": "2023 National Seismic Hazard Model (MMI)",
+    "short": "100% of site"
+   },
+   {
+    "name": "ESA Listed Species Current Range",
+    "short": "100% of site"
+   }
+  ],
+  "onTheSiteMore": 4,
+  "onTheSiteMoreText": "and 4 more in the table",
+  "nearbyNearestFirst": [
+   {
+    "name": "PAD-US 4.1",
+    "short": "0.2 mi"
+   },
+   {
+    "name": "Primary Roads",
+    "short": "0.3 mi"
+   },
+   {
+    "name": "Interagency Fire Perimeter History",
+    "short": "0.6 mi"
+   },
+   {
+    "name": "National Register of Historic Places",
+    "short": "0.8 mi"
+   },
+   {
+    "name": "North American Rail Network",
+    "short": "0.9 mi"
+   },
+   {
+    "name": "Critical Habitat (Final)",
+    "short": "0.9 mi"
+   },
+   {
+    "name": "Legal Delta Boundary",
+    "short": "3.8 mi"
+   },
+   {
+    "name": "FAA Airports",
+    "short": "4.3 mi"
+   }
+  ],
+  "notFound": [
+   "Wild and Scenic Rivers",
+   "Sole Source Aquifers",
+   "Quaternary Faults and Folds",
+   "US Landslide Inventory",
+   "Superfund NPL Site Boundaries"
+  ],
+  "listMax": 8
+ },
+ "filterChips": [
+  {
+   "key": null,
+   "label": "All",
+   "count": 29
+  },
+  {
+   "key": "0",
+   "label": "On the Site",
+   "count": 12
+  },
+  {
+   "key": "1",
+   "label": "First Found 0 to ¼ mi",
+   "count": 1
+  },
+  {
+   "key": "2",
+   "label": "First Found ¼ to 1 mi",
+   "count": 5
+  },
+  {
+   "key": "3",
+   "label": "First Found 1 to 5 mi",
+   "count": 2
+  },
+  {
+   "key": "none",
+   "label": "Not Found Within 5 mi",
+   "count": 5
+  },
+  {
+   "key": "nodata",
+   "label": "No Data Yet",
+   "count": 4
+  },
+  {
+   "key": "na",
+   "label": "Not Applicable",
+   "count": 0
+  }
+ ],
+ "legend": [
+  {
+   "shade": "pk0",
+   "label": "On the Site"
+  },
+  {
+   "shade": "pk1",
+   "label": "First Found 0 to ¼ mi"
+  },
+  {
+   "shade": "pk2",
+   "label": "First Found ¼ to 1 mi"
+  },
+  {
+   "shade": "pk3",
+   "label": "First Found 1 to 5 mi"
+  },
+  {
+   "shade": "pkn",
+   "label": "Not Found Within 5 mi"
+  },
+  {
+   "shade": "pkx",
+   "label": "No Data for This County Yet"
+  },
+  {
+   "shade": "pkna",
+   "label": "Doesn't Apply in This State"
+  }
+ ],
+ "map": {
+  "layersListed": [
+   "Zoning",
+   "General Plan Land Use",
+   "National Wetlands Inventory",
+   "NHDPlus HR Flowlines",
+   "FEMA Flood Hazard Zones",
+   "2023 National Seismic Hazard Model (MMI)",
+   "Interagency Fire Perimeter History",
+   "Critical Habitat (Final)",
+   "ESA Listed Species Current Range",
+   "Primary Roads",
+   "North American Rail Network",
+   "FAA Airports",
+   "Electric Power Transmission Lines",
+   "Legal Delta Boundary",
+   "PAD-US 4.1",
+   "National Register of Historic Places",
+   "Ozone 8-Hour (2015) Nonattainment Areas",
+   "CARB Air Districts",
+   "Census Tracts",
+   "Social Vulnerability Index 2022"
+  ],
+  "layersListedCount": 20,
+  "defaultVisible": [],
+  "ringsLabel": "Distance rings (¼ mi, 1 mi, 5 mi)",
+  "note": "Only datasets that reach the report's largest distance are listed. The map shows the data loaded now; if a dataset has been reloaded since the report ran, it may differ from what the report counted."
+ },
+ "projects": [
+  {
+   "id": 7,
+   "name": "Cottonwood",
+   "type": "Data Center",
+   "county": "Sacramento County, CA",
+   "acres": 358.97,
+   "areaLabel": "359.0 acres",
+   "stage": "Site Screening",
+   "createdBy": "Andy Lovseth",
+   "created": "2026-11-21T22:14:36.210Z",
+   "createdLabel": "Nov 21, 2026",
+   "latestScreeningRunID": 9,
+   "latestRunStatus": "Complete",
+   "areaDefinitionMethodID": 2,
+   "updated": "2026-11-24T17:41:52.004Z"
+  },
+  {
+   "id": 12,
+   "name": "Rio Linda Townhomes",
+   "type": "Residential or Mixed-Use Development",
+   "county": "Sacramento County, CA",
+   "acres": 42.68,
+   "areaLabel": "42.7 acres",
+   "stage": "Acquisition Due Diligence",
+   "createdBy": "Raynard Lee",
+   "created": "2026-11-23T18:02:11.400Z",
+   "createdLabel": "Nov 23, 2026",
+   "latestScreeningRunID": 14,
+   "latestRunStatus": "Running",
+   "areaDefinitionMethodID": 1,
+   "updated": "2026-11-24T19:20:40.000Z"
+  },
+  {
+   "id": 11,
+   "name": "Coyote Valley Storage",
+   "type": "Battery Energy Storage",
+   "county": "Santa Clara County, CA",
+   "acres": null,
+   "areaLabel": "No area yet",
+   "stage": "Site Screening",
+   "createdBy": "Andy Lovseth",
+   "created": "2026-11-23T16:45:09.000Z",
+   "createdLabel": "Nov 23, 2026",
+   "latestScreeningRunID": null,
+   "latestRunStatus": null,
+   "areaDefinitionMethodID": null,
+   "updated": null
+  },
+  {
+   "id": 10,
+   "name": "Metcalf Substation Expansion",
+   "type": "Transmission or Substation",
+   "county": "Santa Clara County, CA",
+   "acres": 18.42,
+   "areaLabel": "18.4 acres",
+   "stage": "Entitlement and Permitting",
+   "createdBy": "Raynard Lee",
+   "created": "2026-11-22T21:30:52.000Z",
+   "createdLabel": "Nov 22, 2026",
+   "latestScreeningRunID": 13,
+   "latestRunStatus": "Failed",
+   "areaDefinitionMethodID": 1,
+   "updated": "2026-11-22T21:36:05.000Z"
+  },
+  {
+   "id": 9,
+   "name": "Indiantown Logistics Park",
+   "type": "Industrial or Logistics",
+   "county": "Martin County, FL",
+   "acres": 220.89,
+   "areaLabel": "220.9 acres",
+   "stage": "Pre-Application",
+   "createdBy": "Raynard Lee",
+   "created": "2026-11-20T18:32:48.323Z",
+   "createdLabel": "Nov 20, 2026",
+   "latestScreeningRunID": 8,
+   "latestRunStatus": "Complete",
+   "areaDefinitionMethodID": 2,
+   "updated": "2026-11-24T00:03:14.093Z",
+   "staleRun": true
+  },
+  {
+   "id": 8,
+   "name": "Hermiston Solar",
+   "type": "Solar Generation",
+   "county": "Umatilla County, OR",
+   "acres": 76.62,
+   "areaLabel": "76.6 acres",
+   "stage": "Site Screening",
+   "createdBy": "Raynard Lee",
+   "created": "2026-11-21T00:22:04.477Z",
+   "createdLabel": "Nov 20, 2026",
+   "latestScreeningRunID": 3,
+   "latestRunStatus": "Complete",
+   "areaDefinitionMethodID": 1,
+   "updated": "2026-11-21T00:22:04.807Z",
+   "note": "Same area and results as QA project 4 (Report check – Umatilla); its run has 2 Not Applicable layers (Legal Delta Boundary, CARB Air Districts) for designing that state."
+  }
+ ],
+ "finalReport": {
+  "assessmentID": 3,
+  "status": "Ready",
+  "basedOnScreeningRunID": 9,
+  "isStale": false,
+  "badge": "Generated draft · review before sending",
+  "byline": "Drafted Nov 24, 2026, 10:06 AM by Andy Lovseth",
+  "draftNotes": "Client cares most about schedule to entitlement and the interconnection path.",
+  "title": "Critical Issues Assessment: Cottonwood",
+  "sections": [
+   {
+    "sectionID": 1,
+    "key": "letter",
+    "title": "Letter",
+    "body": [
+     "Re: Critical Issues Assessment for Cottonwood, 359 acres, Sacramento County, CA",
+     "ESA screened the Cottonwood site and the land within 5 miles of its boundary against 29 environmental and land use datasets on November 24, 2026. 25 had data for Sacramento County. Four (Wildfire Hazard Potential 2023, Soil Map Units, Farmland Classification and Cropland Data Layer 2025) are not yet loaded for the county and are not reflected here.",
+     "12 of the 25 screened datasets intersect the site. The constraints most likely to affect layout, schedule or entitlement are the agricultural general plan and zoning designations, the regulated floodplain and aquatic features on the site, the two transmission lines that cross it, and the Severe 15 ozone nonattainment classification, which bears on permitting for standby generators.",
+     "None of the screened datasets on their own point to a fatal flaw. Several findings rest on regional mapping and need field or records verification before they are relied on. Table 1 summarizes the findings by topic; the critical issues and recommended next steps follow."
+    ]
+   },
+   {
+    "sectionID": 2,
+    "key": "topics",
+    "title": "Setting and Recommendations by Topic",
+    "topics": [
+     {
+      "themeId": 6,
+      "topic": "Infrastructure",
+      "setting": "Electric power transmission lines cross the site for 0.3 mi, one in the 220 to 287 kV class and one in the 100 to 161 kV class. State Route 99 is 0.3 mi from the boundary and the Union Pacific main line 0.9 mi. The nearest aviation facilities are a heliport at 4.3 mi and Franklin Field at 4.8 mi.",
+      "recommendations": "Confirm the owners, voltages and easement widths of both lines from title and the utility, and fit the building envelope to them. Ask the utility early about a large-load service study."
+     },
+     {
+      "themeId": 2,
+      "topic": "Wetlands and Water",
+      "setting": "National Wetlands Inventory mapping shows 14.4 ac of wetlands on the site (4% of site), mostly freshwater emergent. NHDPlus HR flowlines run 1.6 mi across the site, including Deer Creek. No Wild and Scenic River or sole source aquifer lies within 5 mi.",
+      "recommendations": "Commission an aquatic resources delineation. If fill of wetlands or channels cannot be avoided, plan for Clean Water Act Section 404 and 401 permits and a California Fish and Game Code Section 1602 agreement."
+     },
+     {
+      "themeId": 1,
+      "topic": "Land Use and Zoning",
+      "setting": "The general plan designates 70% of the site Agricultural Cropland, 18% Agricultural-Residential and 12% Resource Conservation Area. Zoning is 80% AG-80 and 20% AR-10.",
+      "recommendations": "A data center is not an expected use under these designations. Hold a pre-application meeting with Sacramento County Planning to confirm the path, likely a General Plan Amendment and rezone with full CEQA review."
+     },
+     {
+      "themeId": 3,
+      "topic": "Natural Hazards",
+      "setting": "FEMA Special Flood Hazard Area covers 46.7 ac (13%) of the site: 41.6 ac Zone AE and 5.1 ac Zone A. The rest is Zone X. The site sits in seismic intensity MMI VI. The nearest past fire perimeter is 0.6 mi away; no Quaternary fault or mapped landslide lies within 5 mi.",
+      "recommendations": "Keep structures and critical equipment out of Zones AE and A, or plan for county floodplain permits and a FEMA map revision if the site is filled."
+     },
+     {
+      "themeId": 4,
+      "topic": "Biological Resources",
+      "setting": "Current ranges of five federally listed species and one candidate overlap the site. The nearest designated critical habitat, for vernal pool tadpole shrimp, is 0.9 mi away.",
+      "recommendations": "Have a biologist assess habitat on site, with attention to the wetlands and Deer Creek corridor, and scope protocol surveys from that assessment."
+     },
+     {
+      "themeId": 5,
+      "topic": "Soils and Agriculture",
+      "setting": "Soils, farmland classification and cropland data are not yet loaded for Sacramento County.",
+      "recommendations": "Check Important Farmland mapping and Williamson Act status by hand before the land use strategy is set."
+     },
+     {
+      "themeId": 7,
+      "topic": "Protected and Special Areas",
+      "setting": "The nearest protected land in PAD-US is 0.2 mi from the boundary. The Legal Delta boundary is 3.8 mi away.",
+      "recommendations": "No action beyond confirming that no easement in PAD-US extends onto the site."
+     },
+     {
+      "themeId": 8,
+      "topic": "Cultural Resources",
+      "setting": "No National Register property is on the site; the nearest is 0.8 mi away. The National Register is a reference list and does not satisfy Section 106 or CEQA review.",
+      "recommendations": "Order a records search from the North Central Information Center and plan a pedestrian survey."
+     },
+     {
+      "themeId": 9,
+      "topic": "Air Quality",
+      "setting": "The site is in the Sacramento Metropolitan AQMD and inside the Sacramento Metro ozone nonattainment area, classified Severe 15.",
+      "recommendations": "Scope air permits for standby generators early. Emission offsets and limits on testing hours may apply and can shape generator count and fuel."
+     },
+     {
+      "themeId": 10,
+      "topic": "Contamination",
+      "setting": "No Superfund NPL site lies within 5 mi.",
+      "recommendations": "A Phase I Environmental Site Assessment remains standard before acquisition."
+     },
+     {
+      "themeId": 11,
+      "topic": "Community",
+      "setting": "The site lies in Census Tracts 94.05 and 94.06.",
+      "recommendations": "Review the tracts' Social Vulnerability Index values before community outreach is planned."
+     }
+    ]
+   },
+   {
+    "sectionID": 3,
+    "key": "table1",
+    "title": "Table 1. Summary of Potential Constraints",
+    "columns": [
+     "Topic",
+     "Finding",
+     "Constraint",
+     "Further Action"
+    ],
+    "constraintScale": [
+     "High",
+     "Moderate",
+     "Low",
+     "Not Screened"
+    ],
+    "rows": [
+     [
+      "Land Use and Zoning",
+      "Agricultural Cropland (70%) and AG-80 zoning (80%) on the site",
+      "High",
+      "Pre-application meeting; General Plan Amendment and rezone"
+     ],
+     [
+      "Natural Hazards",
+      "46.7 ac (13%) in Zones AE and A",
+      "High",
+      "Site plan outside the floodplain; floodplain permits if filled"
+     ],
+     [
+      "Wetlands and Water",
+      "14.4 ac wetlands (4%) and 1.6 mi of streams on the site",
+      "Moderate",
+      "Aquatic resources delineation"
+     ],
+     [
+      "Infrastructure",
+      "Two transmission lines cross the site (0.3 mi)",
+      "Moderate",
+      "Title and easement review; utility coordination"
+     ],
+     [
+      "Air Quality",
+      "Severe 15 ozone nonattainment",
+      "Moderate",
+      "Early air permit scoping for generators"
+     ],
+     [
+      "Biological Resources",
+      "Listed species ranges on the site; critical habitat 0.9 mi away",
+      "Moderate",
+      "Habitat assessment"
+     ],
+     [
+      "Cultural Resources",
+      "Nearest National Register property 0.8 mi away",
+      "Low",
+      "Records search and survey"
+     ],
+     [
+      "Protected and Special Areas",
+      "Protected land 0.2 mi away; Legal Delta 3.8 mi away",
+      "Low",
+      "None"
+     ],
+     [
+      "Contamination",
+      "No NPL site within 5 mi",
+      "Low",
+      "Phase I ESA"
+     ],
+     [
+      "Community",
+      "Two census tracts on the site",
+      "Low",
+      "Review SVI before outreach"
+     ],
+     [
+      "Soils and Agriculture",
+      "No data for this county yet",
+      "Not Screened",
+      "Manual farmland and Williamson Act check"
+     ]
+    ]
+   },
+   {
+    "sectionID": 4,
+    "key": "critical",
+    "title": "Critical Issues and Further Actions",
+    "issues": [
+     {
+      "rank": 1,
+      "issue": "Entitlement path",
+      "body": "Agricultural general plan and zoning designations cover the whole site. A data center will likely need a General Plan Amendment and rezone, a discretionary process with full CEQA review. This sets the schedule more than any physical constraint.",
+      "action": "Pre-application meeting with Sacramento County Planning before the purchase option deadline."
+     },
+     {
+      "rank": 2,
+      "issue": "Floodplain",
+      "body": "46.7 acres (13%) of the site is in a FEMA Special Flood Hazard Area, mostly Zone AE.",
+      "action": "Survey base flood elevations and lay out buildings outside Zones AE and A."
+     },
+     {
+      "rank": 3,
+      "issue": "Wetlands and streams",
+      "body": "14.4 acres of mapped wetlands and 1.6 miles of streams, including Deer Creek, are on the site. Fill would trigger federal and state permits with long lead times.",
+      "action": "Aquatic resources delineation, then a site plan that avoids them."
+     },
+     {
+      "rank": 4,
+      "issue": "Transmission corridor",
+      "body": "Two lines cross the site. Their easements limit the buildable area; the 230 kV line may also be the interconnection path.",
+      "action": "Title review of easements and an early load study request to the utility."
+     },
+     {
+      "rank": 5,
+      "issue": "Standby generator permitting",
+      "body": "The Severe 15 ozone classification raises the bar for permitting standby generators at the scale a data center needs.",
+      "action": "Air permit scoping with the Sacramento Metropolitan AQMD."
+     }
+    ]
+   }
+  ],
+  "states": {
+   "empty": "No findings report yet.",
+   "emptyBody": "Claude drafts a Critical Issues Assessment from the latest report, in ESA's format: each topic's setting and recommendations, Table 1, and the critical issues. You review and edit it here.",
+   "drafting": "Drafting the findings report…",
+   "draftingHint": "This usually takes a minute or two. The page updates when the draft is ready.",
+   "draftingStartedAt": "2026-11-24T18:04:40.000Z",
+   "failed": "The draft didn't finish.",
+   "stale": "The project has changed since this was drafted.",
+   "staleHint": "It describes an earlier report. Draft it again to use the latest one."
+  },
+  "structureNote": "QA's assessment API exists but no draft was observed (204 for project 4). Sections follow QA's own description: each topic's setting and recommendations, Table 1, and the critical issues; QA's ready-state section tabs are 'Letter' and 'Critical issues and further actions'. Table 1's columns are a proposal."
+ },
+ "deepDive": {
+  "provenance": "agent-reported",
+  "provenanceLabel": "Reported by Agent",
+  "illustrative": true,
+  "illustrativeNote": "Mock findings. Agency facts below are invented for design and must not be read as real research.",
+  "handoff": {
+   "handedOffAt": "2026-11-24T18:11:20.000Z",
+   "handedOffBy": "Andy Lovseth",
+   "agent": "Claude Code",
+   "agentHost": "Andy Lovseth's Mac",
+   "transport": "MCP",
+   "mcpServer": "due-diligence",
+   "toolsUsed": [
+    "get_project",
+    "get_screening_report",
+    "report_findings"
+   ],
+   "instructions": "Look past the screened layers for anything that could stop or delay a data center here: moratoria, utility capacity, recent planning items, water supply, farmland contracts."
+  },
+  "status": "Reported",
+  "reportedAt": "2026-11-24T18:26:47.000Z",
+  "reportedLabel": "Reported Nov 24, 2026, 10:26 AM",
+  "basedOnScreeningRunID": 9,
+  "findings": [
+   {
+    "id": 1,
+    "topic": "Moratoria and Pending Rules",
+    "themeId": 1,
+    "severity": "Low",
+    "finding": "No moratorium on data centers or large electric loads found in Board of Supervisors or Planning Commission agendas from December 2025 to November 2026.",
+    "sources": [
+     {
+      "title": "Sacramento County Board of Supervisors agendas, Dec 2025 to Nov 2026",
+      "kind": "Agenda archive",
+      "readAt": "2026-11-24T18:15:02.000Z"
+     },
+     {
+      "title": "Sacramento County Planning Commission agendas, Dec 2025 to Nov 2026",
+      "kind": "Agenda archive",
+      "readAt": "2026-11-24T18:15:40.000Z"
+     }
+    ],
+    "confidence": "Medium",
+    "verify": false
+   },
+   {
+    "id": 2,
+    "topic": "Utility Capacity",
+    "themeId": 6,
+    "severity": "High",
+    "finding": "The local utility sends new loads over 10 MW to a facility study and publishes no capacity figure for the substations nearest the site. A 300 MW campus would need transmission-level service.",
+    "sources": [
+     {
+      "title": "Utility large-load service guidelines",
+      "kind": "Utility web page",
+      "readAt": "2026-11-24T18:17:33.000Z"
+     },
+     {
+      "title": "Utility integrated resource plan, load growth chapter",
+      "kind": "PDF",
+      "readAt": "2026-11-24T18:19:05.000Z"
+     }
+    ],
+    "confidence": "Medium",
+    "verify": true
+   },
+   {
+    "id": 3,
+    "topic": "Recent Planning Items",
+    "themeId": 1,
+    "severity": "Moderate",
+    "finding": "In October 2026 the Planning Commission continued a hearing on an agricultural-to-industrial rezone for a 140-acre site about 4 mi north of Cottonwood after neighbors raised traffic and farmland concerns.",
+    "sources": [
+     {
+      "title": "Planning Commission minutes, October 2026",
+      "kind": "Minutes",
+      "readAt": "2026-11-24T18:21:12.000Z"
+     }
+    ],
+    "confidence": "High",
+    "verify": true
+   },
+   {
+    "id": 4,
+    "topic": "Water Supply",
+    "themeId": 2,
+    "severity": "Moderate",
+    "finding": "The site overlies the South American Subbasin, which DWR ranks high priority. New groundwater use for cooling would fall under the subbasin's groundwater sustainability plan.",
+    "sources": [
+     {
+      "title": "DWR Bulletin 118 groundwater basin boundaries",
+      "kind": "Dataset",
+      "readAt": "2026-11-24T18:22:48.000Z"
+     },
+     {
+      "title": "South American Subbasin groundwater sustainability plan",
+      "kind": "PDF",
+      "readAt": "2026-11-24T18:23:30.000Z"
+     }
+    ],
+    "confidence": "High",
+    "verify": false
+   },
+   {
+    "id": 5,
+    "topic": "Williamson Act Contracts",
+    "themeId": 5,
+    "severity": "High",
+    "finding": "The county Williamson Act map shows parcel 134-0120-012-0000 (160.1 ac) under contract. Nonrenewal takes nine years; cancellation needs Board findings and a fee.",
+    "sources": [
+     {
+      "title": "Sacramento County Williamson Act contract map",
+      "kind": "Map service",
+      "readAt": "2026-11-24T18:25:10.000Z"
+     }
+    ],
+    "confidence": "Medium",
+    "verify": true
+   }
+  ],
+  "checkedNothingFound": [
+   "County airport land use compatibility plans",
+   "State Water Board GeoTracker and DTSC EnviroStor cases within 1 mi"
+  ]
+ },
+ "enums": {
+  "runStatuses": [
+   {
+    "id": 1,
+    "name": "Queued",
+    "uiText": "Waiting to start…"
+   },
+   {
+    "id": 2,
+    "name": "Running",
+    "uiText": "Measuring every core dataset in each ring…"
+   },
+   {
+    "id": 3,
+    "name": "Complete"
+   },
+   {
+    "id": 4,
+    "name": "Failed",
+    "uiText": "The report didn't finish.",
+    "showsFailureMessage": true
+   }
+  ],
+  "projectTypes": [
+   {
+    "id": 1,
+    "name": "Solar generation"
+   },
+   {
+    "id": 2,
+    "name": "Wind generation"
+   },
+   {
+    "id": 3,
+    "name": "Battery energy storage"
+   },
+   {
+    "id": 4,
+    "name": "Data center"
+   },
+   {
+    "id": 5,
+    "name": "Transmission or substation"
+   },
+   {
+    "id": 6,
+    "name": "Residential or mixed-use development"
+   },
+   {
+    "id": 7,
+    "name": "Industrial or logistics"
+   },
+   {
+    "id": 8,
+    "name": "Water or wastewater infrastructure"
+   },
+   {
+    "id": 9,
+    "name": "Other"
+   }
+  ],
+  "projectStages": [
+   {
+    "id": 1,
+    "name": "Site screening"
+   },
+   {
+    "id": 2,
+    "name": "Acquisition due diligence"
+   },
+   {
+    "id": 3,
+    "name": "Pre-application"
+   },
+   {
+    "id": 4,
+    "name": "Entitlement and permitting"
+   }
+  ],
+  "counties": [
+   {
+    "id": 1,
+    "name": "Umatilla County, OR",
+    "center": [
+     45.59,
+     -118.74
+    ],
+    "defaultZoom": 9,
+    "parcelCount": 45042,
+    "parcelLoadDate": "2026-11-18T23:59:33.67Z"
+   },
+   {
+    "id": 2,
+    "name": "Martin County, FL",
+    "center": [
+     27.08,
+     -80.4
+    ],
+    "defaultZoom": 10,
+    "parcelCount": 97835,
+    "parcelLoadDate": "2026-11-19T00:07:54.16Z"
+   },
+   {
+    "id": 3,
+    "name": "Santa Clara County, CA",
+    "center": [
+     37.23,
+     -121.7
+    ],
+    "defaultZoom": 10,
+    "parcelCount": 496633,
+    "parcelLoadDate": "2026-11-18T23:58:18.143Z"
+   },
+   {
+    "id": 4,
+    "name": "Sacramento County, CA",
+    "center": [
+     38.45,
+     -121.34
+    ],
+    "defaultZoom": 10,
+    "parcelCount": 508143,
+    "parcelLoadDate": "2026-11-19T00:20:19.857Z"
+   }
+  ],
+  "steps": [
+   {
+    "step": 1,
+    "key": "setup",
+    "label": "Project setup",
+    "icon": "map-pin",
+    "badge": "Step 1 of 6",
+    "lockReason": null,
+    "doneWhen": "area defined"
+   },
+   {
+    "step": 2,
+    "key": "proximity",
+    "label": "Proximity",
+    "icon": "target",
+    "badge": "Step 2 of 6",
+    "lockReason": "Define the area first",
+    "doneWhen": "a run exists"
+   },
+   {
+    "step": 3,
+    "key": "report",
+    "label": "Report",
+    "icon": "file-text",
+    "badge": "Step 3 of 6",
+    "lockReason": "Run the report first",
+    "doneWhen": "a run exists"
+   },
+   {
+    "step": 4,
+    "key": "map",
+    "label": "Map",
+    "icon": "layers",
+    "badge": "Step 4 of 6",
+    "lockReason": "Run the report first"
+   },
+   {
+    "step": 5,
+    "key": "deep-dive",
+    "label": "Deep dive",
+    "icon": "search",
+    "badge": "Step 5 of 6",
+    "lockReason": "Coming next",
+    "alwaysLocked": true
+   },
+   {
+    "step": 6,
+    "key": "findings",
+    "label": "Findings report",
+    "badge": "Step 6 of 6",
+    "lockReason": "Run the report first"
+   }
+  ],
+  "proximityOptions": {
+   "projectArea": {
+    "label": "Project area",
+    "detail": "Always measured. What the boundary itself touches."
+   },
+   "distances": [
+    {
+     "miles": 0.25,
+     "label": "¼ mile",
+     "detail": "Adjoining parcels and edge effects."
+    },
+    {
+     "miles": 1,
+     "label": "1 mile",
+     "detail": "Neighborhood context. The widest standard records search in a Phase I site assessment."
+    },
+    {
+     "miles": 5,
+     "label": "5 miles",
+     "detail": "Regional context such as airports, habitat and protected lands."
+    }
+   ],
+   "custom": {
+    "label": "Custom",
+    "detail": "Your own distances, up to four. Another box appears as you fill one in.",
+    "unitHint": "miles, 0.1 to 5",
+    "min": 0.1,
+    "max": 5,
+    "step": 0.05,
+    "maxBoxes": 4,
+    "defaultBoxes": [
+     2,
+     null
+    ]
+   },
+   "presets": [
+    {
+     "label": "Site only",
+     "miles": []
+    },
+    {
+     "label": "Standard",
+     "miles": [
+      0.25,
+      1
+     ]
+    },
+    {
+     "label": "Regional",
+     "miles": [
+      0.25,
+      1,
+      5
+     ]
+    }
+   ],
+   "defaultPreset": "Standard",
+   "maxMiles": 5,
+   "tableHeaders": [
+    "Measured area",
+    "Unique area"
+   ],
+   "rowFormat": "Project area row in acres (sq mi x 640, rounded); ring rows '<a> to <b> mi' in sq mi to 2 decimals; last row 'Total within <max> mi'."
+  },
+  "projectFields": [
+   {
+    "key": "ProjectName",
+    "label": "Project name",
+    "type": "text",
+    "required": true,
+    "minLength": 1,
+    "maxLength": 200
+   },
+   {
+    "key": "CountyID",
+    "label": "Pilot county (New project modal) / County (setup)",
+    "type": "select",
+    "required": true,
+    "options": "counties",
+    "lockedNote": "The county is set by the area. Clear the area to change it."
+   },
+   {
+    "key": "ProjectTypeID",
+    "label": "Project type",
+    "type": "select",
+    "required": true,
+    "options": "projectTypes"
+   },
+   {
+    "key": "ProjectStageID",
+    "label": "Project stage",
+    "type": "select",
+    "required": true,
+    "options": "projectStages",
+    "default": 1
+   },
+   {
+    "key": "Description",
+    "label": "Anything else we should know (optional)",
+    "type": "text",
+    "required": false,
+    "maxLength": 2000
+   }
+  ]
+ },
+ "uiCopy": {
+  "nav": {
+   "lockReasons": {
+    "proximityNoArea": "Define the area first",
+    "reportMapFindingsNoRun": "Run the report first",
+    "deepDive": "Coming next"
+   }
+  },
+  "projects": {
+   "pageTitle": "Projects",
+   "newButton": "New project",
+   "empty": "No projects yet. Create one to define its area in a pilot county and screen it.",
+   "noArea": "No area yet",
+   "cardLabels": [
+    "Area",
+    "Stage",
+    "Created by",
+    "Created"
+   ],
+   "newModal": {
+    "title": "New project",
+    "submit": "Create project",
+    "cancel": "Cancel"
+   },
+   "notFound": "There is no project at this address.",
+   "notFoundLink": "Back to projects",
+   "notFoundTitle": "Project not found"
+  },
+  "setup": {
+   "pageTitle": "Project setup",
+   "continue": "Continue to proximity",
+   "areaCardTitle": "Project area",
+   "areaBadges": [
+    "Editing",
+    "Defined",
+    "Not defined"
+   ],
+   "countyLine": "<County> · <N> parcels loaded <M/D/YYYY>",
+   "addressPlaceholder": "Find an address, e.g. 700 H St",
+   "find": "Find",
+   "searching": "Searching…",
+   "otherCounty": "In <County or 'another county'>, not <this county>",
+   "mapControls": [
+    "Imagery"
+   ],
+   "actions": [
+    "Draw area",
+    "Select parcels",
+    "Upload boundary file",
+    "Use sample area",
+    "Redraw",
+    "Clear area",
+    "Save area",
+    "Cancel"
+   ],
+   "drawHint": "Click the map to add corners. Click the first corner or press Enter to close the shape.",
+   "parcelHint": "Click parcels to add or remove them.",
+   "zoomHint": "Zoom in to see parcels.",
+   "addParcel": "Add this parcel to the area",
+   "addParcelBlocked": "Save or cancel the area you're editing before adding a parcel to it.",
+   "close": "Close",
+   "uploadHint": "Upload takes GeoJSON, KML, or a zipped Shapefile or File Geodatabase.",
+   "acceptedFiles": ".zip,.geojson,.json,.kml",
+   "countyLocked": "The county is set by the area. Clear the area to change it.",
+   "detailsTitle": "Project details",
+   "saveDetails": "Save details"
+  },
+  "proximity": {
+   "pageTitle": "Proximity",
+   "back": "Back",
+   "run": "Run report",
+   "question": "How far out should the report look?",
+   "intro": "Pick one or more distances from the project boundary. Each distance makes a ring, shaped like a donut, that starts where the ring inside it stops, so nothing is counted twice. The report measures every core dataset in each ring and adds a total. Five miles is the largest distance offered.",
+   "presetLead": "Start from a preset:",
+   "measuredHeading": "What will be measured",
+   "loadingCell": "…",
+   "totalRow": "Total within <max> mi"
+  },
+  "report": {
+   "pageTitle": "Report",
+   "actions": [
+    "Change distances",
+    "Run again",
+    "Map",
+    "Findings report",
+    "Print"
+   ],
+   "facts": "<acres> acres · <County> · <Project type> · Screened out to <max> · <N> layers checked",
+   "runLabel": "Run <Mon D, YYYY, h:mm AM> by <name>",
+   "queued": "Waiting to start…",
+   "running": "Measuring every core dataset in each ring…",
+   "runningHint": "This usually takes under a minute. The page updates when the report is ready.",
+   "failed": "The report didn't finish.",
+   "failedShows": "Run.FailureMessage",
+   "stale": "The project area has changed since this report ran.",
+   "staleHint": "These results describe the earlier area. Run the report again to measure the current one.",
+   "summaryHeading": "Screening summary",
+   "summarySentenceMulti": "<on> of the <screened> screened layers touch the site, <nearby> more first show up within <max> and <none> were not found.",
+   "summarySentenceSiteOnly": "<on> of the <screened> screened layers touch the site and <none> do not.",
+   "summaryPriority": " Listed first for <project type lowercase>: <theme, theme, theme>.",
+   "noteNoData": "<N> layer has / layers have no data for this county yet: <names>.",
+   "noteNotApplicable": "<N> layer covers / layers cover other states only and doesn't / don't apply in <County>: <names>.",
+   "tallyTip": "<label>: <count>. Select to see them in the table",
+   "tallyAria": "<label>: <count> layers. Show them in the table",
+   "onSiteHeading": "On the site",
+   "nearbyHeading": "Nearby, nearest first",
+   "notFoundHeading": "Not found within <max> (site only: Not on the site)",
+   "emptyOnSite": "Nothing screened touches the site.",
+   "emptyNearby": "Nothing first shows up in the rings.",
+   "emptyNotFound": "Every screened layer was found.",
+   "moreInTable": "and <N> more in the table",
+   "listMax": 8,
+   "themeSummariesHeading": "Theme summaries",
+   "themeSquaresLead": "Each square is a layer, coloured by where it first shows up:",
+   "themeOnSite": "<n> of <m> on the site",
+   "themeNoData": "None of this theme's layers have data for this county yet.",
+   "themeNotApplicable": "Not applicable in this county",
+   "themeTopFigures": 3,
+   "compositionLegendMore": "+ <N> more in the table",
+   "compositionLegendMax": 8,
+   "compositionRows": [
+    "Site",
+    "Within <max>"
+   ],
+   "compositionTip": "<class>: <pct>% (<quantity>)",
+   "tableIntro": "One row per layer. A ring counts only what falls inside it, and the shaded cell is where the layer first shows up. Polygons are acres covered, with overlapping shapes merged; lines are miles; points are a count. Open a layer for its classes, nearest features and source.",
+   "tableControls": {
+    "showLayers": "Show layers",
+    "groupBy": "Group by",
+    "groupOptions": [
+     "Theme",
+     "Distance"
+    ],
+    "columns": [
+     "Layer",
+     "Finding"
+    ],
+    "classColumn": "Class",
+    "noMatch": "No layers match."
+   },
+   "cellTouches": "touches",
+   "unnamedFeature": "Unnamed",
+   "legendHeading": "What the colours mean",
+   "chartAria": "Screened layers by where they first show up",
+   "states": {
+    "on_site": {
+     "label": "On the site",
+     "shade": "pk0",
+     "finding": "<qty>, <pct> of the site[, mostly <top class>] (polygons) or <qty> on the site[, mostly <class>]",
+     "short": "<pct> of site | <qty>",
+     "pctUnder": "under 1%"
+    },
+    "within_ring": {
+     "label": "First found <band> out",
+     "chip": "First found <band>",
+     "shade": "pk<ring 1-4>",
+     "finding": "Nearest is <d> from the boundary",
+     "distanceFormat": "<0.1 mi: 2 decimals, else 1 decimal, 0 = 'on the site'"
+    },
+    "not_found": {
+     "label": "Not found within <max>",
+     "siteOnlyLabel": "Not on the site",
+     "caption": "Not found",
+     "shade": "pkn",
+     "finding": "None within <max>",
+     "short": "None"
+    },
+    "no_data_for_county": {
+     "chip": "No data yet",
+     "legend": "No data for this county yet",
+     "shade": "pkx",
+     "finding": "No data for this county yet",
+     "short": "No data"
+    },
+    "not_applicable": {
+     "chip": "Not applicable",
+     "legend": "Doesn't apply in this state",
+     "shade": "pkna",
+     "finding": "Covers <states> only (or: Doesn't cover this county)",
+     "short": "Not applicable"
+    }
+   },
+   "sourceLine": "<agency> · loaded <Mon D, YYYY> · updated <frequency lowercase>"
+  },
+  "map": {
+   "pageTitle": "Map",
+   "notFinished": "The latest report hasn't finished.",
+   "notFinishedHint": "The map shows a run once it's measured. Follow it on the Report.",
+   "loading": "Loading…",
+   "noLayers": "No datasets reach this far.",
+   "layersHeading": "Layers",
+   "layersNote": "Only datasets that reach the report's largest distance are listed. The map shows the data loaded now; if a dataset has been reloaded since the report ran, it may differ from what the report counted.",
+   "zoomTo": "Zoom to:",
+   "truncated": "<layer>: first <N> features shown",
+   "ringsLabel": "Distance rings (<d1>, <d2>, ...)"
+  },
+  "deepDive": {
+   "navLabel": "Deep dive",
+   "lockReason": "Coming next"
+  },
+  "findingsReport": {
+   "pageTitle": "Findings report",
+   "empty": "No findings report yet.",
+   "emptyBody": "Claude drafts a Critical Issues Assessment from the latest report, in ESA's format: each topic's setting and recommendations, Table 1, and the critical issues. You review and edit it here.",
+   "draftButton": "Draft findings report",
+   "draftModal": {
+    "title": "Draft findings report",
+    "body": "Claude drafts a Critical Issues Assessment from the latest report: each topic's setting and recommendations, Table 1 and the critical issues. It takes a minute or two. Review and edit everything before it goes to the client.",
+    "submit": "Draft",
+    "cancel": "Cancel"
+   },
+   "drafting": "Drafting the findings report…",
+   "draftingHint": "This usually takes a minute or two. The page updates when the draft is ready.",
+   "failed": "The draft didn't finish.",
+   "stale": "The project has changed since this was drafted.",
+   "staleHint": "It describes an earlier report. Draft it again to use the latest one.",
+   "ready": {
+    "badge": "Generated draft · review before sending",
+    "actions": [
+     "Draft again",
+     "Download Word",
+     "Download PDF",
+     "Report"
+    ],
+    "byline": "Drafted <date, time> by <name>[ · edited <date, time> by <name>]",
+    "unsaved": "Unsaved changes",
+    "save": "Save",
+    "sections": [
+     "Letter",
+     "Critical issues and further actions"
+    ],
+    "figureLoadError": "The <figure> figure didn't load.",
+    "figureDrawError": "The <figure> figure didn't finish drawing."
+   }
+  },
+  "toasts": {
+   "note": "No Due Diligence specific toasts in the bundle. Generic app toasts: 'The page you are trying to access was not found, or you do not have permission to view it.' (info); 'There was an error authorizing with the application. The application will force log you out in 3 seconds, please try to login again.' (danger); API errors surface the server's error text as a danger toast. Admin data-load toasts: '<Source>: load queued for <County>.' and '<N> loads queued for <County>. The worker runs them one at a time.' and '<County>: parcel load queued. It runs on the worker and takes a few minutes.'"
+  }
+ }
+}

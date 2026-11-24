@@ -1,0 +1,526 @@
+---
+// DdGeoPanel: the floating Layers / Legend panel on the Geospatial map.
+// Layers: live search, status filter, the theme tree (tri-state theme boxes,
+// layer boxes, status dots, short values), the selected row's Opacity slider
+// and info button. Legend: one group per visible layer.
+//
+// bcn-lego-checked: the tab header is a two-button tablist rather than
+// esa-tab-layout because that lego's tab badge is a brand-solid fill with no
+// --badge-* hook (the house count is the quiet DdCountBadge) and it has no
+// trailing slot for the panel's collapse button. The layer name is a plain
+// button so a click selects the row without toggling the esa-checkbox beside
+// it (esa-checkbox's own label toggles). Controls are esa-text-field,
+// esa-button-toggle, esa-checkbox, esa-range-slider, esa-badge, DdIconButton.
+import DdIcon from '../common/DdIcon.astro';
+import DdIconButton from '../common/DdIconButton.astro';
+import DdCountBadge from '../common/DdCountBadge.astro';
+import EsaBadge from '@esa/ecology/esa-badge.astro';
+import { themes, layersForTheme, layers, run } from '../../data/dd';
+import { milesLabel } from '../../lib/dd-store';
+import {
+  DEFAULT_VISIBLE, LAYER_DRAW, RELOADED, RELOADED_TIP, defaultOpacity, hasData,
+  rowValue, statusGroup, type LegendItem,
+} from './geo-config';
+
+interface Props {
+  /** Themes open at load (ids). */
+  expanded?: number[];
+  /** Selected layer at load. */
+  selected?: number;
+}
+const { expanded = [6, 2, 5], selected = 10 } = Astro.props;
+
+const visible = new Set(DEFAULT_VISIBLE);
+const themeState = (themeId: number) => {
+  const ls = layersForTheme(themeId).filter(hasData);
+  const on = ls.filter((l) => visible.has(l.id)).length;
+  return { all: ls.length > 0 && on === ls.length, some: on > 0 && on < ls.length, none: ls.length === 0 };
+};
+
+const ringItems: LegendItem[] = run.miles.map((m, i) => ({
+  label: milesLabel(m),
+  color: i === 0 ? 'var(--dd-data-nearby)' : 'var(--dd-data-nearby-far)',
+  swatch: 'line',
+}));
+const legendLayers = themes.flatMap((t) => layersForTheme(t.id)).filter(hasData);
+---
+<section class="geo-panel" data-geo-panel aria-label="Layers">
+  <header class="geo-panel__head">
+    <div class="geo-panel__tabs" role="tablist">
+      <button type="button" role="tab" class="geo-panel__tab dd-t-14-medium" aria-selected="true" data-tab="layers">Layers</button>
+      <button type="button" role="tab" class="geo-panel__tab dd-t-14-medium" aria-selected="false" data-tab="legend">
+        Legend <span data-legend-count><DdCountBadge value={visible.size} label="Layers shown" /></span>
+      </button>
+    </div>
+    <DdIconButton icon="panel-left" label="Hide Panel" size="sm" data-panel-collapse />
+  </header>
+
+  <div class="geo-panel__body" data-tabpanel="layers">
+    <div class="geo-panel__tools">
+      <div class="geo-panel__search">
+        <span class="geo-panel__search-icon"><DdIcon name="search" size="sm" /></span>
+        <esa-text-field size="sm" prefix=" " placeholder={`Search ${layers.length} Layers`} aria-label="Search Layers" data-layer-search></esa-text-field>
+      </div>
+      <esa-button-toggle class="geo-panel__filter" size="xs" value="all" aria-label="Filter by Status" data-status-filter></esa-button-toggle>
+    </div>
+
+    <div class="geo-panel__tree" data-tree>
+      {themes.map((t) => {
+        const ts = themeState(t.id);
+        const open = expanded.includes(t.id);
+        return (
+          <div class="geo-theme" data-theme={t.id} data-open={open ? '' : undefined}>
+            <div class="geo-theme__row">
+              <DdIconButton icon="chevron-right" label={`Expand ${t.name}`} size="sm" class="geo-theme__chev" aria-expanded={String(open)} data-theme-toggle />
+              <esa-checkbox size="sm" aria-label={`Show ${t.name}`} checked={ts.all || undefined} indeterminate={ts.some || undefined} disabled={ts.none || undefined} data-theme-check></esa-checkbox>
+              <button type="button" class="geo-theme__name dd-t-13-medium" data-theme-toggle>{t.name}</button>
+              <DdCountBadge value={t.layerCount} label="Layers" />
+            </div>
+            <ul class="geo-theme__layers">
+              {layersForTheme(t.id).map((l) => {
+                const data = hasData(l);
+                const value = rowValue(l);
+                const sel = l.id === selected;
+                return (
+                  <li class="geo-layer" data-layer={l.id} data-group={statusGroup(l.result.status)} data-name={l.name.toLowerCase()} data-selected={sel ? '' : undefined}>
+                    <div class="geo-layer__row">
+                      <esa-checkbox size="sm" aria-label={`Show ${l.name}`} checked={(data && visible.has(l.id)) || undefined} disabled={!data || undefined} data-layer-check></esa-checkbox>
+                      <span class:list={['geo-dot', `geo-dot--${statusGroup(l.result.status)}`, { 'geo-dot--far': l.result.status === 'within_ring_2' || l.result.status === 'within_ring_3' }]} aria-hidden="true"></span>
+                      <button type="button" class="geo-layer__name dd-t-13" disabled={!data || undefined} data-layer-select>{l.name}</button>
+                      {RELOADED[l.id] && (
+                        <span class="geo-layer__reload" tabindex="0" role="img" aria-label={RELOADED_TIP} data-reload-tip={RELOADED_TIP}><DdIcon name="refresh-cw" size="xs" /></span>
+                      )}
+                      {data ? (
+                        <span class="geo-layer__value dd-t-13" data-value>{value}</span>
+                      ) : (
+                        <span class="geo-layer__nodata"><EsaBadge value="No Data Yet" size="xs" /></span>
+                      )}
+                      <span class="geo-layer__spin" aria-hidden="true"><DdIcon name="loader-circle" size="xs" /></span>
+                      {data && <DdIconButton icon="info" label={`About ${l.name}`} size="sm" class="geo-layer__info" data-layer-info />}
+                    </div>
+                    {data && (
+                      <div class="geo-layer__opacity">
+                        <span class="dd-t-13">Opacity</span>
+                        <esa-range-slider size="xs" show-value="false" min="0" max="100" step="5" value={String(defaultOpacity(l))} aria-label={`${l.name} Opacity`} data-opacity></esa-range-slider>
+                        <span class="geo-layer__pct dd-t-13" data-opacity-value>{defaultOpacity(l)}%</span>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      })}
+      <p class="geo-panel__empty dd-t-13" data-tree-empty hidden>No layers match.</p>
+    </div>
+  </div>
+
+  <div class="geo-panel__body geo-legend" data-tabpanel="legend" hidden>
+    <div class="geo-legend__group">
+      <h3 class="dd-t-12-strong">Site</h3>
+      <ul class="geo-legend__items">
+        <li class="dd-t-12"><span class="geo-swatch geo-swatch--fill" style="--c: var(--dd-data-on-site)"></span>Cottonwood</li>
+        {ringItems.map((it) => (
+          <li class="dd-t-12"><span class={`geo-swatch geo-swatch--${it.swatch}`} style={`--c: ${it.color}`}></span>{it.label}</li>
+        ))}
+      </ul>
+    </div>
+    {legendLayers.map((l) => (
+      <div class="geo-legend__group" data-legend-layer={l.id} hidden={!visible.has(l.id) || undefined}>
+        <h3 class="dd-t-12-strong">{l.name}</h3>
+        <ul class="geo-legend__items">
+          {(LAYER_DRAW[l.id]?.legend ?? []).map((it) => (
+            <li class="dd-t-12"><span class={`geo-swatch geo-swatch--${it.swatch}`} style={`--c: ${it.color}`}></span>{it.label}</li>
+          ))}
+          {!LAYER_DRAW[l.id] && <li class="dd-t-12 geo-legend__none">None Within {milesLabel(run.miles[run.miles.length - 1])}</li>}
+        </ul>
+      </div>
+    ))}
+  </div>
+</section>
+
+<button type="button" class="geo-panel-open" aria-label="Show Layers" data-panel-open hidden>
+  <DdIcon name="layers" size="sm" />
+  <span class="dd-t-14-medium">Layers</span>
+</button>
+
+<style>
+  .geo-panel {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    bottom: 82px;
+    width: 370px;
+    display: flex;
+    flex-direction: column;
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+    box-shadow: var(--dd-shadow-popover);
+    color: var(--dd-text);
+    z-index: 3;
+    overflow: hidden;
+  }
+  .geo-panel[hidden] { display: none; }
+  .geo-panel__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px 0 16px;
+    border-bottom: 1px solid var(--dd-border-subtle);
+    color: var(--dd-text-muted);
+  }
+  .geo-panel__tabs { display: flex; gap: 20px; }
+  .geo-panel__tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 46px;
+    padding: 0;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: var(--dd-text-muted);
+    cursor: pointer;
+  }
+  .geo-panel__tab[aria-selected='true'] { color: var(--dd-text); border-bottom-color: var(--dd-brand-solid); }
+  .geo-panel__tab:focus-visible { outline: 2px solid var(--dd-focus-ring); outline-offset: -2px; }
+
+  .geo-panel__body { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+  .geo-panel__body[hidden] { display: none; }
+  .geo-panel__tools {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 12px 10px;
+    border-bottom: 1px solid var(--dd-border-subtle);
+  }
+  .geo-panel__search { position: relative; }
+  .geo-panel__search esa-text-field {
+    display: block;
+    --form-affix-bg: transparent;
+    --form-affix-border-color: transparent;
+  }
+  .geo-panel__search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--dd-text-subtle);
+    pointer-events: none;
+    z-index: 1;
+    display: inline-flex;
+  }
+  .geo-panel__filter {
+    --color-content-brand: var(--dd-text);
+    --spacing-200: 6px;
+    --spacing-150: 4px;
+  }
+
+  .geo-panel__tree {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 6px 4px 10px;
+  }
+  .geo-panel__empty { margin: 16px 12px; color: var(--dd-text-muted); }
+
+  .geo-theme__row,
+  .geo-layer__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 30px;
+    padding: 0 4px;
+    border-radius: 6px;
+  }
+  .geo-theme__row :global(.geo-theme__chev) { width: 20px; height: 20px; color: var(--dd-text-subtle); margin-right: -2px; }
+  .geo-theme__row :global(.geo-theme__chev svg) { transition: transform 120ms ease; }
+  .geo-theme[data-open] .geo-theme__row :global(.geo-theme__chev svg) { transform: rotate(90deg); }
+  .geo-theme__name {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--dd-text);
+    text-align: left;
+    cursor: pointer;
+  }
+  .geo-theme__layers { list-style: none; margin: 0; padding: 0; display: none; }
+  .geo-theme[data-open] .geo-theme__layers { display: block; }
+  .geo-theme[hidden], .geo-layer[hidden] { display: none; }
+
+  .geo-layer__row { padding-left: 30px; gap: 0; }
+  .geo-layer__row esa-checkbox { margin-right: 10px; }
+  .geo-layer:hover > .geo-layer__row { background: var(--dd-surface-hover); }
+  .geo-layer[data-selected] > .geo-layer__row,
+  .geo-layer[data-selected] > .geo-layer__opacity { background: var(--dd-surface-hover); }
+  .geo-layer[data-selected] > .geo-layer__row { border-radius: 6px 6px 0 0; }
+  .geo-layer[data-selected] > .geo-layer__opacity { border-radius: 0 0 6px 6px; }
+
+  .geo-dot {
+    width: 6px;
+    height: 6px;
+    margin-right: 8px;
+    border-radius: 50%;
+    flex: none;
+    box-sizing: border-box;
+  }
+  .geo-dot--on_site { background: var(--dd-data-on-site); }
+  .geo-dot--nearby { background: var(--dd-data-nearby); }
+  .geo-dot--nearby.geo-dot--far { background: var(--dd-data-nearby-far); }
+  .geo-dot--not_found { border: 1.5px solid var(--dd-text-subtle); }
+  .geo-dot--no_data { border: 1.5px dotted var(--dd-text-subtle); }
+
+  .geo-layer__name {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--dd-text);
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+  }
+  .geo-layer__name:disabled { color: var(--dd-text-subtle); cursor: default; }
+  .geo-layer__reload { display: inline-flex; margin: 0 6px 0 4px; color: var(--dd-text-muted); cursor: default; }
+  .geo-layer__value { color: var(--dd-text-muted); white-space: nowrap; }
+  .geo-layer__nodata {
+    display: inline-flex;
+    --badge-bg: transparent;
+    --badge-border-color: var(--dd-border);
+    --badge-text-color: var(--dd-text-muted);
+  }
+  .geo-layer__nodata :global(.esa-badge) { font: 400 12px/16px var(--dd-font-sans); border: 1px solid var(--dd-border); padding: 1px 6px; border-radius: 4px; }
+  .geo-layer__row :global(.geo-layer__info) { display: none; width: 22px; height: 22px; margin-left: 4px; margin-right: -2px; color: var(--dd-text); }
+  .geo-layer[data-selected] .geo-layer__row :global(.geo-layer__info),
+  .geo-layer:hover .geo-layer__row :global(.geo-layer__info) { display: inline-flex; }
+  .geo-layer__spin { display: none; color: var(--dd-text-muted); }
+  .geo-layer[data-loading] .geo-layer__spin { display: inline-flex; animation: geo-spin 900ms linear infinite; }
+  .geo-layer[data-loading] .geo-layer__value,
+  .geo-layer[data-loading] .geo-layer__reload { display: none; }
+  @keyframes geo-spin { to { transform: rotate(360deg); } }
+
+  .geo-layer__opacity {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 0 8px 6px 56px;
+    color: var(--dd-text-muted);
+  }
+  .geo-layer[data-selected] > .geo-layer__opacity { display: flex; }
+  .geo-layer__opacity esa-range-slider { flex: 1; }
+  .geo-layer__pct { width: 36px; text-align: right; }
+
+  .geo-legend { overflow-y: auto; padding: 16px; gap: 16px; }
+  .geo-legend__group[hidden] { display: none; }
+  .geo-legend h3 { margin: 0 0 6px; color: var(--dd-text); }
+  .geo-legend__items { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  .geo-legend__items li { display: inline-flex; align-items: center; gap: 6px; color: var(--dd-text); }
+  .geo-legend__none { color: var(--dd-text-muted); }
+  .geo-swatch { flex: none; box-sizing: border-box; }
+  .geo-swatch--fill { width: 14px; height: 10px; border-radius: 2px; background: color-mix(in srgb, var(--c) 70%, transparent); border: 1px solid var(--c); }
+  .geo-swatch--outline { width: 14px; height: 10px; border-radius: 2px; border: 1.5px dashed var(--c); }
+  .geo-swatch--line { width: 14px; height: 0; border-top: 2px solid var(--c); }
+  .geo-swatch--dash { width: 14px; height: 0; border-top: 2px dashed var(--c); }
+  .geo-swatch--point { width: 8px; height: 8px; border-radius: 50%; background: var(--c); margin: 0 3px; }
+
+  .geo-panel-open {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 14px 0 12px;
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+    box-shadow: var(--dd-shadow-popover);
+    color: var(--dd-text);
+    cursor: pointer;
+  }
+  .geo-panel-open[hidden] { display: none; }
+</style>
+
+<script>
+  import '@esa/ecology/esa-text-field';
+  import '@esa/ecology/esa-button-toggle';
+  import '@esa/ecology/esa-checkbox';
+  import '@esa/ecology/esa-range-slider';
+  import { clientLayers } from './geo-config';
+  import { geo, onGeo, setGeo, setVisible, setOpacity, requestGeo, type GeoState } from './geo-store';
+
+  type Toggle = HTMLElement & { options: { label: string; value: string; icon?: string }[]; value: string };
+  type Check = HTMLElement & { checked: boolean; indeterminate: boolean; disabled: boolean };
+  type Slider = HTMLElement & { value: number };
+
+  const panel = document.querySelector<HTMLElement>('[data-geo-panel]');
+  if (panel) {
+    const dotSvg = (color: string, hollow = false, dotted = false): string =>
+      hollow
+        ? `<circle cx="12" cy="12" r="4.5" style="fill:none;stroke:var(--dd-text-subtle);stroke-width:2.5${dotted ? ';stroke-dasharray:2 2.5' : ''}"/>`
+        : `<circle cx="12" cy="12" r="5" style="fill:${color};stroke:none"/>`;
+
+    // ---- Status filter -----------------------------------------------------
+    const filter = panel.querySelector<Toggle>('[data-status-filter]');
+    if (filter) {
+      filter.options = [
+        { label: 'All', value: 'all' },
+        { label: 'On Site', value: 'on_site', icon: dotSvg('var(--dd-data-on-site)') },
+        { label: 'Nearby', value: 'nearby', icon: dotSvg('var(--dd-data-nearby)') },
+        { label: 'Not Found', value: 'not_found', icon: dotSvg('', true) },
+        { label: 'No Data Yet', value: 'no_data', icon: dotSvg('', true, true) },
+      ];
+    }
+
+    const search = panel.querySelector<HTMLElement & { value: string }>('[data-layer-search]');
+    const themesEls = [...panel.querySelectorAll<HTMLElement>('[data-theme]')];
+    const layerEls = [...panel.querySelectorAll<HTMLElement>('[data-layer]')];
+    const empty = panel.querySelector<HTMLElement>('[data-tree-empty]');
+
+    const applyFilter = (): void => {
+      const q = (search?.value ?? '').trim().toLowerCase();
+      const group = filter?.value ?? 'all';
+      const filtering = q !== '' || group !== 'all';
+      let shown = 0;
+      themesEls.forEach((t) => {
+        const rows = [...t.querySelectorAll<HTMLElement>('[data-layer]')];
+        let any = false;
+        rows.forEach((r) => {
+          const match = (!q || (r.dataset.name ?? '').includes(q)) && (group === 'all' || r.dataset.group === group);
+          r.hidden = !match;
+          if (match) any = true;
+        });
+        t.hidden = filtering && !any;
+        t.toggleAttribute('data-filtering', filtering);
+        if (filtering && any) setOpen(t, true, false);
+        if (any) shown++;
+      });
+      if (empty) empty.hidden = shown > 0;
+    };
+    search?.addEventListener('change', applyFilter);
+    filter?.addEventListener('change', applyFilter);
+
+    // ---- Expand / collapse ---------------------------------------------------
+    function setOpen(t: HTMLElement, open: boolean, user = true): void {
+      t.toggleAttribute('data-open', open);
+      t.querySelector('.geo-theme__chev')?.setAttribute('aria-expanded', String(open));
+      if (user) t.dataset.userOpen = open ? '1' : '0';
+    }
+    themesEls.forEach((t) => {
+      t.querySelectorAll('[data-theme-toggle]').forEach((b) =>
+        b.addEventListener('click', () => setOpen(t, !t.hasAttribute('data-open'))),
+      );
+    });
+
+    // ---- Visibility ------------------------------------------------------------
+    const layerIdsOf = (t: HTMLElement): number[] =>
+      [...t.querySelectorAll<HTMLElement>('[data-layer]')]
+        .map((r) => Number(r.dataset.layer))
+        .filter((id) => clientLayers.find((l) => l.id === id)?.hasData);
+
+    layerEls.forEach((row) => {
+      const id = Number(row.dataset.layer);
+      row.querySelector('[data-layer-check]')?.addEventListener('change', (e) => {
+        setVisible([id], (e as CustomEvent<{ checked: boolean }>).detail.checked);
+      });
+      row.querySelector('[data-layer-select]')?.addEventListener('click', () => {
+        setGeo({ selected: geo().selected === id ? null : id });
+      });
+      row.querySelector('[data-layer-info]')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (geo().selected !== id) setGeo({ selected: id });
+        requestGeo({ kind: 'info', id, anchor: row.getBoundingClientRect() });
+      });
+      const slider = row.querySelector<Slider>('[data-opacity]');
+      slider?.addEventListener('change', (e) => setOpacity(id, (e as CustomEvent<{ value: number }>).detail.value));
+      const tip = row.querySelector<HTMLElement>('[data-reload-tip]');
+      if (tip) {
+        const show = (): void => requestGeo({ kind: 'tip', text: tip.dataset.reloadTip ?? '', anchor: tip.getBoundingClientRect() });
+        const hide = (): void => requestGeo({ kind: 'close-floaters' });
+        tip.addEventListener('mouseenter', show);
+        tip.addEventListener('focus', show);
+        tip.addEventListener('mouseleave', hide);
+        tip.addEventListener('blur', hide);
+      }
+    });
+
+    themesEls.forEach((t) => {
+      t.querySelector('[data-theme-check]')?.addEventListener('change', () => {
+        const ids = layerIdsOf(t);
+        const allOn = ids.every((id) => geo().visible.includes(id));
+        setVisible(ids, !allOn);
+      });
+    });
+
+    const countEl = panel.querySelector<HTMLElement>('[data-legend-count] .esa-badge__text');
+    const legendGroups = [...panel.querySelectorAll<HTMLElement>('[data-legend-layer]')];
+
+    const render = (s: GeoState): void => {
+      const vis = new Set(s.visible);
+      layerEls.forEach((row) => {
+        const id = Number(row.dataset.layer);
+        const cb = row.querySelector<Check>('[data-layer-check]');
+        if (cb && !cb.disabled) cb.checked = vis.has(id);
+        row.toggleAttribute('data-selected', s.selected === id);
+        row.toggleAttribute('data-loading', s.loading && vis.has(id));
+        const slider = row.querySelector<Slider>('[data-opacity]');
+        const pct = row.querySelector<HTMLElement>('[data-opacity-value]');
+        const v = s.opacity[id];
+        if (slider && v !== undefined && slider.value !== v) slider.value = v;
+        if (pct && v !== undefined) pct.textContent = `${v}%`;
+      });
+      themesEls.forEach((t) => {
+        const cb = t.querySelector<Check>('[data-theme-check]');
+        const ids = layerIdsOf(t);
+        if (!cb || ids.length === 0) return;
+        const on = ids.filter((id) => vis.has(id)).length;
+        cb.checked = on === ids.length;
+        cb.indeterminate = on > 0 && on < ids.length;
+      });
+      if (countEl) countEl.textContent = String(s.visible.length);
+      legendGroups.forEach((g) => { g.hidden = !vis.has(Number(g.dataset.legendLayer)); });
+    };
+    onGeo(render);
+    render(geo());
+
+    // ---- Tabs --------------------------------------------------------------------
+    const tabs = [...panel.querySelectorAll<HTMLButtonElement>('[data-tab]')];
+    const select = (name: string): void => {
+      tabs.forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
+      panel.querySelectorAll<HTMLElement>('[data-tabpanel]').forEach((p) => { p.hidden = p.dataset.tabpanel !== name; });
+      requestGeo({ kind: 'close-floaters' });
+    };
+    tabs.forEach((b, i) => {
+      b.addEventListener('click', () => select(b.dataset.tab ?? 'layers'));
+      b.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+        const next = tabs[(i + 1) % tabs.length];
+        select(next.dataset.tab ?? 'layers');
+        next.focus();
+      });
+    });
+
+    // ---- Collapse ------------------------------------------------------------------
+    const opener = document.querySelector<HTMLButtonElement>('[data-panel-open]');
+    panel.querySelector('[data-panel-collapse]')?.addEventListener('click', () => {
+      panel.hidden = true;
+      if (opener) { opener.hidden = false; opener.focus(); }
+      requestGeo({ kind: 'close-floaters' });
+    });
+    opener?.addEventListener('click', () => {
+      panel.hidden = false;
+      opener.hidden = true;
+    });
+
+    panel.querySelector('[data-tree]')?.addEventListener('scroll', () => requestGeo({ kind: 'close-floaters' }), { passive: true });
+  }
+</script>

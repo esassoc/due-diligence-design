@@ -1,0 +1,456 @@
+---
+// DdProfileLayerTable: All Layers. Group By Theme or Distance, status filter
+// chips with counts, and a row per layer: name + source agency, the finding,
+// then one cell per ring. Rows expand to classes by ring, nearest named
+// features and the source line.
+//
+// bcn-lego-checked: no esa-* data table lego exists; the ring cells are a
+// coloured matrix (on-site coral, first-found cobalt, lane tints) that a plain
+// table cannot span the Not Found / No Data bars across. Built as a CSS grid
+// with one column per ring from the data (repeat(--cols)), so 2 to 6 rings fit.
+// Chips are esa-button; the grouping control is esa-button-toggle; row and
+// group toggles are DdIconButton.
+import DdIcon from '../common/DdIcon.astro';
+import DdIconButton from '../common/DdIconButton.astro';
+import DdCountBadge from '../common/DdCountBadge.astro';
+import EsaButton from '@esa/ecology/esa-button.astro';
+import {
+  themes, layersForTheme, rings, outerRings, filterChips, statusKey, firstRing, legendLabel,
+  chipLabel, sourceLine, byNearest, type Layer,
+} from './profile-model';
+
+const cols = rings.length;
+const R = outerRings.length;
+const CLASS_LIMIT = 6;
+
+const ordered: Layer[] = themes.flatMap((t) => [...layersForTheme(t.id)].sort(byNearest));
+const total = ordered.length;
+
+const DIST_KEYS = ['0', ...outerRings.map((r) => String(r.ringIndex)), 'none', 'nodata', 'na'];
+// Every distance group renders; empty ones hide (the measured rings decide which have rows).
+const distGroups = DIST_KEYS
+  .map((k) => ({ key: k, label: chipLabel(k), count: ordered.filter((l) => statusKey(l.result.status) === k).length }));
+
+const headCls = (i: number): string => (i === 0 ? 'site' : i === 1 ? 'near' : 'far');
+const swatch = (key: string | null): string =>
+  key === null ? '' : key === '0' ? 'site' : key === '1' ? 'near' : /^\d$/.test(key) ? 'far' : key;
+
+function cellClass(l: Layer, i: number): string {
+  const r = firstRing(l);
+  if (r === null || i < r) return 'empty';
+  if (i === r) return r === 0 ? 'first-site' : r === 1 ? 'first-near' : 'first-far';
+  return r === 0 ? 'tint-site' : 'tint-near';
+}
+
+const notFoundLabel = chipLabel('none');
+const noDataLabel = legendLabel('pkx');
+const naLabel = legendLabel('pkna');
+const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
+---
+<section class="dd-layers" id="dd-layers" data-profile-results aria-labelledby="dd-layers-title">
+  <div class="dd-layers__top">
+    <div class="dd-layers__headline">
+      <h2 id="dd-layers-title" class="dd-t-display-20">All Layers</h2>
+      <DdCountBadge value={total} />
+      <span class="dd-layers__groupby">
+        <span class="dd-t-13 dd-muted">Group By</span>
+        <esa-button-toggle size="sm" value="theme" aria-label="Group By" data-groupby></esa-button-toggle>
+      </span>
+    </div>
+
+    <div class="dd-layers__chips" role="group" aria-label="Filter Layers">
+      {filterChips.map((c, i) => (
+        <EsaButton variant="secondary" size="sm" data-chip={c.key ?? 'all'} aria-pressed={i === 0 ? 'true' : 'false'}>
+          {c.key !== null && <span class:list={['dd-layers__sw', `dd-layers__sw--${swatch(c.key)}`]} />}
+          <span data-chip-label>{c.label}</span>
+          <DdCountBadge value={c.count} />
+        </EsaButton>
+      ))}
+    </div>
+  </div>
+
+  <div class="dd-layers__table" role="table" aria-labelledby="dd-layers-title" style={`--cols:${cols}`}>
+    <div class="dd-layers__row dd-layers__row--head dd-t-12-strong" role="row">
+      <span role="columnheader"><span class="dd-sr-only">Details</span></span>
+      <span role="columnheader">Layer</span>
+      <span role="columnheader">Finding</span>
+      {rings.map((r, i) => (
+        <span role="columnheader" data-ring={i} class:list={['dd-layers__colhead', `dd-layers__colhead--${headCls(i)}`]}>{i === 0 ? 'On Site' : r.displayLabel}</span>
+      ))}
+    </div>
+
+    <div class="dd-layers__body" data-rows>
+      {themes.map((t) => (
+        <div class="dd-layers__group" data-group={`theme:${t.id}`} data-filter-theme={t.id} role="row">
+          <DdIconButton icon="chevron-down" label={`Collapse ${t.name}`} size="sm" aria-expanded="true" data-group-toggle class="dd-layers__gtoggle" />
+          <span class="dd-t-13-medium" role="rowheader">{t.name}</span>
+          <span data-group-count><DdCountBadge value={layersForTheme(t.id).length} /></span>
+        </div>
+      ))}
+      {distGroups.map((g) => (
+        <div class="dd-layers__group" data-group={`dist:${g.key}`} role="row" hidden>
+          <DdIconButton icon="chevron-down" label={`Collapse ${g.label}`} size="sm" aria-expanded="true" data-group-toggle class="dd-layers__gtoggle" />
+          <span class="dd-t-13-medium" role="rowheader" data-group-label>{g.label}</span>
+          <span data-group-count><DdCountBadge value={g.count} /></span>
+        </div>
+      ))}
+
+      {ordered.map((l, n) => {
+        const key = statusKey(l.result.status);
+        const id = `dd-layer-${l.id}`;
+        const classes = l.result.classBreakdown ?? [];
+        const features = l.result.nearbyFeatures ?? [];
+        return (
+          <div class="dd-layers__layer" data-layer data-key={key} data-theme={l.themeId} data-n={n} data-filter-theme={l.themeId} data-filter-layer={l.id} data-layer-id={l.id}>
+            <div class="dd-layers__row" role="row">
+              <span role="cell">
+                <DdIconButton icon="chevron-right" label={`Details for ${l.name}`} size="sm" aria-expanded="false" aria-controls={id} data-row-toggle class="dd-layers__rtoggle" />
+              </span>
+              <span role="cell" class="dd-layers__name">
+                <span class="dd-t-14">{l.name}</span>
+                <span class="dd-t-12 dd-muted">{l.sourceAgency}</span>
+              </span>
+              <span role="cell" class="dd-t-14 dd-layers__finding" data-finding>{l.result.finding}</span>
+              {key === 'none' ? (
+                <span role="cell" class="dd-layers__span dd-layers__span--none dd-t-12" data-none-label>{notFoundLabel}</span>
+              ) : key === 'nodata' ? (
+                <span role="cell" class="dd-layers__span dd-layers__span--nodata dd-t-12"><span>{noDataLabel}</span></span>
+              ) : key === 'na' ? (
+                <span role="cell" class="dd-layers__span dd-layers__span--na dd-t-12">{naLabel}</span>
+              ) : (
+                <>
+                  {rings.map((_, i) => {
+                    const c = cellClass(l, i);
+                    const v = c === 'empty' ? '' : (l.result.byRing?.[i]?.cell ?? '');
+                    return <span role="cell" data-ring={i} data-cell class:list={['dd-layers__cell', `dd-layers__cell--${v ? c : 'empty'}`, 'dd-t-12']}>{v}</span>;
+                  })}
+                  {key !== '0' && <span role="cell" class="dd-layers__span dd-layers__span--none dd-layers__span--alt dd-t-12" data-none-label>{notFoundLabel}</span>}
+                </>
+              )}
+            </div>
+
+            <div class="dd-layers__detail" id={id} hidden>
+              {classes.length > 0 && (
+                <>
+                  <div class="dd-layers__dhead dd-t-13-medium">Classes <DdCountBadge value={classes.length} /></div>
+                  {classes.map((c, ci) => (
+                    <div class="dd-layers__row dd-layers__row--class" data-more={ci >= CLASS_LIMIT ? '' : undefined} hidden={ci >= CLASS_LIMIT}>
+                      <span />
+                      <span class="dd-t-13 dd-layers__cname">{c.className}</span>
+                      {rings.map((_, i) => {
+                        const v = c.byRing[i]?.cell ?? '';
+                        return <span data-ring={i} class:list={['dd-layers__cell dd-t-12', v ? 'dd-layers__cell--box' : 'dd-layers__cell--empty']}>{v}</span>;
+                      })}
+                    </div>
+                  ))}
+                  {classes.length > CLASS_LIMIT && (
+                    <div class="dd-layers__more">
+                      <EsaButton variant="ghost" size="sm" data-more-toggle>+ {classes.length - CLASS_LIMIT} More Classes</EsaButton>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {features.length > 0 && (
+                <div class="dd-layers__features" data-features>
+                  <div class="dd-t-12 dd-muted">Nearest Named Features</div>
+                  <dl class="dd-layers__flist">
+                    {features.map((f) => (
+                      <div class="dd-layers__frow dd-t-13" data-miles={f.miles}>
+                        <dt>{f.name}</dt>
+                        <dd class="dd-muted">{f.className}</dd>
+                        <dd class="dd-t-13-medium">{cap(f.distance)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
+
+              <p class="dd-layers__source dd-t-12 dd-muted"><DdIcon name="database" size="xs" />{sourceLine(l)}</p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+</section>
+
+<script>
+  import '@esa/ecology/esa-button-toggle';
+  import { applyFilters, onFilters, SHOW_THEME_EVENT } from './profile-filters';
+  import { onRingView, effKey, effRing, effFinding, layerOf, type RingView } from './profile-rings';
+  import { layers } from './profile-model';
+
+  type Mode = 'theme' | 'distance';
+  const root = document.querySelector<HTMLElement>('.dd-layers');
+  if (root) {
+    const body = root.querySelector<HTMLElement>('[data-rows]')!;
+    const rows = Array.from(root.querySelectorAll<HTMLElement>('[data-layer]'));
+    const groups = Array.from(root.querySelectorAll<HTMLElement>('[data-group]'));
+    const chips = Array.from(root.querySelectorAll<HTMLElement>('[data-chip]'));
+    const toggle = root.querySelector('[data-groupby]') as (HTMLElement & { options: unknown[]; value: string }) | null;
+
+    let mode: Mode = 'theme';
+    let chip: string | null = null;
+    const collapsed = new Set<string>();
+
+    const groupOf = (row: HTMLElement): string =>
+      mode === 'theme' ? `theme:${row.dataset.theme}` : `dist:${row.dataset.key}`;
+
+    const render = (): void => {
+      const prefix = mode === 'theme' ? 'theme:' : 'dist:';
+      const active = groups.filter((g) => g.dataset.group!.startsWith(prefix));
+      groups.forEach((g) => { g.hidden = !active.includes(g); });
+
+      for (const g of active) {
+        const id = g.dataset.group!;
+        const members = rows.filter((r) => groupOf(r) === id);
+        body.appendChild(g);
+        members.forEach((r) => body.appendChild(r));
+
+        const visible = members.filter((r) => !r.hasAttribute('data-off-toolbar') && (chip === null || r.dataset.key === chip));
+        g.toggleAttribute('data-empty', visible.length === 0);
+        const badge = g.querySelector('[data-group-count] .esa-badge__text');
+        if (badge) badge.textContent = String(visible.length);
+        const isCollapsed = collapsed.has(id);
+        const btn = g.querySelector<HTMLElement>('[data-group-toggle]');
+        btn?.setAttribute('aria-expanded', String(!isCollapsed));
+        members.forEach((r) => {
+          r.toggleAttribute('data-off-chip', chip !== null && r.dataset.key !== chip);
+          r.toggleAttribute('data-off-group', isCollapsed);
+        });
+      }
+      chips.forEach((c) => c.setAttribute('aria-pressed', String((c.dataset.chip === 'all' ? null : c.dataset.chip) === chip)));
+    };
+
+    if (toggle) {
+      toggle.options = [{ label: 'Theme', value: 'theme' }, { label: 'Distance', value: 'distance' }];
+      toggle.value = 'theme';
+      toggle.addEventListener('change', (e) => {
+        mode = ((e as CustomEvent<{ value: string }>).detail.value as Mode) ?? 'theme';
+        collapsed.clear();
+        render();
+      });
+    }
+
+    chips.forEach((c) => c.addEventListener('click', () => {
+      chip = c.dataset.chip === 'all' ? null : c.dataset.chip ?? null;
+      render();
+    }));
+
+    root.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const gBtn = target.closest<HTMLElement>('[data-group-toggle]');
+      if (gBtn) {
+        const id = gBtn.closest<HTMLElement>('[data-group]')!.dataset.group!;
+        if (collapsed.has(id)) collapsed.delete(id); else collapsed.add(id);
+        render();
+        return;
+      }
+      const rBtn = target.closest<HTMLElement>('[data-row-toggle]');
+      if (rBtn) {
+        const row = rBtn.closest<HTMLElement>('[data-layer]')!;
+        const detail = row.querySelector<HTMLElement>('.dd-layers__detail')!;
+        const open = detail.hidden;
+        detail.hidden = !open;
+        rBtn.setAttribute('aria-expanded', String(open));
+        row.toggleAttribute('data-open', open);
+        return;
+      }
+      const more = target.closest<HTMLElement>('[data-more-toggle]');
+      if (more) {
+        const detail = more.closest<HTMLElement>('.dd-layers__detail')!;
+        detail.querySelectorAll<HTMLElement>('[data-more]').forEach((r) => { r.hidden = false; });
+        more.closest<HTMLElement>('.dd-layers__more')!.hidden = true;
+      }
+    });
+
+    window.addEventListener(SHOW_THEME_EVENT, (e) => {
+      const themeId = (e as CustomEvent<number>).detail;
+      mode = 'theme';
+      if (toggle) toggle.value = 'theme';
+      chip = null;
+      collapsed.clear();
+      groups.filter((g) => g.dataset.group!.startsWith('theme:') && g.dataset.group !== `theme:${themeId}`)
+        .forEach((g) => collapsed.add(g.dataset.group!));
+      render();
+      groups.find((g) => g.dataset.group === `theme:${themeId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // Follow the rings the run measured: hide unmeasured columns, re-derive first-found.
+    const table = root.querySelector<HTMLElement>('.dd-layers__table')!;
+    const applyRings = (v: RingView): void => {
+      table.style.setProperty('--cols', String(1 + v.shown.length));
+      root.querySelectorAll<HTMLElement>('[data-ring]').forEach((el) => {
+        el.toggleAttribute('data-ring-off', !v.isShown(Number(el.dataset.ring)));
+      });
+      root.querySelectorAll<HTMLElement>('[data-none-label]').forEach((el) => { el.textContent = v.notFound; });
+      rows.forEach((row) => {
+        const l = layerOf(row.dataset.layerId);
+        if (!l) return;
+        const key = effKey(l, v);
+        row.dataset.key = key;
+        const r = effRing(l, v);
+        row.toggleAttribute('data-as-none', key === 'none' && /^within_ring_/.test(l.result.status));
+        const finding = row.querySelector('[data-finding]');
+        if (finding) finding.textContent = effFinding(l, v);
+        row.querySelectorAll<HTMLElement>(':scope > .dd-layers__row > [data-cell]').forEach((cell) => {
+          const i = Number(cell.dataset.ring);
+          const cls = r === null || i < r || !cell.textContent ? 'empty'
+            : i === r ? (r === 0 ? 'first-site' : r === v.shown[0] && r === 1 ? 'first-near' : 'first-far')
+            : r === 0 ? 'tint-site' : 'tint-near';
+          cell.className = `dd-layers__cell dd-layers__cell--${cls} dd-t-12`;
+        });
+        const max = v.maxMiles ?? 0;
+        let anyFeature = false;
+        row.querySelectorAll<HTMLElement>('[data-miles]').forEach((f) => {
+          const off = Number(f.dataset.miles) > max + 1e-9;
+          f.hidden = off;
+          anyFeature ||= !off;
+        });
+        const block = row.querySelector<HTMLElement>('[data-features]');
+        if (block) block.hidden = !anyFeature;
+      });
+      chips.forEach((c) => {
+        const key = c.dataset.chip!;
+        const ring = /^\d+$/.test(key) ? Number(key) : null;
+        const wrap = c.closest<HTMLElement>('.esa-button') ?? c;
+        wrap.hidden = ring !== null && !v.isShown(ring);
+        const label = c.querySelector('[data-chip-label]');
+        if (label && key === 'none') label.textContent = v.notFound;
+        const count = key === 'all' ? layers.length : layers.filter((l) => effKey(l, v) === key).length;
+        const badge = c.querySelector('.esa-badge__text');
+        if (badge) badge.textContent = String(count);
+      });
+      if (chip !== null && /^\d+$/.test(chip) && !v.isShown(Number(chip))) chip = null;
+      groups.forEach((g) => {
+        if (g.dataset.group === 'dist:none') {
+          const label = g.querySelector('[data-group-label]');
+          if (label) label.textContent = v.notFound;
+        }
+      });
+      render();
+    };
+
+    applyFilters(root);
+    onRingView(applyRings);
+    onFilters((f) => { applyFilters(root, f); render(); });
+  }
+</script>
+
+<style>
+  .dd-layers {
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+    scroll-margin-top: 16px;
+  }
+  .dd-layers[hidden] { display: none; }
+  .dd-layers__top { padding: 24px 24px 16px; display: flex; flex-direction: column; gap: 16px; }
+  .dd-layers__headline { display: flex; align-items: center; gap: 10px; }
+  .dd-layers__headline h2 { margin: 0; }
+  .dd-layers__groupby { margin-left: auto; display: inline-flex; align-items: center; gap: 12px; }
+
+  .dd-layers__chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  /* Neutral outline button (the Figma's secondary): esa-button's secondary is a brand-muted fill
+     in this theme, so its documented private accent hooks are re-pointed at the neutrals. */
+  .dd-layers__chips :global(.esa-button--variant-secondary) {
+    --_accent: var(--dd-surface-raised);
+    --_accent-hover: var(--dd-surface-hover);
+    --_on: var(--dd-text);
+    --_accent-border: var(--dd-border);
+  }
+  .dd-layers__chips :global(.esa-button__label) { display: inline-flex; align-items: center; gap: 6px; }
+  .dd-layers__chips :global(.esa-button__native) { font-size: 13px; font-weight: 400; padding-block: 3px; --_accent-border: var(--dd-border-subtle); border-color: var(--dd-border-subtle); }
+  .dd-layers__chips :global(.esa-button__native[aria-pressed='true']) {
+    background: var(--dd-brand-surface); border-color: var(--dd-brand-border); color: var(--dd-brand-text);
+  }
+  .dd-layers__chips :global([aria-pressed='true'] .dd-count-badge) {
+    --badge-bg: var(--dd-brand-border); --badge-text-color: var(--dd-brand-text);
+  }
+  .dd-layers__sw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; box-sizing: border-box; flex: none; }
+  .dd-layers__sw--site { background: var(--dd-data-on-site); }
+  .dd-layers__sw--near { background: var(--dd-data-nearby); border-radius: 50%; }
+  .dd-layers__sw--far { background: var(--dd-data-nearby-far); border: 1.5px solid var(--dd-data-nearby); border-radius: 50%; }
+  .dd-layers__sw--none { border: 1px solid var(--dd-border-strong); }
+  .dd-layers__sw--nodata { border: 1px solid var(--dd-border); background: repeating-linear-gradient(135deg, var(--dd-border-strong) 0 1px, transparent 1px 3px); }
+  .dd-layers__sw--na { background: var(--dd-border-subtle); }
+
+  .dd-layers__table { border-top: 1px solid var(--dd-border-subtle); }
+  .dd-layers__row {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 290px) minmax(0, 1fr) repeat(var(--cols), minmax(56px, 117px));
+    column-gap: 4px;
+    align-items: center;
+    padding: 10px 24px 10px 20px;
+  }
+  .dd-layers__row > * { min-width: 0; }
+  .dd-layers__row--head { background: var(--dd-bg); padding-top: 14px; padding-bottom: 8px; color: var(--dd-text-muted); align-items: end; border-bottom: 1px solid var(--dd-border-subtle); }
+  .dd-layers__colhead { text-align: center; padding-bottom: 6px; border-bottom: 3px solid; color: var(--dd-text-muted); }
+  .dd-layers__colhead--site { border-color: var(--dd-data-on-site); }
+  .dd-layers__colhead--near { border-color: var(--dd-data-nearby); }
+  .dd-layers__colhead--far { border-color: var(--dd-data-nearby-far); }
+
+  .dd-layers__group {
+    display: flex; align-items: center; gap: 6px; padding: 6px 24px 6px 14px;
+    background: var(--dd-bg); border-bottom: 1px solid var(--dd-border-subtle); color: var(--dd-text);
+  }
+  .dd-layers__group[hidden], .dd-layers__group[data-empty] { display: none; }
+  .dd-layers__group :global(.dd-layers__gtoggle[aria-expanded='false']) { transform: rotate(-90deg); }
+
+  .dd-layers__layer { border-bottom: 1px solid var(--dd-border-subtle); }
+  .dd-layers__layer[data-off-chip], .dd-layers__layer[data-off-group], .dd-layers__layer[data-off-toolbar] { display: none; }
+  .dd-layers__layer[data-open] { background: var(--dd-surface-hover); }
+  .dd-layers__layer > .dd-layers__row { min-height: 36px; }
+  .dd-layers__layer :global(.dd-layers__rtoggle) { transition: transform 150ms ease; color: var(--dd-text-muted); }
+  .dd-layers__layer :global(.dd-layers__rtoggle[aria-expanded='true']) { transform: rotate(90deg); }
+
+  .dd-layers__name { display: flex; flex-direction: column; gap: 2px; color: var(--dd-text); padding-right: 8px; }
+  .dd-layers__finding { color: var(--dd-text); padding-right: 12px; }
+
+  .dd-layers__cell {
+    display: flex; align-items: center; justify-content: center; height: 28px; border-radius: 3px;
+    color: var(--dd-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box;
+  }
+  .dd-layers [data-ring-off], .dd-layers :global([hidden]) { display: none !important; }
+  .dd-layers__span.dd-layers__span--alt { display: none; }
+  .dd-layers__layer[data-as-none] .dd-layers__span.dd-layers__span--alt { display: flex; }
+  .dd-layers__layer[data-as-none] > .dd-layers__row > [data-cell] { display: none; }
+  .dd-layers__cell--first-site { background: var(--dd-data-on-site); color: var(--dd-data-on-site-label); font-weight: 600; }
+  .dd-layers__cell--tint-site { background: var(--dd-data-on-site-band); }
+  .dd-layers__cell--first-near { background: var(--dd-data-nearby); color: var(--dd-on-brand); font-weight: 600; }
+  .dd-layers__cell--first-far { background: var(--dd-data-nearby-far); font-weight: 600; }
+  .dd-layers__cell--tint-near { background: var(--dd-data-nearby-band); }
+  .dd-layers__cell--box { background: var(--dd-surface-raised); border: 1px solid var(--dd-border-subtle); height: 24px; }
+  .dd-layers__layer[data-open] .dd-layers__cell--tint-site { background: color-mix(in srgb, var(--dd-data-on-site) 14%, var(--dd-surface-hover)); }
+
+  .dd-layers__span {
+    grid-column: 4 / -1; display: flex; align-items: center; justify-content: center; height: 28px;
+    border-radius: 3px; color: var(--dd-text-muted); box-sizing: border-box;
+  }
+  .dd-layers__span--none { border: 1px dashed var(--dd-border); }
+  .dd-layers__span--nodata {
+    border: 1px solid var(--dd-border);
+    background: repeating-linear-gradient(135deg, var(--dd-border) 0 1px, var(--dd-surface-raised) 1px 6px);
+  }
+  .dd-layers__span--nodata span { background: var(--dd-surface-raised); padding: 0 6px; }
+  .dd-layers__span--na { background: var(--dd-border-subtle); }
+
+  .dd-layers__detail { padding: 0 0 14px; }
+  .dd-layers__detail[hidden] { display: none; }
+  .dd-layers__dhead { display: flex; align-items: center; gap: 8px; padding: 4px 24px 4px 52px; color: var(--dd-text); }
+  .dd-layers__row--class { padding-top: 2px; padding-bottom: 2px; }
+  .dd-layers__row--class[hidden] { display: none; }
+  .dd-layers__cname { grid-column: 2 / 4; color: var(--dd-text); }
+  .dd-layers__more { padding: 2px 24px 0 44px; }
+  .dd-layers__more :global(.esa-button__native) { color: var(--dd-brand-text); font-weight: 600; }
+  .dd-layers__more[hidden] { display: none; }
+
+  .dd-layers__features { padding: 12px 24px 0 52px; display: flex; flex-direction: column; gap: 4px; }
+  .dd-layers__flist { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+  .dd-layers__frow { display: grid; grid-template-columns: 276px 200px 1fr; color: var(--dd-text); }
+  .dd-layers__frow dt, .dd-layers__frow dd { margin: 0; }
+
+  .dd-layers__source { display: flex; align-items: center; gap: 8px; margin: 14px 0 0; padding: 0 24px 0 52px; }
+
+</style>

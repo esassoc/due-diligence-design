@@ -1,0 +1,112 @@
+---
+// DdMap: the static basemap every map in the prototype draws on. Muted farmland
+// fields, roads with labels, Deer Creek, the dashed transmission line and the
+// rail line, in metres around the site (src/lib/map-geometry.ts). Overlays go
+// in the default slot, inside the same <svg>, in the same coordinates.
+// Lines use non-scaling strokes, so a stroke width is in screen px at any zoom.
+//
+// bcn-lego-checked: no esa- lego draws a map; the brief asks for a static SVG
+// matching Figma (no tile service). Map chrome (zoom, search, legend) is
+// composed around this by each step. dd-map is the reusable home.
+import {
+  VIEWS, ROADS, CREEK, TRANSMISSION, RAIL, linePath, smoothPath,
+} from '../../lib/map-geometry';
+
+interface Props {
+  view: keyof typeof VIEWS;
+  /** Approximate rendered width in px, to size labels. */
+  px?: number;
+  imagery?: boolean;
+  labels?: boolean;
+  class?: string;
+  /** Accessible name. */
+  label?: string;
+}
+const { view, px = 800, imagery = false, labels = view !== 'proximity', class: cls, label = 'Map of the Cottonwood site' } = Astro.props;
+const vb = VIEWS[view];
+const u = vb[2] / px; // metres per screen px
+const fs = 11 * u;
+// Unique per instance: two maps of the same view on one page must not share pattern ids.
+const id = `ddm-${view}-${imagery ? 'i' : 'm'}-${Math.random().toString(36).slice(2, 8)}`;
+---
+<svg
+  class:list={['dd-map', { 'dd-map--imagery': imagery }, cls]}
+  viewBox={vb.join(' ')}
+  preserveAspectRatio="xMidYMid slice"
+  role="img"
+  aria-label={label}
+  data-dd-map
+  data-view={view}
+  data-u={u}
+>
+  <defs>
+    <pattern id={`${id}-fields`} width="1609" height="1609" patternUnits="userSpaceOnUse" x="-805" y="-805">
+      <rect width="1609" height="1609" fill="var(--dd-map-land)" />
+      <rect x="10" y="10" width="785" height="785" rx="8" fill="var(--dd-map-field)" />
+      <rect x="815" y="10" width="785" height="380" rx="8" fill="var(--dd-map-field-alt)" />
+      <rect x="815" y="405" width="785" height="390" rx="8" fill="var(--dd-map-field)" />
+      <rect x="10" y="815" width="380" height="785" rx="8" fill="var(--dd-map-field-alt)" />
+      <rect x="405" y="815" width="390" height="785" rx="8" fill="var(--dd-map-field)" />
+      <rect x="815" y="815" width="785" height="785" rx="8" fill="var(--dd-map-field-alt)" />
+    </pattern>
+    <pattern id={`${id}-imagery`} width="1609" height="1609" patternUnits="userSpaceOnUse" x="-805" y="-805">
+      <rect width="1609" height="1609" fill="#7f8a62" />
+      <rect x="10" y="10" width="785" height="785" fill="#9aa36f" />
+      <rect x="815" y="10" width="785" height="380" fill="#b3a979" />
+      <rect x="815" y="405" width="785" height="390" fill="#8c9963" />
+      <rect x="10" y="815" width="380" height="785" fill="#a8a170" />
+      <rect x="405" y="815" width="390" height="785" fill="#93a06a" />
+      <rect x="815" y="815" width="785" height="785" fill="#a39a6c" />
+    </pattern>
+  </defs>
+
+  <rect x={vb[0] - vb[2]} y={vb[1] - vb[3]} width={vb[2] * 3} height={vb[3] * 3} fill={`url(#${id}-${imagery ? 'imagery' : 'fields'})`} />
+
+  <!-- section roads every mile -->
+  <g class="dd-map__grid">
+    {Array.from({ length: 19 }, (_, i) => (i - 9) * 1609 - 805).map((v) => (
+      <>
+        <line x1={v} y1="-16000" x2={v} y2="16000" />
+        <line x1="-16000" y1={v} x2="16000" y2={v} />
+      </>
+    ))}
+  </g>
+
+  <path class="dd-map__creek" d={smoothPath(CREEK)} />
+  <path class="dd-map__rail" d={linePath(RAIL)} />
+  <path class="dd-map__rail-ties" d={linePath(RAIL)} />
+  {ROADS.map((r) => (
+    <>
+      <path class="dd-map__road-edge" d={linePath(r.pts)} />
+      <path class="dd-map__road" d={linePath(r.pts)} />
+    </>
+  ))}
+  <path class="dd-map__transmission" d={linePath(TRANSMISSION)} />
+
+  {labels && (
+    <g class="dd-map__labels" font-size={fs}>
+      {ROADS.filter((r) => r.label).map((r) => (
+        <text x={r.label![0]} y={r.label![1]} transform={r.angle ? `rotate(${r.angle} ${r.label![0]} ${r.label![1]})` : undefined} text-anchor="middle">{r.name}</text>
+      ))}
+      <text x={2050} y={720} transform="rotate(17 2050 720)" class="dd-map__label-water" font-style="italic">Deer Creek</text>
+    </g>
+  )}
+
+  <slot />
+</svg>
+
+<style>
+  .dd-map { display: block; width: 100%; height: 100%; background: var(--dd-map-land); }
+  .dd-map * { vector-effect: non-scaling-stroke; }
+  .dd-map__grid line { stroke: var(--dd-map-road); stroke-width: 2; opacity: 0.7; }
+  .dd-map__road-edge { fill: none; stroke: var(--dd-map-road-edge); stroke-width: 7; stroke-linecap: round; }
+  .dd-map__road { fill: none; stroke: var(--dd-map-road); stroke-width: 5; stroke-linecap: round; }
+  .dd-map__creek { fill: none; stroke: var(--dd-map-water); stroke-width: 3; stroke-linecap: round; }
+  .dd-map__rail { fill: none; stroke: #9a9d96; stroke-width: 1.5; }
+  .dd-map__rail-ties { fill: none; stroke: #9a9d96; stroke-width: 6; stroke-dasharray: 1 7; }
+  .dd-map__transmission { fill: none; stroke: #8b8e88; stroke-width: 1.25; stroke-dasharray: 6 4; }
+  .dd-map__labels text { fill: var(--dd-map-label); font-family: var(--dd-font-sans); font-weight: 500; paint-order: stroke; stroke: var(--dd-map-land); stroke-width: 3; }
+  .dd-map__labels .dd-map__label-water { fill: #4f7fae; }
+  .dd-map--imagery .dd-map__grid line { stroke: #b9b39a; opacity: 0.5; }
+  .dd-map--imagery .dd-map__labels text { fill: #fff; stroke: rgb(0 0 0 / 0.35); }
+</style>

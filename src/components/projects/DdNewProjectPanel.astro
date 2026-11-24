@@ -1,0 +1,124 @@
+---
+// DdNewProjectPanel: the New Project side panel (esa-side-dialog, right, 600px,
+// flush to the viewport edge). Five fields: Project Name, County (radio list),
+// Project Type (tiles), Project Stage (stepper) and Anything Else We Should
+// Know. Opens from any [data-dd-new-project] control. Create Project closes the
+// panel and, in the prototype, opens Cottonwood's Project Details.
+import EsaButton from '@esa/ecology/esa-button.astro';
+import DdTypeTiles from '../details/DdTypeTiles.astro';
+import DdStageStepper from '../details/DdStageStepper.astro';
+import { COUNTIES, STAGES } from '../details/dd-details-model';
+import { withBase } from '../../lib/base';
+
+const countyOptions = COUNTIES.map((c) => ({ label: c.name, value: c.name }));
+const defaultCounty = COUNTIES.find((c) => c.name.startsWith('Sacramento'))?.name ?? COUNTIES[0].name;
+---
+<esa-side-dialog class="dd-new-project" size="lg" data-dd-new-project-panel data-href={withBase('/app/cottonwood/project-details/')}>
+  <h2 slot="header" class="dd-new-project__title dd-t-display-22">New Project</h2>
+
+  <div class="dd-new-project__body">
+    <div class="dd-new-project__field">
+      <label class="dd-new-project__label dd-t-14-medium" for="dd-np-name">Project Name</label>
+      <esa-text-field id="dd-np-name" aria-label="Project Name" name="name" required maxlength="200"></esa-text-field>
+    </div>
+
+    <div class="dd-new-project__field">
+      <esa-radio-group
+        id="dd-np-county"
+        label="County"
+        help-text="Decides which parcels load. Locked once the site has a boundary."
+        name="county"
+        value={defaultCounty}
+        options={JSON.stringify(countyOptions)}
+      ></esa-radio-group>
+    </div>
+
+    <div class="dd-new-project__field">
+      <p class="dd-new-project__label dd-t-14-medium">Project Type</p>
+      <p class="dd-new-project__help dd-t-12">Sets which themes lead the Theme Order.</p>
+      <DdTypeTiles value="" compact id="dd-np-type" />
+    </div>
+
+    <div class="dd-new-project__field">
+      <p class="dd-new-project__label dd-t-14-medium">Project Stage</p>
+      <DdStageStepper value={STAGES[0].id} compact id="dd-np-stage" />
+    </div>
+
+    <div class="dd-new-project__field">
+      <label class="dd-new-project__label dd-t-14-medium" for="dd-np-description">
+        Anything Else We Should Know <span class="dd-new-project__optional dd-t-12">Optional</span>
+      </label>
+      <esa-textarea
+        id="dd-np-description"
+        aria-label="Anything Else We Should Know"
+        name="description"
+        rows="4"
+        maxlength="2000"
+        placeholder="For example: existing uses on the site, known constraints, client concerns"
+      ></esa-textarea>
+    </div>
+  </div>
+
+  <div slot="footer" class="dd-new-project__footer">
+    <EsaButton variant="secondary" data-dd-np-cancel>Cancel</EsaButton>
+    <EsaButton variant="primary" data-dd-np-create>Create Project</EsaButton>
+  </div>
+</esa-side-dialog>
+
+<style>
+  .dd-new-project {
+    --side-dialog-width-lg: 600px;
+    --side-dialog-inset: 0px;
+  }
+  .dd-new-project__title { margin: 0; color: var(--dd-text); }
+  .dd-new-project__body { display: flex; flex-direction: column; gap: 28px; color: var(--dd-text); }
+  .dd-new-project__field { display: flex; flex-direction: column; }
+  .dd-new-project__label { display: flex; align-items: baseline; gap: 8px; margin: 0 0 8px; color: var(--dd-text); }
+  .dd-new-project__help { margin: -6px 0 8px; color: var(--dd-text-muted); }
+  .dd-new-project__optional { color: var(--dd-text-subtle); }
+  .dd-new-project__footer { display: flex; justify-content: flex-end; gap: 8px; }
+</style>
+
+<script>
+  import '@esa/ecology/esa-side-dialog';
+  import '@esa/ecology/esa-text-field';
+  import '@esa/ecology/esa-radio-group';
+  import '@esa/ecology/esa-textarea';
+  import { nameInnerControls } from '../details/dd-a11y';
+
+  type Panel = HTMLElement & { open: boolean };
+  type Field = HTMLElement & { value: string; errorText: string };
+
+  const panel = document.querySelector<Panel>('[data-dd-new-project-panel]');
+  if (panel) {
+    const name = panel.querySelector<Field>('#dd-np-name')!;
+    void nameInnerControls(panel);
+
+    document.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('[data-dd-new-project]')) {
+        panel.open = true;
+        window.setTimeout(() => name.focus(), 60);
+      }
+    });
+
+    panel.querySelector('[data-dd-np-cancel]')?.addEventListener('click', () => {
+      panel.open = false;
+    });
+
+    name.addEventListener('change', () => {
+      if (name.value.trim()) name.errorText = '';
+    });
+
+    panel.querySelector('[data-dd-np-create]')?.addEventListener('click', () => {
+      if (!name.value.trim()) {
+        name.errorText = 'Enter a project name';
+        name.focus();
+        return;
+      }
+      panel.open = false;
+      const href = panel.dataset.href ?? '/';
+      window.setTimeout(() => window.location.assign(href), 220);
+    });
+  }
+</script>

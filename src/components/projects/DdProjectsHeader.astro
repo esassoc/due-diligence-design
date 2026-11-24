@@ -1,0 +1,48 @@
+---
+// DdProjectsHeader: the Projects H1 with its quiet count and the New Project
+// button. Any [data-dd-new-project] control opens the New Project panel.
+//
+// bcn-lego-checked: DdPageTitle (the app's H1) takes a plain string title and
+// has no place for the count beside it; esa-page-header renders the hub's
+// fluid heading role with a lede. This keeps DdPageTitle's Besley 22 H1 and
+// adds the DdCountBadge next to it, as the Projects frame shows.
+import EsaButton from '@esa/ecology/esa-button.astro';
+import DdIcon from '../common/DdIcon.astro';
+import DdCountBadge from '../common/DdCountBadge.astro';
+
+interface Props {
+  count: number;
+}
+const { count } = Astro.props;
+---
+<header class="dd-projects-header" data-dd-projects-header>
+  <h1 class="dd-projects-header__h1 dd-t-display-22">
+    <span>Projects</span>
+    <span class="dd-projects-header__count" data-dd-when-projects><DdCountBadge value={count} label={`${count} projects`} /></span>
+  </h1>
+  <span data-dd-when-projects>
+    <EsaButton variant="primary" size="sm" data-dd-new-project>
+      <DdIcon name="plus" size="sm" />
+      New Project
+    </EsaButton>
+  </span>
+</header>
+
+<style>
+  .dd-projects-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 36px;
+  }
+  .dd-projects-header__h1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    color: var(--dd-text);
+  }
+  .dd-projects-header__count { display: inline-flex; }
+  :global(html[data-dd-projects-empty]) .dd-projects-header [data-dd-when-projects] { display: none; }
+</style>

@@ -1,0 +1,18 @@
+---
+// Step 1, Project Details: name, county, type, theme order, stage, notes.
+// Every edit autosaves; no Save button.
+import AppLayout from '../../../../layouts/AppLayout.astro';
+import DdPageTitle from '../../../../components/shell/DdPageTitle.astro';
+import DdDetailsForm from '../../../../components/details/DdDetailsForm.astro';
+---
+
+<!-- manifest:
+  layout: stack(lg)
+  sections:
+    - page title -> dd-page-title
+    - details card -> dd-details-form
+-->
+<AppLayout title="Project Details" current="project-details">
+  <DdPageTitle project="Cottonwood" title="Project Details" />
+  <DdDetailsForm />
+</AppLayout>

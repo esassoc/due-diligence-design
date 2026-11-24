@@ -1,0 +1,106 @@
+---
+// DdHandoffDoc: renders the handoff content in src/data/handoff.ts as a plain
+// document: a section per topic, its facts as short paragraphs, its tables,
+// scope marked with a quiet 4px badge.
+//
+// bcn-lego-checked: no esa- lego renders a data table with a badge column
+// (esa-card is a surface, not a table); the scope marks use esa-badge through
+// its --badge-* hooks. dd-handoff-doc is the home for the spoke's handoff page.
+import EsaBadge from '@esa/ecology/esa-badge.astro';
+import { handoffTitle, handoffSections, type Scope } from '../../data/handoff';
+import { withBase } from '../../lib/base';
+
+const tone: Record<Scope, string> = {
+  'New Scope': 'new',
+  Change: 'change',
+  'Matches QA': 'match',
+  'Prototype Only': 'proto',
+};
+---
+<article class="dd-handoff">
+  <header class="dd-handoff__head">
+    <a class="dd-handoff__brand" href={withBase('/app/cottonwood/project-details/')}>
+      <img src={`${import.meta.env.BASE_URL}brand/dd-mark.svg`} width="28" height="28" alt="" />
+      <span class="dd-t-wordmark">Due Diligence</span>
+    </a>
+    <h1 class="dd-t-display-28">{handoffTitle}</h1>
+    <nav class="dd-handoff__toc" aria-label="Sections">
+      {handoffSections.map((s) => <a class="dd-t-14" href={`#${s.id}`}>{s.title}</a>)}
+      <a class="dd-t-14-medium dd-handoff__open" href={withBase('/app/cottonwood/project-details/')}>Open the Prototype</a>
+    </nav>
+  </header>
+
+  {handoffSections.map((s) => (
+    <section class="dd-handoff__section" id={s.id}>
+      <h2 class="dd-t-display-20">{s.title}</h2>
+      {s.facts?.map((p) => <p class="dd-t-14 dd-handoff__fact">{p}</p>)}
+      {s.tables?.map((t) => (
+        <div class="dd-handoff__table-wrap">
+          {t.title && <h3 class="dd-t-16-strong">{t.title}</h3>}
+          <table class="dd-handoff__table">
+            <thead>
+              <tr>{t.table.head.map((h) => <th class="dd-t-12-strong" scope="col">{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {t.table.rows.map((r) => (
+                <tr>
+                  {r.cells.map((c, i) =>
+                    i === t.table.scopeCol && r.scope ? (
+                      <td class="dd-handoff__scope"><span class={`dd-handoff__badge dd-handoff__badge--${tone[r.scope]}`}><EsaBadge value={c} size="xs" /></span></td>
+                    ) : (
+                      <td class={i === 0 ? 'dd-t-13-medium' : 'dd-t-13'}>{c}</td>
+                    ),
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+      {s.questions && (
+        <ol class="dd-handoff__questions">
+          {s.questions.map((q) => <li class="dd-t-14">{q}</li>)}
+        </ol>
+      )}
+    </section>
+  ))}
+</article>
+
+<style>
+  .dd-handoff { max-width: 1040px; margin: 0 auto; padding: 40px 32px 96px; color: var(--dd-text); }
+  .dd-handoff__head { display: flex; flex-direction: column; gap: 16px; padding-bottom: 24px; border-bottom: 1px solid var(--dd-border-subtle); }
+  .dd-handoff__brand { display: inline-flex; align-items: center; gap: 10px; color: var(--dd-text); }
+  .dd-handoff__head h1 { margin: 0; }
+  .dd-handoff__toc { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+  .dd-handoff__toc a { color: var(--dd-brand-text); }
+  .dd-handoff__open { margin-left: auto; }
+  .dd-handoff__section { display: flex; flex-direction: column; gap: 12px; padding-top: 36px; scroll-margin-top: 16px; }
+  .dd-handoff__section h2 { margin: 0 0 4px; }
+  .dd-handoff__fact { margin: 0; max-width: 72ch; color: var(--dd-text); }
+  .dd-handoff__table-wrap { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; overflow-x: auto; }
+  .dd-handoff__table-wrap h3 { margin: 0; }
+  .dd-handoff__table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+  }
+  .dd-handoff__table th {
+    text-align: left;
+    padding: 10px 12px;
+    color: var(--dd-text-muted);
+    background: var(--dd-surface);
+    border-bottom: 1px solid var(--dd-border-subtle);
+  }
+  .dd-handoff__table td { padding: 10px 12px; vertical-align: top; border-top: 1px solid var(--dd-border-subtle); }
+  .dd-handoff__table td:first-child { width: 22%; }
+  .dd-handoff__scope { white-space: nowrap; width: 1%; }
+  .dd-handoff__badge { display: inline-flex; }
+  .dd-handoff__badge :global(.esa-badge) { font: 600 12px/16px var(--dd-font-sans); padding: 1px 6px; border-radius: 4px; }
+  .dd-handoff__badge--new { --badge-bg: var(--dd-accent-surface); --badge-text-color: var(--dd-accent-text); --badge-border-color: transparent; }
+  .dd-handoff__badge--change { --badge-bg: var(--dd-brand-surface); --badge-text-color: var(--dd-brand-text); --badge-border-color: transparent; }
+  .dd-handoff__badge--match { --badge-bg: var(--dd-border-subtle); --badge-text-color: var(--dd-text-muted); --badge-border-color: transparent; }
+  .dd-handoff__badge--proto { --badge-bg: transparent; --badge-text-color: var(--dd-text-subtle); --badge-border-color: var(--dd-border); }
+  .dd-handoff__questions { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+</style>

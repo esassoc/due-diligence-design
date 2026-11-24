@@ -1,0 +1,152 @@
+---
+// DdStageStepper: Project Stage as a four-stop horizontal track. Radio
+// semantics (one stage, arrow keys move it, roving tabindex). Emits
+// `dd:stage-change` (detail: stage id) on the root; a parent can set the value
+// with a `dd:set` event.
+//
+// bcn-lego-checked: esa-radio-group lays its options out as dot + label in a
+// row or column with no connecting track; esa-range-slider is numeric with a
+// thumb, not four named stops; esa-button-toggle is a segmented bar. The
+// Figma control is a stepper rail (filled cobalt stop, hollow stops, labels
+// under each stop), which no lego draws. Shared by Project Details and the New
+// Project panel.
+import { STAGES } from './dd-details-model';
+
+interface Props {
+  value: string;
+  label?: string;
+  /** Narrower stops and wrapping labels for the New Project panel. */
+  compact?: boolean;
+  id?: string;
+}
+const { value, label = 'Project Stage', compact = false, id } = Astro.props;
+---
+<div
+  class:list={['dd-stage-stepper', { 'dd-stage-stepper--compact': compact }]}
+  role="radiogroup"
+  aria-label={label}
+  data-dd-stage-stepper
+  data-value={value}
+  id={id}
+>
+  {STAGES.map((s, i) => {
+    const on = s.id === value;
+    return (
+      <div
+        class="dd-stage-stepper__stop"
+        role="radio"
+        aria-checked={on ? 'true' : 'false'}
+        tabindex={on ? 0 : -1}
+        data-id={s.id}
+      >
+        <span class="dd-stage-stepper__rail" aria-hidden="true">
+          <span class="dd-stage-stepper__dot"></span>
+          {i < STAGES.length - 1 && <span class="dd-stage-stepper__line"></span>}
+        </span>
+        <span class="dd-stage-stepper__name dd-t-14">{s.name}</span>
+      </div>
+    );
+  })}
+</div>
+
+<style>
+  .dd-stage-stepper {
+    --_stop: 200px;
+    display: grid;
+    grid-template-columns: repeat(4, var(--_stop));
+  }
+  .dd-stage-stepper--compact { --_stop: minmax(0, 1fr); }
+  .dd-stage-stepper__stop {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-right: 16px;
+    cursor: pointer;
+    user-select: none;
+    border-radius: 4px;
+  }
+  .dd-stage-stepper__stop:focus-visible { outline: 2px solid var(--dd-focus-ring); outline-offset: 2px; }
+  .dd-stage-stepper__rail {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 20px;
+    margin-right: -16px;
+  }
+  .dd-stage-stepper__dot {
+    position: relative;
+    z-index: 1;
+    flex: none;
+    width: 12px;
+    height: 12px;
+    margin-left: 4px;
+    border-radius: 50%;
+    border: 1.5px solid var(--dd-border-strong);
+    background: var(--dd-surface-raised);
+    box-sizing: border-box;
+  }
+  .dd-stage-stepper__line {
+    flex: 1;
+    height: 1.5px;
+    background: var(--dd-border);
+    margin-right: 4px;
+  }
+  .dd-stage-stepper__stop:hover .dd-stage-stepper__dot { border-color: var(--dd-brand-solid); }
+  .dd-stage-stepper__stop[aria-checked='true'] .dd-stage-stepper__dot {
+    width: 14px;
+    height: 14px;
+    margin-left: 3px;
+    border: 0;
+    background: var(--dd-brand-solid);
+    box-shadow: 0 0 0 3px var(--dd-brand-surface);
+  }
+  .dd-stage-stepper__name { color: var(--dd-text-muted); }
+  .dd-stage-stepper__stop[aria-checked='true'] .dd-stage-stepper__name { color: var(--dd-text); font-weight: 600; }
+</style>
+
+<script>
+  function select(root: HTMLElement, id: string, emit: boolean, focus = false): void {
+    const changed = root.dataset.value !== id;
+    root.dataset.value = id;
+    root.querySelectorAll<HTMLElement>('[role="radio"]').forEach((stop) => {
+      const on = stop.dataset.id === id;
+      stop.setAttribute('aria-checked', on ? 'true' : 'false');
+      stop.tabIndex = on ? 0 : -1;
+      if (on && focus) stop.focus();
+    });
+    if (emit && changed) root.dispatchEvent(new CustomEvent<string>('dd:stage-change', { detail: id, bubbles: true }));
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-dd-stage-stepper]').forEach((root) => {
+    const stops = (): HTMLElement[] => [...root.querySelectorAll<HTMLElement>('[role="radio"]')];
+
+    root.addEventListener('click', (e) => {
+      const stop = (e.target as HTMLElement).closest<HTMLElement>('[role="radio"]');
+      if (stop?.dataset.id) select(root, stop.dataset.id, true, true);
+    });
+
+    root.addEventListener('keydown', (e) => {
+      const list = stops();
+      const i = list.findIndex((s) => s === document.activeElement);
+      if (i < 0) return;
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        select(root, list[i].dataset.id ?? '', true, true);
+        return;
+      }
+      if (e.key === 'Home' || e.key === 'End') {
+        e.preventDefault();
+        const target = e.key === 'Home' ? list[0] : list[list.length - 1];
+        select(root, target.dataset.id ?? '', true, true);
+        return;
+      }
+      const step: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+      if (!(e.key in step)) return;
+      e.preventDefault();
+      const next = list[(i + step[e.key] + list.length) % list.length];
+      select(root, next.dataset.id ?? '', true, true);
+    });
+
+    root.addEventListener('dd:set', (e) => select(root, (e as CustomEvent<string>).detail, false));
+  });
+</script>

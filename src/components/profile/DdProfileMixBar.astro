@@ -1,0 +1,47 @@
+---
+// DdProfileMixBar: a predominant-mix bar (class segments by share) that opens
+// the class-mix popover on hover or focus (esa-popover trigger="hover").
+//
+// bcn-lego-checked: esa-progress-bar is a single-value meter and esa-chart is a
+// full chart; a stacked class-share strip has no lego. The popover is
+// esa-popover; its anchor is inline-block, so the bar sizes itself to its
+// container with 100cqw to stay full width inside it.
+import DdProfileMixPopover from './DdProfileMixPopover.astro';
+import type { Mix } from './profile-model';
+
+interface Props {
+  title: string;
+  band: string;
+  mix: Mix;
+  /** Bar thickness in px. */
+  size?: number;
+  position?: 'bottom' | 'top';
+}
+const { title, band, mix, size = 10, position = 'bottom' } = Astro.props;
+const aria = `${title}, ${band}: ${mix.top.map((t) => `${t.name} ${Math.round(t.share)}%`).join(', ')}${mix.other ? `, Other ${Math.round(mix.other.share)}%` : ''}`;
+---
+<div class="dd-mixbar" style={`--bar-h:${size}px`}>
+  <esa-popover trigger="hover" position={position} has-arrow="false" offset="6">
+    <div class="dd-mixbar__bar" tabindex="0" role="img" aria-label={aria}>
+      {mix.segments.map((s) => <span class="dd-mixbar__seg" style={`flex:${s.share} 1 0;background:${s.color}`} />)}
+    </div>
+    <div slot="content"><DdProfileMixPopover title={title} band={band} mix={mix} /></div>
+  </esa-popover>
+</div>
+
+<script>
+  import '@esa/ecology/esa-popover';
+</script>
+
+<style>
+  .dd-mixbar { container-type: inline-size; width: 100%; }
+  .dd-mixbar esa-popover { display: block; }
+  .dd-mixbar__bar {
+    display: flex; gap: 2px; width: 100cqw; height: var(--bar-h); cursor: default;
+    border-radius: 2px; outline-offset: 2px;
+  }
+  .dd-mixbar__bar:hover, .dd-mixbar__bar:focus-visible { outline: 1.5px solid var(--dd-text); }
+  .dd-mixbar__seg { min-width: 2px; height: 100%; }
+  .dd-mixbar__seg:first-child { border-radius: 2px 0 0 2px; }
+  .dd-mixbar__seg:last-child { border-radius: 0 2px 2px 0; }
+</style>

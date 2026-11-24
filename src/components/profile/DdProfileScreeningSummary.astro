@@ -1,0 +1,280 @@
+---
+// DdProfileScreeningSummary: where each theme's layers were found. One row per
+// theme across lanes: On the Site, one lane per ring from the data, then Not
+// Found and No Data Yet. Point, line and proximity layers are labelled markers
+// in the lane where first found; whole-site class layers are predominant-mix
+// bars per band with a hover popover.
+//
+// bcn-lego-checked: no esa-* lego draws a lane matrix (esa-chart is axis
+// charts; tables cannot carry continuous lane washes). Built on CSS grid with
+// explicit rows so the washes run the full height; ring lanes repeat from the
+// data's ring list, so 2 to 6 rings fit.
+import DdCountBadge from '../common/DdCountBadge.astro';
+import DdProfileMixBar from './DdProfileMixBar.astro';
+import {
+  themes, layersForTheme, outerRings, siteRing, maxMiles, mi, firstRing, chipCount, legendLabel,
+  isMixLayer, bandMix, type Layer,
+} from './profile-model';
+
+const R = outerRings.length;
+const colSite = 2;
+const colLane = (k: number): number => 2 + k; // k = 1..R
+const colNone = R + 3;
+const colNoData = R + 4;
+const ringCls = (k: number): string => (k === 1 ? 'near' : 'far');
+
+const at = (row: number | string, col: number | string): string => `grid-row:${row};grid-column:${col}`;
+
+let row = 2; // row 1 is the column header
+const blocks = themes.map((t) => {
+  const ls = layersForTheme(t.id);
+  const mix = ls.filter(isMixLayer);
+  const plain = ls.filter((l) => !isMixLayer(l));
+  const onSite = plain.filter((l) => firstRing(l) === 0);
+  const nearby = plain
+    .filter((l) => (firstRing(l) ?? 0) > 0)
+    .sort((a, b) => (a.result.nearestMiles ?? 0) - (b.result.nearestMiles ?? 0));
+  const notFound = ls.filter((l) => l.result.status === 'not_found');
+  const noData = ls.filter((l) => l.result.status === 'no_data_for_county');
+  const allNoData = noData.length === ls.length;
+
+  const sep = row++;
+  const headStart = row;
+  const headRows = Math.max(1, nearby.length);
+  row += headRows;
+  const mixRows = mix.map((l) => ({ layer: l, row: row++ }));
+  const pad = row++;
+  return { theme: t, sep, headStart, headRows, onSite, nearby, notFound, noData, allNoData, mixRows, pad };
+});
+const lastRow = row;
+
+const headLanes = outerRings.map((r) => ({ ring: r, count: chipCount(String(r.ringIndex)) }));
+const naLabel = 'Not Applicable';
+const naCount = chipCount('na');
+const nodataLabel = legendLabel('pkx');
+---
+<section class="dd-summary" data-profile-results aria-labelledby="dd-summary-title">
+  <header class="dd-summary__head">
+    <h2 id="dd-summary-title" class="dd-t-display-20">Screening Summary</h2>
+    <p class="dd-t-14 dd-muted" data-subhead>Where each theme's layers were found, from on the site out to {mi(maxMiles)}.</p>
+  </header>
+
+  <div class="dd-summary__grid" style={`--rings:${R}`}>
+    {/* Lane washes, behind everything */}
+    <span class="dd-summary__wash dd-summary__wash--site" style={at(`1 / ${lastRow}`, colSite)} aria-hidden="true" />
+    {outerRings.map((r) => (
+      <span data-ring={r.ringIndex} class:list={['dd-summary__wash', `dd-summary__wash--${ringCls(r.ringIndex)}`]} style={at(`2 / ${lastRow}`, colLane(r.ringIndex))} aria-hidden="true" />
+    ))}
+
+    {/* Column header */}
+    <span class="dd-summary__colhead dd-summary__colhead--site dd-t-13-medium" style={at(1, colSite)}>
+      <span class="dd-summary__sq dd-summary__sq--site" />{siteRing.displayLabel} <DdCountBadge value={chipCount('0')} />
+    </span>
+    {headLanes.map(({ ring, count }) => (
+      <span class="dd-summary__colhead dd-t-13-medium" style={at(1, colLane(ring.ringIndex))} data-ring={ring.ringIndex} data-lane-count={ring.ringIndex}>
+        <span class:list={['dd-summary__dot', `dd-summary__dot--${ringCls(ring.ringIndex)}`]} />{ring.displayLabel} <DdCountBadge value={count} />
+      </span>
+    ))}
+    <span class="dd-summary__colhead dd-t-13-medium" style={at(1, colNone)}><span class="dd-summary__sq dd-summary__sq--none" />Not Found</span>
+    <span class="dd-summary__colhead dd-t-13-medium" style={at(1, colNoData)}><span class="dd-summary__sq dd-summary__sq--nodata" />No Data Yet</span>
+
+    {blocks.map((b) => {
+      const tid = b.theme.id;
+      return (
+        <>
+          <span class="dd-summary__sep" style={at(b.sep, '1 / -1')} data-filter-theme={tid} aria-hidden="true" />
+          <span class="dd-summary__theme dd-t-14-medium" style={at(`${b.headStart} / span ${b.headRows}`, 1)} data-filter-theme={tid}>{b.theme.name}</span>
+
+          {b.allNoData && (
+            <span class="dd-summary__hatch dd-t-12" style={at(b.headStart, `${colSite} / ${colNone}`)} data-filter-theme={tid}>
+              <span>{nodataLabel}</span>
+            </span>
+          )}
+
+          {b.onSite.length > 0 && (
+            <ul class="dd-summary__stack" style={at(`${b.headStart} / span ${b.headRows}`, colSite)} data-filter-theme={tid}>
+              {b.onSite.map((l: Layer) => (
+                <li class="dd-summary__mk dd-summary__mk--site dd-t-12" data-filter-layer={l.id}>
+                  <span class="dd-summary__sq dd-summary__sq--site" /><span>{l.name}<b class="dd-t-12-strong">{l.result.short}</b></span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {b.nearby.map((l: Layer, i: number) => {
+            const k = firstRing(l) ?? 1;
+            const col = k === 1 ? `${colLane(1)} / ${colNone}` : `${colLane(1)} / ${colLane(k) + 1}`;
+            return (
+              <span class:list={['dd-summary__mk dd-t-12', k === 1 ? 'dd-summary__mk--start' : 'dd-summary__mk--end']} style={at(b.headStart + i, col)} data-filter-theme={tid} data-filter-layer={l.id} data-mk={l.id}>
+                <span class:list={['dd-summary__dot', `dd-summary__dot--${ringCls(k)}`]} data-dot="lead" hidden={k !== 1} />
+                <span>{l.name}<b class="dd-t-12-strong">{l.result.short}</b></span>
+                <span class:list={['dd-summary__dot', `dd-summary__dot--${ringCls(k)}`]} data-dot="trail" hidden={k === 1} />
+              </span>
+            );
+          })}
+
+          {(b.notFound.length > 0 || b.nearby.length > 0) && (
+            <span class="dd-summary__marks" style={at(b.headStart, colNone)} data-filter-theme={tid}>
+              {b.notFound.map((l: Layer) => <span class="dd-summary__sq dd-summary__sq--none" title={l.name} data-filter-layer={l.id} />)}
+              {b.nearby.map((l: Layer) => <span class="dd-summary__sq dd-summary__sq--none" title={l.name} data-filter-layer={l.id} data-alt-none={l.id} hidden />)}
+            </span>
+          )}
+          {b.noData.length > 0 && (
+            <span class="dd-summary__marks" style={at(b.headStart, colNoData)} data-filter-theme={tid}>
+              {b.noData.map((l: Layer) => <span class="dd-summary__sq dd-summary__sq--nodata" title={l.name} data-filter-layer={l.id} />)}
+            </span>
+          )}
+
+          {b.mixRows.map(({ layer, row: r }) => (
+            <>
+              <span class="dd-summary__sub dd-t-12" style={at(r, 1)} data-filter-theme={tid} data-filter-layer={layer.id}>{layer.name}</span>
+              {[0, ...outerRings.map((x) => x.ringIndex)].map((ri) => {
+                const m = bandMix(layer, ri);
+                const band = ri === 0 ? siteRing.displayLabel : outerRings[ri - 1].displayLabel;
+                return m ? (
+                  <span class:list={['dd-summary__barcell', { 'dd-summary__barcell--site': ri === 0 }]} style={at(r, ri === 0 ? colSite : colLane(ri))} data-filter-theme={tid} data-filter-layer={layer.id} data-ring={ri}>
+                    <DdProfileMixBar title={layer.name} band={band} mix={m} />
+                  </span>
+                ) : null;
+              })}
+            </>
+          ))}
+
+          <span class="dd-summary__pad" style={at(b.pad, 1)} data-filter-theme={tid} aria-hidden="true" />
+        </>
+      );
+    })}
+  </div>
+
+  <p class="dd-summary__legend dd-t-12-strong">
+    <span class="dd-summary__sq dd-summary__sq--na" />{naLabel} <DdCountBadge value={naCount} />
+  </p>
+</section>
+
+<script>
+  import { applyFilters, onFilters } from './profile-filters';
+  import { onRingView, effRing, effKey, layerOf, type RingView } from './profile-rings';
+  import { outerRings, layers, mi } from './profile-model';
+
+  const root = document.querySelector<HTMLElement>('.dd-summary');
+  if (root) {
+    const grid = root.querySelector<HTMLElement>('.dd-summary__grid')!;
+    const R = outerRings.length;
+    const colLane = (k: number): number => 2 + k;
+    const colNone = R + 3;
+
+    // Follow the rings the run measured: unmeasured lanes collapse to zero width,
+    // and markers move to the first measured lane they appear in (or to Not Found).
+    const applyRings = (v: RingView): void => {
+      const lanes = outerRings.map((r) => (v.isShown(r.ringIndex) ? 'minmax(0, 1fr)' : '0px')).join(' ');
+      grid.style.gridTemplateColumns = `176px ${v.shown.length ? '300px' : 'minmax(300px, 1fr)'} ${lanes} 96px 96px`;
+      root.querySelectorAll<HTMLElement>('[data-ring]').forEach((el) => {
+        el.toggleAttribute('data-ring-off', !v.isShown(Number(el.dataset.ring)));
+      });
+      const sub = root.querySelector('[data-subhead]');
+      if (sub) sub.textContent = v.maxMiles !== null
+        ? `Where each theme's layers were found, from on the site out to ${mi(v.maxMiles)}.`
+        : "Where each theme's layers were found on the site.";
+      root.querySelectorAll<HTMLElement>('[data-lane-count]').forEach((el) => {
+        const k = el.dataset.laneCount!;
+        const badge = el.querySelector('.esa-badge__text');
+        if (badge) badge.textContent = String(layers.filter((l) => effKey(l, v) === k).length);
+      });
+      const first = v.shown[0];
+      root.querySelectorAll<HTMLElement>('[data-mk]').forEach((mk) => {
+        const l = layerOf(mk.dataset.mk);
+        if (!l) return;
+        const k = effRing(l, v);
+        const alt = root.querySelector<HTMLElement>(`[data-alt-none="${l.id}"]`);
+        mk.toggleAttribute('data-ring-off', k === null);
+        if (alt) alt.hidden = k !== null;
+        if (k === null) return;
+        const lead = k === first;
+        mk.style.gridColumn = lead ? `${colLane(first)} / ${colNone}` : `${colLane(first)} / ${colLane(k) + 1}`;
+        mk.classList.toggle('dd-summary__mk--start', lead);
+        mk.classList.toggle('dd-summary__mk--end', !lead);
+        const tone = k === 1 ? 'near' : 'far';
+        mk.querySelectorAll<HTMLElement>('[data-dot]').forEach((d) => {
+          d.hidden = (d.dataset.dot === 'lead') !== lead;
+          d.classList.toggle('dd-summary__dot--near', tone === 'near');
+          d.classList.toggle('dd-summary__dot--far', tone === 'far');
+        });
+      });
+    };
+
+    applyFilters(root);
+    onFilters((f) => applyFilters(root, f));
+    onRingView(applyRings);
+  }
+</script>
+
+<style>
+  .dd-summary {
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 8px;
+    padding: 24px 24px 20px;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .dd-summary[hidden] { display: none; }
+  .dd-summary [data-ring-off], .dd-summary :global([hidden]) { display: none !important; }
+  .dd-summary__head h2, .dd-summary__head p { margin: 0; }
+  .dd-summary__head { display: flex; flex-direction: column; gap: 4px; }
+
+  .dd-summary__grid {
+    display: grid;
+    grid-template-columns: 176px 300px repeat(var(--rings), minmax(0, 1fr)) 96px 96px;
+    column-gap: 4px;
+    align-items: start;
+  }
+  .dd-summary__grid > * { position: relative; z-index: 1; min-width: 0; }
+  .dd-summary__grid > .dd-summary__wash { z-index: 0; align-self: stretch; }
+  .dd-summary__wash--site { background: var(--dd-data-on-site-band); border-radius: 6px 6px 0 0; margin-right: 4px; }
+  .dd-summary__wash--near { background: var(--dd-data-nearby-band); }
+  .dd-summary__wash--far { background: var(--dd-data-far-band); }
+
+  .dd-summary__colhead { display: inline-flex; align-items: center; gap: 6px; padding: 12px 8px; white-space: nowrap; color: var(--dd-text); }
+  .dd-summary__colhead--site { padding-left: 12px; }
+
+  .dd-summary__sep { height: 16px; border-top: 1px solid var(--dd-border-subtle); }
+  .dd-summary__pad { height: 8px; }
+  .dd-summary__theme { padding-right: 12px; color: var(--dd-text); }
+  .dd-summary__sub { padding: 10px 12px 10px 12px; color: var(--dd-text-muted); align-self: center; }
+
+  .dd-summary__stack { list-style: none; margin: 0; padding: 0 12px; display: flex; flex-direction: column; gap: 6px; }
+  .dd-summary__mk { display: flex; align-items: baseline; gap: 6px; color: var(--dd-text-muted); padding: 0 6px; min-height: 20px; }
+  .dd-summary__mk b { color: var(--dd-text); margin-left: 6px; white-space: nowrap; }
+  .dd-summary__mk--site { padding: 0; }
+  .dd-summary__mk--start { justify-self: start; }
+  .dd-summary__mk--end { justify-self: end; text-align: right; }
+  .dd-summary__mk .dd-summary__sq, .dd-summary__mk .dd-summary__dot { transform: translateY(1px); }
+
+  .dd-summary__barcell { padding: 10px 6px; align-self: center; }
+  .dd-summary__barcell:hover, .dd-summary__barcell:focus-within { z-index: 10; }
+  .dd-summary__barcell--site { padding: 10px 16px 10px 12px; }
+
+  .dd-summary__hatch {
+    display: flex; align-items: center; justify-content: center; height: 24px; margin: 0 6px 0 12px;
+    border: 1px solid var(--dd-border); border-radius: 4px; color: var(--dd-text-muted);
+    background: repeating-linear-gradient(135deg, var(--dd-border) 0 1px, var(--dd-surface-raised) 1px 6px);
+  }
+  .dd-summary__hatch span { background: var(--dd-surface-raised); padding: 0 6px; }
+
+  .dd-summary__marks { display: flex; gap: 4px; padding: 4px 8px; }
+
+  .dd-summary__sq { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 2px; box-sizing: border-box; }
+  .dd-summary__mk .dd-summary__sq { width: 7px; height: 7px; border-radius: 1px; }
+  .dd-summary__sq--site { background: var(--dd-data-on-site); }
+  .dd-summary__colhead .dd-summary__sq--site { width: 9px; height: 9px; }
+  .dd-summary__sq--none { border: 1px solid var(--dd-border-strong); background: var(--dd-surface-raised); }
+  .dd-summary__sq--nodata { border: 1px solid var(--dd-border); background: repeating-linear-gradient(135deg, var(--dd-border-strong) 0 1px, var(--dd-surface-raised) 1px 3px); }
+  .dd-summary__sq--na { background: var(--dd-border-subtle); }
+
+  .dd-summary__dot { display: inline-block; flex: none; width: 9px; height: 9px; border-radius: 50%; box-sizing: border-box; }
+  .dd-summary__dot--near { background: var(--dd-data-nearby); }
+  .dd-summary__dot--far { background: var(--dd-data-nearby-far); border: 1.5px solid var(--dd-data-nearby); }
+
+  .dd-summary__legend { margin: 0; display: inline-flex; align-items: center; gap: 8px; color: var(--dd-text-muted); }
+
+  .dd-summary :global([data-off-toolbar]) { display: none !important; }
+</style>

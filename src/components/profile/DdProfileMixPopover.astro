@@ -1,0 +1,57 @@
+---
+// DdProfileMixPopover: the body of the class-mix hover popover (layer, band,
+// top classes with share and quantity, Other with its class count, then the
+// feature count and band total). Goes in an esa-popover's slot="content".
+import DdCountBadge from '../common/DdCountBadge.astro';
+import type { Mix } from './profile-model';
+
+interface Props {
+  title: string;
+  band: string;
+  mix: Mix;
+}
+const { title, band, mix } = Astro.props;
+---
+<div class="dd-mixpop">
+  <div class="dd-mixpop__head">
+    <span class="dd-t-14-medium">{title}</span>
+    <span class="dd-t-12 dd-muted">{band}</span>
+  </div>
+  <table class="dd-mixpop__table">
+    <tbody>
+      {mix.top.map((r) => (
+        <tr>
+          <td class="dd-mixpop__sw"><span style={`background:${r.color}`} /></td>
+          <td class="dd-t-13">{r.name}</td>
+          <td class="dd-t-13-medium dd-mixpop__num">{Math.round(r.share)}%</td>
+          <td class="dd-t-13 dd-muted dd-mixpop__num">{r.qty}</td>
+        </tr>
+      ))}
+      {mix.other && (
+        <tr>
+          <td class="dd-mixpop__sw"><span style="background:var(--dd-class-rest)" /></td>
+          <td class="dd-t-13"><span class="dd-mixpop__other">Other <DdCountBadge value={mix.other.count} /></span></td>
+          <td class="dd-t-13-medium dd-mixpop__num">{Math.round(mix.other.share)}%</td>
+          <td class="dd-t-13 dd-muted dd-mixpop__num">{mix.other.qty}</td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+  <div class="dd-mixpop__foot">
+    <span class="dd-t-12 dd-muted dd-mixpop__other">Features <DdCountBadge value={mix.featureCount.toLocaleString('en-US')} /></span>
+    <span class="dd-t-13-medium">{mix.total}</span>
+  </div>
+</div>
+
+<style>
+  .dd-mixpop { min-width: 400px; display: flex; flex-direction: column; gap: 8px; color: var(--dd-text); text-align: left; white-space: normal; }
+  .dd-mixpop__head, .dd-mixpop__foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .dd-mixpop__foot { padding-top: 10px; border-top: 1px solid var(--dd-border-subtle); }
+  .dd-mixpop__table { width: 100%; border-collapse: collapse; }
+  .dd-mixpop__table td { padding: 3px 0; vertical-align: middle; }
+  .dd-mixpop__sw { width: 16px; }
+  .dd-mixpop__table td:nth-child(2) { white-space: nowrap; }
+  .dd-mixpop__sw span { display: block; width: 8px; height: 8px; border-radius: 2px; }
+  .dd-mixpop__num { text-align: right; padding-left: 16px !important; white-space: nowrap; }
+  .dd-mixpop__other { display: inline-flex; align-items: center; gap: 6px; }
+</style>

@@ -1,0 +1,31 @@
+---
+// Site Profile: the screening results for Cottonwood. While a run is queued
+// or running, DdProfileRunProgress replaces the body; on completion the results
+// return and Report Ready toasts.
+import AppLayout from '../../../../layouts/AppLayout.astro';
+import DdProfileHeader from '../../../../components/profile/DdProfileHeader.astro';
+import DdProfileRunProgress from '../../../../components/profile/DdProfileRunProgress.astro';
+import DdProfileStaleBanner from '../../../../components/profile/DdProfileStaleBanner.astro';
+import DdProfileScreeningSummary from '../../../../components/profile/DdProfileScreeningSummary.astro';
+import DdProfileThemeSummaries from '../../../../components/profile/DdProfileThemeSummaries.astro';
+import DdProfileLayerTable from '../../../../components/profile/DdProfileLayerTable.astro';
+---
+
+<!-- manifest:
+  layout: stack(lg)
+  sections:
+    - page title + toolbar -> dd-profile-header
+    - run progress -> dd-profile-run-progress
+    - stale notice -> dd-profile-stale-banner
+    - screening summary -> dd-profile-screening-summary
+    - theme summaries -> dd-profile-theme-summaries
+    - all layers -> dd-profile-layer-table
+-->
+<AppLayout title="Site Profile" current="site-profile">
+  <DdProfileHeader />
+  <DdProfileRunProgress />
+  <DdProfileStaleBanner />
+  <DdProfileScreeningSummary />
+  <DdProfileThemeSummaries />
+  <DdProfileLayerTable />
+</AppLayout>

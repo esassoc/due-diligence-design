@@ -1,0 +1,13 @@
+/* Proximity: ring swatches shared by the panel legend and the ring tiles.
+   Both render them at runtime, so the rule is global and prefixed. */
+.prox-swatch {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+.prox-swatch--site { background: var(--dd-data-on-site); }
+.prox-swatch--solid { background: var(--dd-data-nearby); }
+.prox-swatch--light { background: var(--dd-data-nearby-far); }
+.prox-swatch--dashed { background: var(--dd-surface-raised); border: 1px dashed var(--dd-border); }

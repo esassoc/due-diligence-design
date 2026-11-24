@@ -1,0 +1,339 @@
+---
+// DdProximityMap: the left half of the Search Distances card. The site in coral
+// and one buffer per ring (the site outline offset by the ring distance, round
+// joins, the same shape the Figma draws by stroking the site path), ring tags on
+// each ring's top edge, a drag handle on the outermost ring's east edge, zoom
+// and fit, a legend chip and a scale bar. Re-renders from state on every edit.
+//
+// bcn-lego-checked: no esa- lego draws map overlays or a map drag handle; the
+// basemap is the shared DdMap, the zoom controls are DdIconButton, and the
+// handle is a role=slider span (keyboard: arrows step 0.1 mi) positioned over
+// the SVG. esa-range-slider is a native range input and cannot sit on a ring.
+import DdMap from '../common/DdMap.astro';
+import DdIconButton from '../common/DdIconButton.astro';
+import { SITE_PATH } from '../../lib/map-geometry';
+import { project, rings as dataRings } from '../../data/dd';
+import { DEFAULT_STATE } from '../../lib/dd-store';
+import { ringsSvg } from './proximity-model';
+
+const initial = DEFAULT_STATE.rings;
+const siteLabel = `${project.ProjectName} · ${dataRings[0].areaLabel}`;
+---
+<div class="prox-map" data-prox-map>
+  <DdMap view="proximity" px={740} class="prox-map__svg" label="Map of the Cottonwood site with its search rings">
+    <g data-prox-rings set:html={ringsSvg(initial)} />
+    <path class="prox-map__site" d={SITE_PATH} />
+  </DdMap>
+
+  <div class="prox-map__tags" data-prox-tags aria-hidden="true"></div>
+
+  <span
+    class="prox-map__handle"
+    data-prox-handle
+    role="slider"
+    tabindex="0"
+    aria-label="Outermost ring distance"
+    aria-valuemin="0.1"
+    aria-valuemax="5"
+    aria-valuenow={initial[initial.length - 1]}
+  ></span>
+
+  <div class="prox-map__controls">
+    <div class="prox-map__control-group">
+      <DdIconButton icon="plus" label="Zoom In" data-prox-zoom="in" />
+      <DdIconButton icon="minus" label="Zoom Out" data-prox-zoom="out" />
+    </div>
+    <div class="prox-map__control-group">
+      <DdIconButton icon="maximize" label="Fit Rings" data-prox-zoom="fit" />
+    </div>
+  </div>
+
+  <div class="prox-map__legend dd-t-12">
+    <span class="prox-map__key"><span class="prox-map__key-site" aria-hidden="true"></span>{siteLabel}</span>
+    <span class="prox-map__key"><span class="prox-map__key-line" aria-hidden="true"></span>Transmission Line</span>
+    <span class="prox-map__key"><span class="prox-map__key-line prox-map__key-line--water" aria-hidden="true"></span>Stream</span>
+  </div>
+
+  <div class="prox-map__scale dd-t-12" aria-hidden="true">
+    <span class="prox-map__scale-bar" data-prox-scale-bar></span>
+    <span data-prox-scale-label>2 mi</span>
+  </div>
+</div>
+
+<script>
+  import { getState, setState, onState, markStale, toast, milesLabel, type DdState } from '../../lib/dd-store';
+  import { MI } from '../../lib/map-geometry';
+  import { ringsSvg, bufferPoint, siteDistance, normalize, frac, MIN_MILES, MAX_MILES } from './proximity-model';
+
+  const root = document.querySelector<HTMLElement>('[data-prox-map]');
+  const svg = root?.querySelector<SVGSVGElement>('svg[data-dd-map]');
+  if (root && svg) {
+    const ringsG = root.querySelector<SVGGElement>('[data-prox-rings]')!;
+    const tags = root.querySelector<HTMLElement>('[data-prox-tags]')!;
+    const handle = root.querySelector<HTMLElement>('[data-prox-handle]')!;
+    const scaleBar = root.querySelector<HTMLElement>('[data-prox-scale-bar]')!;
+    const scaleLabel = root.querySelector<HTMLElement>('[data-prox-scale-label]')!;
+    // Home view: the DdMap proximity frame's width and centre, its height set
+    // to the container's aspect so the map scale is fixed by the width.
+    const base = svg.getAttribute('viewBox')!.split(' ').map(Number);
+    const aspect = (): number => {
+      const b = root.getBoundingClientRect();
+      return b.width ? b.height / b.width : base[3] / base[2];
+    };
+    const homeView = (): number[] => {
+      const h = base[2] * aspect();
+      return [base[0], base[1] + base[3] / 2 - h / 2, base[2], h];
+    };
+    let view = homeView();
+    let drawn = '';
+    let dragging = false;
+
+    const setView = (v: number[]): void => {
+      view = v;
+      svg.setAttribute('viewBox', v.map((n) => n.toFixed(0)).join(' '));
+      place();
+    };
+
+    /** SVG metres to px inside the map container. */
+    const toPx = (x: number, y: number): [number, number] => {
+      const m = svg.getScreenCTM();
+      const box = root.getBoundingClientRect();
+      if (!m) return [0, 0];
+      return [m.a * x + m.c * y + m.e - box.left, m.b * x + m.d * y + m.f - box.top];
+    };
+    const toSvg = (cx: number, cy: number): [number, number] => {
+      const m = svg.getScreenCTM();
+      if (!m) return [0, 0];
+      const p = new DOMPoint(cx, cy).matrixTransform(m.inverse());
+      return [p.x, p.y];
+    };
+
+    const editRings = (next: number[], announce: boolean): void => {
+      setState({ rings: next });
+      markStale('rings');
+      if (announce) toast('Saved');
+    };
+
+    /** Tags, handle and scale bar follow the rings and the zoom. */
+    const place = (): void => {
+      const miles = getState().rings;
+      const box = root.getBoundingClientRect();
+      // Tags: outermost first; each takes the first side (top, left, right,
+      // bottom) where it clears the tags already placed.
+      const placed: { side: string; x: number; y: number }[] = [];
+      const sides: [string, number][] = [['top', -Math.PI / 2], ['left', Math.PI], ['right', 0.35], ['bottom', Math.PI / 2]];
+      tags.innerHTML = '';
+      [...miles].reverse().forEach((m) => {
+        for (const [side, theta] of sides) {
+          const [x, y] = toPx(...bufferPoint(m, theta));
+          const clear = placed.every((p) => Math.hypot(p.x - x, p.y - y) > 56);
+          const visible = x > 30 && x < box.width - 30 && y > 14 && y < box.height - 14;
+          if (clear && visible) {
+            placed.push({ side, x, y });
+            const tag = document.createElement('span');
+            tag.className = 'prox-map__tag dd-t-12-strong';
+            tag.textContent = milesLabel(m);
+            tag.style.left = `${x}px`;
+            tag.style.top = `${y}px`;
+            tags.append(tag);
+            break;
+          }
+        }
+      });
+      // Handle on the outermost ring's east edge.
+      const outer = miles[miles.length - 1];
+      handle.hidden = outer === undefined;
+      if (outer !== undefined) {
+        const [x, y] = toPx(...bufferPoint(outer, 0));
+        handle.style.left = `${x}px`;
+        handle.style.top = `${y}px`;
+        handle.setAttribute('aria-valuenow', String(outer));
+        handle.setAttribute('aria-valuetext', milesLabel(outer));
+      }
+      // Scale bar: the largest round distance that fits in 130px.
+      const m = svg.getScreenCTM();
+      const pxPerM = m ? Math.hypot(m.a, m.b) : 0;
+      const nice = [10, 5, 2, 1, 0.5, 0.25, 0.1].find((d) => d * MI * pxPerM <= 130) ?? 0.1;
+      scaleBar.style.width = `${(nice * MI * pxPerM).toFixed(0)}px`;
+      scaleLabel.textContent = `${frac(nice)} mi`;
+    };
+
+    const render = (s: DdState): void => {
+      const key = s.rings.join(',');
+      if (key !== drawn) {
+        ringsG.innerHTML = ringsSvg(s.rings);
+        drawn = key;
+      }
+      place();
+    };
+
+    // ---- Zoom ---------------------------------------------------------------
+    const zoom = (factor: number): void => {
+      const [x, y, w, h] = view;
+      const nw = Math.max(2400, Math.min(32000, w * factor));
+      const nh = (h / w) * nw;
+      setView([x + w / 2 - nw / 2, y + h / 2 - nh / 2, nw, nh]);
+    };
+    const fit = (): void => {
+      const outer = getState().rings.at(-1);
+      const r = (outer ?? 0) * MI + 900;
+      const a = aspect();
+      const w = Math.max(3000, (r * 2.2) / Math.min(1, a));
+      const h = w * a;
+      setView([-w / 2, -h / 2, w, h]);
+    };
+    root.querySelectorAll<HTMLButtonElement>('[data-prox-zoom]').forEach((b) => {
+      b.addEventListener('click', () => {
+        const z = b.dataset.proxZoom;
+        if (z === 'in') zoom(1 / 1.6);
+        else if (z === 'out') zoom(1.6);
+        else fit();
+      });
+    });
+
+    // ---- Drag handle ----------------------------------------------------------
+    const outerBounds = (): [number, number] => {
+      const r = getState().rings;
+      const inner = r.length > 1 ? r[r.length - 2] : 0;
+      return [Math.max(MIN_MILES, Math.round((inner + 0.1) * 10) / 10), MAX_MILES];
+    };
+    const setOuter = (m: number, announce: boolean): void => {
+      const r = getState().rings;
+      if (!r.length) return;
+      const [lo, hi] = outerBounds();
+      const v = Math.min(hi, Math.max(lo, Math.round(m * 10) / 10));
+      if (v === r[r.length - 1]) return;
+      editRings(normalize([...r.slice(0, -1), v]), announce);
+    };
+
+    handle.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      handle.setPointerCapture(e.pointerId);
+      handle.classList.add('is-dragging');
+      e.preventDefault();
+    });
+    handle.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      const d = siteDistance(toSvg(e.clientX, e.clientY)) / MI;
+      setOuter(d, false);
+    });
+    const endDrag = (): void => {
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove('is-dragging');
+      toast('Saved');
+    };
+    handle.addEventListener('pointerup', endDrag);
+    handle.addEventListener('pointercancel', endDrag);
+    handle.addEventListener('keydown', (e) => {
+      const cur = getState().rings.at(-1);
+      if (cur === undefined) return;
+      const [lo, hi] = outerBounds();
+      const steps: Record<string, number> = { ArrowRight: 0.1, ArrowUp: 0.1, ArrowLeft: -0.1, ArrowDown: -0.1, PageUp: 1, PageDown: -1 };
+      if (e.key in steps) setOuter(cur + steps[e.key], true);
+      else if (e.key === 'Home') setOuter(lo, true);
+      else if (e.key === 'End') setOuter(hi, true);
+      else return;
+      e.preventDefault();
+    });
+
+    setView(view);
+    render(getState());
+    onState(render);
+    new ResizeObserver(() => {
+      const [x, y, w, h] = view;
+      const nh = w * aspect();
+      setView([x, y + h / 2 - nh / 2, w, nh]);
+    }).observe(root);
+  }
+</script>
+
+<style>
+  .prox-map {
+    position: relative;
+    min-height: 700px;
+    overflow: hidden;
+    background: var(--dd-map-land);
+  }
+  .prox-map :global(.prox-map__svg) { position: absolute; inset: 0; }
+
+  .prox-map :global(.prox-ring) { stroke: var(--dd-data-nearby); stroke-width: 1.25; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  .prox-map :global(.prox-ring--inner) { fill: var(--dd-data-nearby); fill-opacity: 0.18; }
+  .prox-map :global(.prox-ring--mid) { fill: var(--dd-data-nearby); fill-opacity: 0.1; stroke-opacity: 0.7; }
+  .prox-map :global(.prox-ring--outer) { fill: var(--dd-data-nearby); fill-opacity: 0.07; stroke-dasharray: 5 4; }
+  .prox-map :global(.prox-ring--custom) { fill: none; stroke-width: 1; stroke-dasharray: 3 3; stroke-opacity: 0.8; }
+  .prox-map :global(.prox-map__site) { fill: var(--dd-data-on-site); stroke: var(--dd-data-on-site-label); stroke-opacity: 0.35; stroke-width: 1; }
+
+  .prox-map__tags { position: absolute; inset: 0; pointer-events: none; }
+  .prox-map :global(.prox-map__tag) {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    padding: 2px 6px;
+    border: 1px solid var(--dd-data-nearby);
+    border-radius: 4px;
+    background: var(--dd-surface-raised);
+    color: var(--dd-text);
+    white-space: nowrap;
+  }
+
+  .prox-map__handle {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    transform: translate(-50%, -50%);
+    border: 2px solid var(--dd-data-nearby);
+    border-radius: 50%;
+    background: var(--dd-surface-raised);
+    cursor: ew-resize;
+    touch-action: none;
+  }
+  .prox-map__handle[hidden] { display: none; }
+  .prox-map__handle:hover,
+  .prox-map__handle.is-dragging { box-shadow: 0 0 0 4px rgb(63 104 207 / 0.2); }
+  .prox-map__handle:focus-visible { outline: 2px solid var(--dd-focus-ring); outline-offset: 2px; }
+
+  .prox-map__controls {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .prox-map__control-group {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 6px;
+    background: var(--dd-surface-raised);
+    overflow: hidden;
+  }
+  .prox-map__control-group > :global(* + *) { border-top: 1px solid var(--dd-border-subtle); }
+  .prox-map__control-group :global(.dd-icon-button) { border-radius: 0; }
+
+  .prox-map__legend,
+  .prox-map__scale {
+    position: absolute;
+    bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: var(--dd-surface-raised);
+    color: var(--dd-text-muted);
+  }
+  .prox-map__legend { left: 16px; }
+  .prox-map__scale { right: 16px; gap: 8px; }
+  .prox-map__key { display: inline-flex; align-items: center; gap: 6px; }
+  .prox-map__key-site { width: 10px; height: 10px; border-radius: 2px; background: var(--dd-data-on-site); }
+  .prox-map__key-line { width: 14px; height: 0; border-top: 1.5px solid var(--dd-text-muted); }
+  .prox-map__key-line--water { border-top: 3px solid var(--dd-map-water); }
+  .prox-map__scale-bar {
+    display: inline-block;
+    width: 117px;
+    height: 6px;
+    border: 1px solid var(--dd-text-muted);
+    border-top: 0;
+  }
+</style>

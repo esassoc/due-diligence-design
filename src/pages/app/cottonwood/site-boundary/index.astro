@@ -1,0 +1,25 @@
+---
+// Site Boundary (step 2): the map card with the area's side panel, then the
+// Upload a Boundary File card. States are driven by getState().boundary plus
+// the map card's local mode.
+import AppLayout from '../../../../layouts/AppLayout.astro';
+import DdPageTitle from '../../../../components/shell/DdPageTitle.astro';
+import DdBoundaryMap from '../../../../components/boundary/DdBoundaryMap.astro';
+import DdBoundaryUpload from '../../../../components/boundary/DdBoundaryUpload.astro';
+import { project } from '../../../../data/dd';
+
+const fileMeta = `1 polygon, ${Math.round(project.Acres)} ac · 2026-11-18`;
+---
+
+<!-- manifest:
+  layout: stack(lg)
+  sections:
+    - page title    -> dd-page-title
+    - boundary map  -> dd-boundary-map
+    - upload file   -> dd-boundary-upload
+-->
+<AppLayout title="Site Boundary" current="site-boundary">
+  <DdPageTitle project="Cottonwood" title="Site Boundary" />
+  <DdBoundaryMap />
+  <DdBoundaryUpload fileMeta={fileMeta} />
+</AppLayout>

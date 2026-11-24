@@ -1,0 +1,188 @@
+---
+// DdPagerBar: the floating step pager (Figma "Pager bar" 92:5627) plus the
+// Saved toast that rises above it. Grip, Prev with an up-menu of every step,
+// the mark, Next with the same menu. Locked steps show in the menus disabled;
+// Next to a locked step is disabled with its reason as the tooltip.
+//
+// The toast is the app's one autosave confirmation (brief item 8: no save
+// buttons, changes save and a toast confirms). It sits on the pager, so it is
+// part of this component rather than a page-level snackbar.
+//
+// bcn-lego-checked: no esa- lego is a floating prev/next pager; esa-pagination
+// pages a list by number. The step menus ARE esa-dropdown-menu (position
+// above-start / above-end). For the toast, esa-snackbar-container is
+// persistent-by-default and stacks in a screen corner with an action slot; the
+// approved toast is a one-word, transient confirmation anchored on the pager,
+// announced through a polite live region. dd-pager-bar is the reusable home.
+import DdIcon from '../common/DdIcon.astro';
+import { STEPS, stepRoute, type StepKey } from '../../data/dd';
+import { withBase } from '../../lib/base';
+
+interface Props {
+  current: StepKey;
+}
+const { current } = Astro.props;
+const idx = STEPS.findIndex((s) => s.key === current);
+const prev = STEPS[idx - 1];
+const next = STEPS[idx + 1];
+const routes = Object.fromEntries(STEPS.map((s) => [s.key, withBase(stepRoute(s.key))]));
+---
+<div class="dd-pager" data-dd-pager data-current={current} data-routes={JSON.stringify(routes)} data-steps={JSON.stringify(STEPS)}>
+  <div class="dd-pager__toast dd-t-13-medium" role="status" aria-live="polite" data-dd-toast>
+    <DdIcon name="check" size="xs" />
+    <span data-dd-toast-text>Saved</span>
+  </div>
+  <div class="dd-pager__bar">
+    <span class="dd-pager__grip" aria-hidden="true"><DdIcon name="grip-vertical" size="md" /></span>
+    <span class="dd-pager__div"></span>
+    <a class="dd-pager__btn dd-t-14-medium" href={prev ? routes[prev.key] : withBase('/app/')} data-dd-prev data-step={prev?.key ?? ''}>
+      <DdIcon name="arrow-left" size="xs" />Prev
+    </a>
+    <esa-dropdown-menu position="above-start" data-dd-menu="prev">
+      <button type="button" class="dd-pager__caret" aria-label="Go to Step"><DdIcon name="chevron-up" size="xs" /></button>
+    </esa-dropdown-menu>
+    <span class="dd-pager__div"></span>
+    <a class="dd-pager__mark" href={withBase('/app/')} aria-label="Projects">
+      <img src={`${import.meta.env.BASE_URL}brand/dd-mark-pager.svg`} width="22" height="22" alt="" />
+    </a>
+    <span class="dd-pager__div"></span>
+    <a class="dd-pager__btn dd-pager__btn--next dd-t-14-medium" href={next ? routes[next.key] : '#'} data-dd-next data-step={next?.key ?? ''} data-needs={next?.needs ?? 'none'}>
+      Next<DdIcon name="arrow-right" size="xs" />
+    </a>
+    <esa-dropdown-menu position="above-end" data-dd-menu="next">
+      <button type="button" class="dd-pager__caret" aria-label="Go to Step"><DdIcon name="chevron-up" size="xs" /></button>
+    </esa-dropdown-menu>
+  </div>
+</div>
+
+<style>
+  .dd-pager {
+    position: fixed;
+    bottom: 24px;
+    left: calc(var(--dd-sidebar-w, 264px) + (100vw - var(--dd-sidebar-w, 264px)) / 2);
+    transform: translateX(-50%);
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
+  }
+  .dd-pager > * { pointer-events: auto; }
+  .dd-pager__bar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 6px;
+    background: rgb(39 42 48 / 0.82);
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.3);
+    backdrop-filter: blur(7px);
+    color: rgb(255 255 255 / 0.92);
+  }
+  .dd-pager__grip { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 36px; color: rgb(255 255 255 / 0.5); cursor: grab; }
+  .dd-pager__div { width: 1px; height: 24px; background: rgb(255 255 255 / 0.16); }
+  .dd-pager__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 12px 0 10px;
+    border-radius: 8px;
+    color: rgb(255 255 255 / 0.92);
+  }
+  .dd-pager__btn--next { padding: 0 10px 0 12px; }
+  .dd-pager__btn:hover, .dd-pager__caret:hover, .dd-pager__mark:hover { background: rgb(255 255 255 / 0.08); }
+  .dd-pager__btn[aria-disabled='true'] { color: rgb(255 255 255 / 0.38); pointer-events: none; }
+  .dd-pager__caret {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 36px;
+    border-radius: 8px;
+    color: rgb(255 255 255 / 0.7);
+  }
+  .dd-pager__caret :global(svg) { width: 10px; height: 10px; }
+  .dd-pager__mark { display: inline-flex; align-items: center; height: 36px; padding: 0 10px; border-radius: 8px; }
+  .dd-pager :global(esa-dropdown-menu) { --dropdown-menu-min-width: 200px; --dropdown-menu-max-height: none; color: var(--dd-text); }
+
+  .dd-pager__toast {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgb(39 42 48 / 0.92);
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgb(0 0 0 / 0.22);
+    color: rgb(255 255 255 / 0.92);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 160ms ease, transform 160ms ease;
+  }
+  .dd-pager__toast :global(.dd-icon) { color: #7fd6a4; }
+  .dd-pager__toast[data-show] { opacity: 1; transform: none; }
+  :global(html[data-dd-sidebar-collapsed]) .dd-pager { --dd-sidebar-w: 0px; }
+  @media (prefers-reduced-motion: reduce) { .dd-pager__toast { transition: none; } }
+</style>
+
+<script>
+  import '@esa/ecology/esa-dropdown-menu';
+  import { getState, onState, lockReason, type DdState, type StepNeeds } from '../../lib/dd-store';
+
+  type Menu = HTMLElement & { items: { label: string; action: string; disabled?: boolean }[] };
+  type Step = { key: string; label: string; phase: string; needs: StepNeeds };
+
+  const root = document.querySelector<HTMLElement>('[data-dd-pager]');
+  if (root) {
+    const routes: Record<string, string> = JSON.parse(root.dataset.routes ?? '{}');
+    const steps: Step[] = JSON.parse(root.dataset.steps ?? '[]');
+    const current = root.dataset.current;
+    const nextEl = root.querySelector<HTMLAnchorElement>('[data-dd-next]');
+    const menus = root.querySelectorAll<Menu>('[data-dd-menu]');
+
+    const render = (s: DdState): void => {
+      const items = steps.map((st) => {
+        const reason = lockReason(st.needs, s);
+        return {
+          label: st.label,
+          action: st.key,
+          disabled: Boolean(reason) || st.key === current,
+        };
+      });
+      menus.forEach((m) => { m.items = items; });
+      if (nextEl) {
+        const needs = (nextEl.dataset.needs ?? 'none') as Step['needs'];
+        const reason = nextEl.dataset.step ? lockReason(needs, s) : 'Last step';
+        nextEl.toggleAttribute('aria-disabled', Boolean(reason));
+        if (reason) nextEl.setAttribute('aria-disabled', 'true');
+        nextEl.title = reason ?? '';
+        // A disabled link still needs a hover target for its reason.
+        nextEl.parentElement?.setAttribute('title', reason ?? '');
+      }
+    };
+
+    menus.forEach((m) => m.addEventListener('menu-action', (e) => {
+      const key = (e as CustomEvent<string>).detail;
+      if (routes[key]) location.href = routes[key];
+    }));
+
+    render(getState());
+    onState(render);
+    window.setInterval(() => render(getState()), 1000);
+
+    // Toast
+    const toast = root.querySelector<HTMLElement>('[data-dd-toast]');
+    const text = root.querySelector<HTMLElement>('[data-dd-toast-text]');
+    let hide: number | undefined;
+    window.addEventListener('dd:toast', (e) => {
+      if (!toast || !text) return;
+      text.textContent = (e as CustomEvent<string>).detail || 'Saved';
+      toast.setAttribute('data-show', '');
+      window.clearTimeout(hide);
+      hide = window.setTimeout(() => toast.removeAttribute('data-show'), 1800);
+    });
+  }
+</script>

@@ -1,0 +1,20 @@
+---
+// DdIcon: esa-icon with the app's Lucide set (src/lib/icons.ts) through its
+// documented `paths` fallback, at the Figma stroke (1.5 at 16px).
+import EsaIcon from '@esa/ecology/esa-icon.astro';
+import { iconPaths } from '../../lib/icons';
+
+interface Props {
+  name: string;
+  size?: 'xs' | 'sm' | 'md' | 'lg';
+  label?: string;
+  class?: string;
+}
+const { name, size = 'sm', label, class: cls } = Astro.props;
+---
+<span class:list={['dd-icon', cls]}><EsaIcon name={name} paths={iconPaths(name)} size={size} label={label} /></span>
+
+<style>
+  .dd-icon { display: inline-flex; line-height: 0; flex: none; }
+  .dd-icon :global(svg) { stroke-width: 1.5; }
+</style>

@@ -1,0 +1,120 @@
+---
+// DdTopbar: the app's top bar (Figma "Topbar" 92:5366). Sidebar toggle, the
+// global search pill, QA environment badge, notifications, settings, avatar.
+// The avatar opens the prototype's own menu (Projects, Handoff, Design System,
+// Reset Prototype) through esa-dropdown-menu.
+//
+// bcn-lego-checked: esa-app-bar is a brand-filled bar with a title slot; the
+// approved chrome is a neutral bar with a centred search pill and a quiet env
+// badge (Andy, chrome final 2026-11-24). Icon buttons are DdIconButton
+// (registry-free glyphs); the menu is esa-dropdown-menu; the search pill is a button that
+// would open esa-command-palette in the real app. dd-topbar is the reusable home.
+import DdIconButton from '../common/DdIconButton.astro';
+import DdIcon from '../common/DdIcon.astro';
+---
+<header class="dd-topbar">
+  <DdIconButton icon="panel-left" label="Toggle Sidebar" data-dd-sidebar-toggle />
+  <div class="dd-topbar__spacer"></div>
+  <button type="button" class="dd-topbar__search" aria-label="Search Sites and Layers">
+    <DdIcon name="search" size="sm" />
+    <span class="dd-t-14">Search Sites and Layers</span>
+    <kbd class="dd-t-12">/</kbd>
+  </button>
+  <div class="dd-topbar__spacer"></div>
+  <span class="dd-topbar__env dd-t-12-strong">QA</span>
+  <DdIconButton icon="bell" label="Notifications" />
+  <DdIconButton icon="settings" label="Settings" />
+  <esa-dropdown-menu position="below-end" data-dd-user-menu>
+    <button type="button" class="dd-topbar__avatar" aria-label="Andy Lovseth">
+      <img src={`${import.meta.env.BASE_URL}brand/avatar.png`} width="28" height="28" alt="" />
+    </button>
+  </esa-dropdown-menu>
+</header>
+
+<style>
+  .dd-topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 52px;
+    padding: 0 16px;
+    background: var(--dd-chrome-topbar-bg);
+    border-bottom: 1px solid var(--dd-chrome-sidebar-border);
+    color: var(--dd-chrome-topbar-text-muted);
+  }
+  .dd-topbar__spacer { flex: 1; }
+  .dd-topbar__search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 480px;
+    max-width: 40vw;
+    height: 32px;
+    padding: 0 12px;
+    background: var(--dd-chrome-topbar-control);
+    border: 1px solid var(--dd-chrome-topbar-border);
+    border-radius: 9999px;
+    color: var(--dd-chrome-topbar-text-muted);
+    text-align: left;
+  }
+  .dd-topbar__search span { flex: 1; }
+  .dd-topbar__search kbd {
+    padding: 0 5px;
+    border: 1px solid var(--dd-chrome-topbar-border);
+    border-radius: 3px;
+    font-family: inherit;
+  }
+  .dd-topbar__env {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 8px;
+    background: var(--dd-accent-surface);
+    border: 1px solid var(--dd-accent-solid);
+    border-radius: 4px;
+    color: var(--dd-accent-text);
+  }
+  .dd-topbar__avatar {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .dd-topbar__avatar img { width: 100%; height: 100%; object-fit: cover; }
+</style>
+
+<script>
+  import '@esa/ecology/esa-dropdown-menu';
+  import { resetState } from '../../lib/dd-store';
+
+  const base = import.meta.env.BASE_URL;
+  type Menu = HTMLElement & { items: { label: string; action: string; divider?: boolean }[] };
+  const menu = document.querySelector<Menu>('[data-dd-user-menu]');
+  if (menu) {
+    menu.items = [
+      { label: 'Projects', action: 'projects' },
+      { label: 'Handoff for Ray', action: 'handoff' },
+      { label: 'Design System', action: 'design-system' },
+      { label: '', action: '', divider: true },
+      { label: 'Reset Prototype', action: 'reset' },
+    ];
+    menu.addEventListener('menu-action', (e) => {
+      const action = (e as CustomEvent<{ action: string } | string>).detail;
+      const a = typeof action === 'string' ? action : action?.action;
+      if (a === 'projects') location.href = `${base}app/`;
+      if (a === 'handoff') location.href = `${base}handoff/`;
+      if (a === 'design-system') location.href = `${base}design-system/`;
+      if (a === 'reset') {
+        resetState();
+        try { ['dd-visited-geospatial', 'dd-geo-state'].forEach((k) => sessionStorage.removeItem(k)); } catch { /* ignore */ }
+        location.href = `${base}app/cottonwood/project-details/`;
+      }
+    });
+  }
+
+  document.querySelector('[data-dd-sidebar-toggle]')?.addEventListener('click', () => {
+    document.documentElement.toggleAttribute('data-dd-sidebar-collapsed');
+  });
+</script>

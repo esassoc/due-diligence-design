@@ -1,0 +1,477 @@
+---
+// DdProximityPanel: the right half of the Search Distances card. Presets, the
+// ring ruler, the ring legend, Custom Distances, Reset to Defaults and Run
+// Report (with the Queued / Running state when a run is in flight). Every edit
+// writes `rings` to state and shows the Saved toast; after a run it also marks
+// the run stale.
+//
+// bcn-lego-checked: the ring ruler is bespoke. esa-range-slider wraps one native
+// range input (one thumb, linear scale); this needs one thumb per ring on a
+// non-linear ruler (On Site, ¼, ½, 1, 2, 5 mi) with ordered thumbs. Each thumb
+// is role=slider with arrow / Home / End keys stepping between stops. Presets
+// are esa-button-toggle, the field esa-text-field, buttons esa-button, custom
+// chips esa-pill (cloned from a server-rendered template).
+import EsaButton from '@esa/ecology/esa-button.astro';
+import EsaPill from '@esa/ecology/esa-pill.astro';
+import DdIcon from '../common/DdIcon.astro';
+import DdIconButton from '../common/DdIconButton.astro';
+import DdCountBadge from '../common/DdCountBadge.astro';
+import { DEFAULT_STATE } from '../../lib/dd-store';
+import { iconSvg } from '../../lib/icons';
+import { runStates } from '../../data/dd';
+import {
+  ringsListLabel, legendHtml, ticksHtml, thumbsHtml, stopLabelsHtml, customOf, MAX_CUSTOM,
+} from './proximity-model';
+import './proximity.css';
+
+const initial = DEFAULT_STATE.rings;
+const lockSvg = iconSvg('lock', 12, 1.5);
+const states = runStates as unknown as Record<'queued' | 'running', { uiText: string }>;
+const presets = [
+  { label: 'Site Only', value: 'site', miles: [] as number[] },
+  { label: 'Standard', value: 'standard', miles: [0.25, 1] },
+  { label: 'Regional', value: 'regional', miles: [0.25, 1, 5] },
+];
+---
+<div
+  class="prox-panel"
+  data-prox-panel
+  data-presets={JSON.stringify(presets)}
+  data-defaults={JSON.stringify(initial)}
+  data-lock={lockSvg}
+  data-queued={states.queued.uiText}
+  data-running={states.running.uiText}
+>
+  <header class="prox-panel__head">
+    <h2 class="dd-t-display-20 prox-panel__title">Search Distances</h2>
+    <p class="dd-t-13 prox-panel__lede">Rings are measured from the project boundary. Each ring starts where the one inside it stops, so nothing is counted twice.</p>
+  </header>
+
+  <esa-button-toggle class="prox-panel__presets" size="sm" data-prox-presets value="regional"></esa-button-toggle>
+
+  <section class="prox-panel__rings" aria-label="Rings">
+    <div class="prox-panel__row">
+      <span class="dd-t-13-medium">Rings</span>
+      <span class="prox-panel__current">
+        <DdIconButton icon="rotate-ccw" label="Reset to Defaults" size="sm" data-prox-reset />
+        <span class="dd-t-13" data-prox-list>{ringsListLabel(initial)}</span>
+      </span>
+    </div>
+
+    <div class="prox-ruler" data-prox-ruler>
+      <div class="prox-ruler__track" data-prox-track>
+        <span class="prox-ruler__site" aria-hidden="true"></span>
+        <span class="prox-ruler__marks" aria-hidden="true" data-prox-ticks set:html={ticksHtml(initial)}></span>
+        <span class="prox-ruler__thumbs" data-prox-thumbs set:html={thumbsHtml(initial)}></span>
+      </div>
+      <div class="prox-ruler__labels" aria-hidden="true" data-prox-stops set:html={stopLabelsHtml(initial, lockSvg)}></div>
+    </div>
+
+    <div class="prox-legend" data-prox-legend set:html={legendHtml(initial)}></div>
+  </section>
+
+  <section class="prox-custom" aria-label="Custom Distances">
+    <div class="prox-custom__head">
+      <span class="dd-t-13-medium">Custom Distances</span>
+      <span data-prox-count><DdCountBadge value={`${customOf(initial).length} of ${MAX_CUSTOM}`} /></span>
+    </div>
+    <div class="prox-custom__chips" data-prox-chips hidden></div>
+    <template data-prox-chip-tpl>
+      <EsaPill label="0 mi" size="sm" removable>
+        <span slot="icon" class="prox-custom__chip-swatch" aria-hidden="true"></span>
+      </EsaPill>
+    </template>
+    <div class="prox-custom__add">
+      <esa-text-field
+        class="prox-custom__field"
+        data-prox-field
+        label=""
+        placeholder="e.g. 2"
+        suffix="mi"
+        inputmode="decimal"
+        size="sm"
+        aria-label="Custom distance in miles"
+      ></esa-text-field>
+      <EsaButton variant="secondary" size="sm" data-prox-add><DdIcon name="plus" size="xs" /> Add</EsaButton>
+    </div>
+    <p class="dd-t-12 prox-custom__help" data-prox-help>Up to four, from 0.1 to 5 mi.</p>
+  </section>
+
+  <footer class="prox-panel__foot">
+    <div class="prox-panel__foot-start">
+      <span data-prox-reset-link><EsaButton variant="ghost" size="sm" class="prox-panel__link" data-prox-reset>Reset to Defaults</EsaButton></span>
+      <p class="dd-t-13 prox-status" data-prox-status role="status" hidden></p>
+    </div>
+    <span data-prox-run-wrap><EsaButton variant="primary" size="sm" data-prox-run>Run Report</EsaButton></span>
+    <span data-prox-running-wrap hidden><EsaButton variant="primary" size="sm" disabled class="prox-panel__running"><DdIcon name="loader-circle" size="xs" /> Running</EsaButton></span>
+  </footer>
+</div>
+
+<script>
+  import '@esa/ecology/esa-button-toggle';
+  import '@esa/ecology/esa-text-field';
+  import { getState, setState, onState, runStatus, startRun, markStale, toast, type DdState } from '../../lib/dd-store';
+  import { withBase } from '../../lib/base';
+  import {
+    ringsListLabel, legendHtml, ticksHtml, thumbsHtml, stopLabelsHtml, customOf, normalize,
+    rulerMiles, rulerPos, isStandard, mi, STOPS, MIN_MILES, MAX_MILES, MAX_CUSTOM,
+  } from './proximity-model';
+
+  type Preset = { label: string; value: string; miles: number[] };
+  type Toggle = HTMLElement & { options: { label: string; value: string }[]; value: string };
+  type Field = HTMLElement & { value: string; errorText: string };
+
+  const root = document.querySelector<HTMLElement>('[data-prox-panel]');
+  if (root) {
+    const presets: Preset[] = JSON.parse(root.dataset.presets ?? '[]');
+    const defaults: number[] = JSON.parse(root.dataset.defaults ?? '[]');
+    const lock = root.dataset.lock ?? '';
+    const q = <T extends Element>(sel: string): T => root.querySelector<T>(sel)!;
+    const toggle = q<Toggle>('[data-prox-presets]');
+    const list = q<HTMLElement>('[data-prox-list]');
+    const track = q<HTMLElement>('[data-prox-track]');
+    const ticks = q<HTMLElement>('[data-prox-ticks]');
+    const thumbs = q<HTMLElement>('[data-prox-thumbs]');
+    const stops = q<HTMLElement>('[data-prox-stops]');
+    const legend = q<HTMLElement>('[data-prox-legend]');
+    const count = q<HTMLElement>('[data-prox-count] .esa-badge__text');
+    const chips = q<HTMLElement>('[data-prox-chips]');
+    const chipTpl = q<HTMLTemplateElement>('[data-prox-chip-tpl]');
+    const field = q<Field>('[data-prox-field]');
+    const addBtn = q<HTMLButtonElement>('[data-prox-add]');
+    const runBtn = q<HTMLButtonElement>('[data-prox-run]');
+    const runWrap = q<HTMLElement>('[data-prox-run-wrap]');
+    const runningWrap = q<HTMLElement>('[data-prox-running-wrap]');
+    const resetLink = q<HTMLElement>('[data-prox-reset-link]');
+    const status = q<HTMLElement>('[data-prox-status]');
+    const help = q<HTMLElement>('[data-prox-help]');
+    const HELP = 'Up to four, from 0.1 to 5 mi.';
+    const FULL = 'Four is the most. Remove one to add another.';
+    let dragging = -1;
+    let drawn = '';
+
+    toggle.options = presets.map(({ label, value }) => ({ label, value }));
+
+    const editRings = (next: number[]): void => {
+      setState({ rings: normalize(next) });
+      markStale('rings');
+      toast('Saved');
+    };
+
+    // ---- Render ----------------------------------------------------------------
+    const renderRings = (miles: number[]): void => {
+      const key = miles.join(',');
+      const preset = presets.find((p) => p.miles.join(',') === key);
+      toggle.value = preset?.value ?? '';
+      list.textContent = ringsListLabel(miles);
+      ticks.innerHTML = ticksHtml(miles);
+      stops.innerHTML = stopLabelsHtml(miles, lock);
+      legend.innerHTML = legendHtml(miles);
+      if (dragging < 0 && key !== drawn) {
+        const focused = (document.activeElement as HTMLElement | null)?.dataset?.index;
+        thumbs.innerHTML = thumbsHtml(miles);
+        if (focused !== undefined) thumbs.querySelector<HTMLElement>(`[data-index="${focused}"]`)?.focus();
+      }
+      drawn = key;
+
+      const custom = customOf(miles);
+      if (count) count.textContent = `${custom.length} of ${MAX_CUSTOM}`;
+      chips.innerHTML = '';
+      custom.forEach((m) => {
+        const frag = chipTpl.content.cloneNode(true) as DocumentFragment;
+        const pill = frag.querySelector<HTMLElement>('.esa-pill')!;
+        pill.dataset.miles = String(m);
+        pill.querySelector('.esa-pill__label')!.textContent = mi(m);
+        pill.querySelector('[data-esa-pill-remove]')?.setAttribute('aria-label', `Remove ${mi(m)}`);
+        chips.append(frag);
+      });
+      chips.hidden = custom.length === 0;
+      help.textContent = custom.length >= MAX_CUSTOM ? FULL : HELP;
+      syncHelp();
+    };
+
+    const renderRun = (): void => {
+      const st = runStatus();
+      const busy = st === 'queued' || st === 'running';
+      runWrap.hidden = busy;
+      runningWrap.hidden = !busy;
+      resetLink.hidden = busy;
+      status.hidden = !busy;
+      const text = busy ? ((st === 'queued' ? root.dataset.queued : root.dataset.running) ?? '') : '';
+      if (status.textContent !== text) status.textContent = text;
+    };
+
+    const syncHelp = (): void => { help.hidden = Boolean(field.errorText); };
+
+    const render = (s: DdState): void => { renderRings(s.rings); renderRun(); };
+
+    // ---- Presets and reset ------------------------------------------------------
+    toggle.addEventListener('change', (e) => {
+      const v = (e as CustomEvent<{ value: string }>).detail.value;
+      const p = presets.find((x) => x.value === v);
+      if (p) editRings(p.miles);
+    });
+    root.querySelectorAll('[data-prox-reset]').forEach((b) => b.addEventListener('click', () => {
+      field.errorText = '';
+      syncHelp();
+      editRings(defaults);
+    }));
+
+    // ---- Ruler thumbs -------------------------------------------------------------
+    const majors = STOPS.slice(1);
+    /** Stops a thumb may move to: strictly between its neighbours. */
+    const allowed = (i: number): number[] => {
+      const r = getState().rings;
+      const lo = i > 0 ? r[i - 1] : 0;
+      const hi = i < r.length - 1 ? r[i + 1] : Infinity;
+      return majors.filter((m) => m > lo && m < hi);
+    };
+    const moveThumb = (i: number, m: number, announce: boolean): void => {
+      const r = [...getState().rings];
+      if (r[i] === m) return;
+      r[i] = m;
+      if (announce) editRings(r);
+      else {
+        setState({ rings: normalize(r) });
+        markStale('rings');
+      }
+    };
+
+    thumbs.addEventListener('keydown', (e) => {
+      const t = (e.target as HTMLElement).closest<HTMLElement>('[role="slider"]');
+      if (!t) return;
+      const i = Number(t.dataset.index);
+      const cur = getState().rings[i];
+      const ok = allowed(i);
+      if (!ok.length) return;
+      let next: number | undefined;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') next = ok.find((m) => m > cur);
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') next = [...ok].reverse().find((m) => m < cur);
+      else if (e.key === 'Home') next = ok[0];
+      else if (e.key === 'End') next = ok[ok.length - 1];
+      else return;
+      e.preventDefault();
+      if (next !== undefined) moveThumb(i, next, true);
+    });
+
+    thumbs.addEventListener('pointerdown', (e) => {
+      const t = (e.target as HTMLElement).closest<HTMLElement>('[role="slider"]');
+      if (!t) return;
+      e.preventDefault();
+      t.focus();
+      t.setPointerCapture(e.pointerId);
+      dragging = Number(t.dataset.index);
+      t.classList.add('is-dragging');
+      const start = getState().rings[dragging];
+      const ok = allowed(dragging);
+      const box = track.getBoundingClientRect();
+      const inset = 14;
+      const move = (ev: PointerEvent): void => {
+        const p = (ev.clientX - box.left - inset) / (box.width - inset * 2);
+        const raw = rulerMiles(p);
+        const snap = ok.reduce((best, m) => (Math.abs(m - raw) < Math.abs(best - raw) ? m : best), ok[0] ?? start);
+        if (snap === undefined) return;
+        t.style.setProperty('--p', rulerPos(snap).toFixed(4));
+        t.setAttribute('aria-valuenow', String(snap));
+        t.setAttribute('aria-valuetext', mi(snap));
+        moveThumb(dragging, snap, false);
+      };
+      const up = (): void => {
+        t.removeEventListener('pointermove', move);
+        t.removeEventListener('pointerup', up);
+        t.removeEventListener('pointercancel', up);
+        t.classList.remove('is-dragging');
+        const changed = getState().rings[dragging] !== start;
+        dragging = -1;
+        drawn = '';
+        renderRings(getState().rings);
+        if (changed) toast('Saved');
+      };
+      t.addEventListener('pointermove', move);
+      t.addEventListener('pointerup', up);
+      t.addEventListener('pointercancel', up);
+    });
+
+    // ---- Custom distances -----------------------------------------------------------
+    const add = (): void => {
+      const raw = String(field.value ?? '').trim();
+      const m = Math.round(Number(raw) * 100) / 100;
+      const r = getState().rings;
+      if (!raw || Number.isNaN(m) || m < MIN_MILES || m > MAX_MILES) {
+        field.errorText = 'Enter a distance from 0.1 to 5 mi.';
+      } else if (r.includes(m)) {
+        field.errorText = `${mi(m)} is already a ring.`;
+      } else if (customOf(r).length >= MAX_CUSTOM && !isStandard(m)) {
+        field.errorText = FULL;
+      } else {
+        field.errorText = '';
+        field.value = '';
+        editRings([...r, m]);
+      }
+      syncHelp();
+    };
+    addBtn.addEventListener('click', add);
+    field.addEventListener('keydown', (e) => {
+      if ((e as KeyboardEvent).key === 'Enter') { e.preventDefault(); add(); }
+    });
+    field.addEventListener('input', () => { if (field.errorText) { field.errorText = ''; syncHelp(); } });
+    chips.addEventListener('removed', (e) => {
+      const m = Number((e.target as HTMLElement).dataset.miles);
+      editRings(getState().rings.filter((x) => x !== m));
+    });
+
+    // ---- Run ---------------------------------------------------------------------
+    runBtn.addEventListener('click', () => {
+      startRun();
+      window.location.href = withBase('/app/cottonwood/site-profile/');
+    });
+
+    render(getState());
+    onState(render);
+    // Queued becomes Running becomes Complete with time, not with an event.
+    window.setInterval(renderRun, 1000);
+  }
+</script>
+
+<style>
+  .prox-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px;
+    min-width: 0;
+  }
+  .prox-panel__head { display: flex; flex-direction: column; gap: 8px; }
+  .prox-panel__title { margin: 0; }
+  .prox-panel__lede { margin: 0; color: var(--dd-text-muted); }
+  .prox-panel__presets { align-self: flex-start; }
+
+  .prox-panel__rings { display: flex; flex-direction: column; gap: 8px; }
+  .prox-panel__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .prox-panel__current { display: inline-flex; align-items: center; gap: 2px; color: var(--dd-text); }
+
+  /* Ruler */
+  .prox-ruler { display: flex; flex-direction: column; gap: 6px; padding-block: 12px 4px; }
+  .prox-ruler__track {
+    position: relative;
+    height: 22px;
+    border-radius: 11px;
+    background: var(--dd-data-nearby-far);
+    --inset: 14px;
+  }
+  .prox-ruler__site {
+    position: absolute;
+    left: 7px;
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    transform: translateY(-50%);
+    border: 2px solid var(--dd-surface-raised);
+    border-radius: 50%;
+    background: var(--dd-data-on-site);
+    box-sizing: content-box;
+    margin-left: -2px;
+  }
+  .prox-ruler__marks, .prox-ruler__thumbs { position: absolute; inset: 0; }
+  .prox-ruler :global(.prox-ruler__tick),
+  .prox-ruler :global(.prox-ruler__stop),
+  .prox-ruler :global(.prox-ruler__thumb) {
+    position: absolute;
+    top: 50%;
+    left: calc(var(--inset) + var(--p, 0) * (100% - 2 * var(--inset)));
+    transform: translate(-50%, -50%);
+  }
+  .prox-ruler :global(.prox-ruler__tick) { width: 2px; height: 2px; border-radius: 50%; background: var(--dd-data-nearby); opacity: 0.45; }
+  .prox-ruler :global(.prox-ruler__stop) { width: 4px; height: 4px; border-radius: 50%; background: var(--dd-data-nearby); }
+  .prox-ruler :global(.prox-ruler__thumb) { cursor: grab; touch-action: none; }
+  .prox-ruler :global(.prox-ruler__thumb--standard) {
+    width: 28px;
+    height: 20px;
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: 10px;
+    background: var(--dd-surface-raised);
+    box-shadow: 0 1px 3px rgb(39 42 48 / 0.18);
+  }
+  .prox-ruler :global(.prox-ruler__thumb--custom) {
+    width: 10px;
+    height: 10px;
+    border: 2px solid var(--dd-data-nearby);
+    border-radius: 50%;
+    background: var(--dd-surface-raised);
+  }
+  .prox-ruler :global(.prox-ruler__thumb.is-dragging) { cursor: grabbing; z-index: 1; }
+  .prox-ruler :global(.prox-ruler__thumb:focus-visible) { outline: 2px solid var(--dd-focus-ring); outline-offset: 2px; }
+
+  .prox-ruler__labels { position: relative; height: 16px; --inset: 14px; }
+  .prox-ruler :global(.prox-ruler__label) {
+    position: absolute;
+    left: calc(var(--inset) + var(--p, 0) * (100% - 2 * var(--inset)));
+    transform: translateX(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: var(--dd-text-muted);
+    white-space: nowrap;
+  }
+  .prox-ruler :global(.prox-ruler__label:first-child) { left: 0; transform: none; }
+  .prox-ruler :global(.prox-ruler__label:last-child) { left: auto; right: 0; transform: none; }
+  .prox-ruler :global(.prox-ruler__label.is-on) { color: var(--dd-brand-text); font-weight: 600; }
+
+  /* Legend */
+  .prox-legend { display: flex; flex-direction: column; margin-top: 8px; }
+  .prox-legend :global(.prox-legend__row) {
+    display: grid;
+    grid-template-columns: 108px minmax(0, 1fr);
+    gap: 12px;
+    padding-block: 10px;
+    border-top: 1px solid var(--dd-border-subtle);
+  }
+  .prox-legend :global(.prox-legend__label) { display: inline-flex; align-items: baseline; gap: 8px; color: var(--dd-text); }
+  .prox-legend :global(.prox-legend__text) { color: var(--dd-text-muted); }
+
+  /* Custom distances */
+  .prox-custom { display: flex; flex-direction: column; gap: 8px; }
+  .prox-custom__head { display: flex; align-items: center; gap: 8px; }
+  .prox-custom__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .prox-custom__chips[hidden] { display: none; }
+  .prox-custom :global(.prox-custom__chip-swatch) {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border: 1.5px solid var(--dd-data-nearby);
+    border-radius: 2px;
+  }
+  .prox-custom__add { display: flex; align-items: flex-start; gap: 8px; }
+  .prox-custom__field { flex: 1; min-width: 0; }
+  .prox-custom__add :global(.esa-button__label) { display: inline-flex; align-items: center; gap: 6px; }
+  .prox-custom__help { margin: 0; color: var(--dd-text-muted); }
+  .prox-custom__help[hidden] { display: none; }
+
+  /* Footer */
+  .prox-panel__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--dd-border-subtle);
+  }
+  .prox-panel__foot-start { min-width: 0; }
+  .prox-panel__foot [hidden] { display: none; }
+  .prox-panel__foot :global(.prox-panel__link) { --_pad: 0; }
+  .prox-panel__foot :global(.prox-panel__link .esa-button__native) {
+    padding-inline: 0;
+    background: transparent;
+    color: var(--dd-text-muted);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .prox-panel__foot :global(.prox-panel__running .esa-button__label) { display: inline-flex; align-items: center; gap: 6px; }
+  .prox-panel__foot :global(.prox-panel__running .dd-icon) { animation: prox-spin 1s linear infinite; }
+  .prox-status { margin: 0; color: var(--dd-text-muted); }
+  @keyframes prox-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .prox-panel__foot :global(.prox-panel__running .dd-icon) { animation: none; }
+  }
+</style>

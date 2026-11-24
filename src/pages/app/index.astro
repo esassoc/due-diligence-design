@@ -1,0 +1,22 @@
+---
+// Projects: the entry page. All projects with their latest run state, and the
+// New Project panel. `?empty` shows the No Projects Yet state.
+import AppLayout from '../../layouts/AppLayout.astro';
+import DdProjectsHeader from '../../components/projects/DdProjectsHeader.astro';
+import DdProjectsTable from '../../components/projects/DdProjectsTable.astro';
+import DdNewProjectPanel from '../../components/projects/DdNewProjectPanel.astro';
+import { projects } from '../../data/dd';
+---
+
+<!-- manifest:
+  layout: stack(lg)
+  sections:
+    - page title -> dd-projects-header
+    - projects list -> dd-projects-table
+    - new project panel -> dd-new-project-panel
+-->
+<AppLayout title="Projects" current="projects">
+  <DdProjectsHeader count={projects.length} />
+  <DdProjectsTable />
+  <DdNewProjectPanel />
+</AppLayout>

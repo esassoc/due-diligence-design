@@ -1,0 +1,20 @@
+---
+// Proximity: step 3. Pick the search rings, then Run Report.
+import AppLayout from '../../../../layouts/AppLayout.astro';
+import DdPageTitle from '../../../../components/shell/DdPageTitle.astro';
+import DdProximitySetup from '../../../../components/proximity/DdProximitySetup.astro';
+import DdProximityMeasured from '../../../../components/proximity/DdProximityMeasured.astro';
+---
+
+<!-- manifest:
+  layout: stack(lg)
+  sections:
+    - page title -> dd-page-title
+    - search distances -> dd-proximity-setup
+    - what will be measured -> dd-proximity-measured
+-->
+<AppLayout title="Proximity" current="proximity">
+  <DdPageTitle project="Cottonwood" title="Proximity" />
+  <DdProximitySetup />
+  <DdProximityMeasured />
+</AppLayout>

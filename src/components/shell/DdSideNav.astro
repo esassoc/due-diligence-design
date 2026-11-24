@@ -1,0 +1,360 @@
+---
+// DdSideNav: the app's left rail (Figma "Side nav" 92:5376). Logo lockup, site
+// switcher, three phase cards holding every step with a run-line rail (done,
+// current, upcoming, locked with a reason), then the Data and Resources groups.
+//
+// bcn-lego-checked: esa-sidebar-nav is a flat link list with one active item; it
+// has no phase cards, no per-step state nodes on a connected rail, and no locked
+// steps with a reason line, which are the point of this nav (Andy, 2026-11-23,
+// side nav variant 3). Checked esa-app-shell (generic header/sidebar slots, no
+// step model) and Beacon's side-nav-modern (no step rail). Icons are DdIcon
+// (esa-icon). dd-side-nav is the reusable home for the app's step navigation.
+//
+// Step state is applied on the client from src/lib/dd-store.ts, so locks follow
+// the prototype state (boundary cleared, report not run) on every page.
+import DdIcon from '../common/DdIcon.astro';
+import { STEPS, stepRoute, type StepKey, project } from '../../data/dd';
+import { withBase } from '../../lib/base';
+
+interface Props {
+  current: StepKey | 'projects' | 'handoff';
+}
+const { current } = Astro.props;
+
+const phases = ['Setup', 'Analysis', 'Report'] as const;
+// Each datum in its own element; the dot between them is drawn in CSS.
+const sublines: Partial<Record<StepKey, string[]>> = {
+  'project-details': [project.ProjectTypeDisplay],
+  'site-boundary': ['359 ac', project.County],
+  proximity: ['¼, 1 and 5 mi'],
+};
+const dataLinks = ['Projects', 'Layers', 'Themes', 'Project Types', 'Sources', 'Permits'];
+const resourceLinks = ['News', 'Help', 'FAQ', 'Platform Library', 'License and Copyright'];
+---
+<nav class="dd-side-nav" aria-label="Project" data-dd-side-nav data-current={current}>
+  <a class="dd-side-nav__brand" href={withBase('/app/')}>
+    <img src={`${import.meta.env.BASE_URL}brand/dd-mark.svg`} width="28" height="28" alt="" />
+    <span class="dd-t-wordmark">Due Diligence</span>
+  </a>
+
+  {current === 'projects' ? (
+    <a class="dd-side-nav__switcher" href={withBase('/app/')}>
+      <DdIcon name="folder-open" size="sm" />
+      <span class="dd-side-nav__switcher-text">
+        <span class="dd-t-14-strong">All Projects</span>
+        <span class="dd-t-12 dd-muted">No Project Open</span>
+      </span>
+      <DdIcon name="chevrons-up-down" size="sm" class="dd-side-nav__switcher-caret" />
+    </a>
+  ) : (
+    <a class="dd-side-nav__switcher" href={withBase('/app/')}>
+      <DdIcon name="map-pinned" size="sm" />
+      <span class="dd-side-nav__switcher-text">
+        <span class="dd-t-14-strong">{project.ProjectName}</span>
+        <span class="dd-t-12 dd-muted dd-parts"><span data-dd-type>{project.ProjectTypeDisplay}</span><span>Sacramento County</span></span>
+      </span>
+      <DdIcon name="chevrons-up-down" size="sm" class="dd-side-nav__switcher-caret" />
+    </a>
+  )}
+
+  <div class="dd-side-nav__phases" hidden={current === 'projects'}>
+    {phases.map((phase, pi) => {
+      const steps = STEPS.filter((s) => s.phase === phase);
+      return (
+        <section class="dd-phase" data-phase={phase}>
+          <button type="button" class="dd-phase__head" aria-expanded="true" data-dd-phase-toggle>
+            <span class="dd-phase__num dd-t-label-sm">{pi + 1}</span>
+            <span class="dd-phase__name dd-t-13-medium">{phase}</span>
+            <DdIcon name="chevron-down" size="xs" class="dd-phase__chev" />
+          </button>
+          <ol class="dd-phase__steps">
+            {steps.map((s, i) => (
+              <li class="dd-step" data-step={s.key} data-needs={s.needs} data-last={i === steps.length - 1 ? '' : undefined}>
+                <span class="dd-step__rail" aria-hidden="true">
+                  <span class="dd-step__node">
+                    <svg class="dd-node dd-node--upcoming" width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="4.375" fill="#fff" stroke="currentColor" stroke-width="1.25" /></svg>
+                    <svg class="dd-node dd-node--current" width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.25" fill="var(--dd-brand-surface)" stroke="var(--dd-brand-solid)" stroke-width="1.5" /><circle cx="7" cy="7" r="2.5" fill="var(--dd-brand-solid)" /></svg>
+                    <DdIcon name="circle-check" size="xs" class="dd-node dd-node--done" />
+                    <DdIcon name="lock" size="xs" class="dd-node dd-node--locked" />
+                  </span>
+                  <span class="dd-step__line"></span>
+                </span>
+                <a class="dd-step__link" href={withBase(stepRoute(s.key))} aria-current={current === s.key ? 'page' : undefined}>
+                  <span class="dd-step__label dd-t-13">{s.label}</span>
+                  {sublines[s.key] && <span class="dd-step__sub dd-t-12 dd-parts" data-dd-sub>{sublines[s.key]!.map((p) => <span>{p}</span>)}</span>}
+                  <span class="dd-step__reason dd-t-12" data-dd-reason></span>
+                  <span class="dd-step__run dd-t-12" data-dd-run></span>
+                </a>
+              </li>
+            ))}
+          </ol>
+        </section>
+      );
+    })}
+  </div>
+
+  <section class="dd-side-nav__group">
+    <button type="button" class="dd-side-nav__group-head" aria-expanded="true" data-dd-group-toggle>
+      <DdIcon name="database" size="sm" />
+      <span class="dd-t-13-medium">Data</span>
+      <DdIcon name="chevron-down" size="xs" class="dd-side-nav__chev" />
+    </button>
+    <ul class="dd-side-nav__links">
+      {dataLinks.map((l) => (
+        <li><a class="dd-t-13" href={l === 'Projects' ? withBase('/app/') : '#'} aria-current={current === 'projects' && l === 'Projects' ? 'page' : undefined}>{l}</a></li>
+      ))}
+    </ul>
+  </section>
+
+  <section class="dd-side-nav__group">
+    <button type="button" class="dd-side-nav__group-head" aria-expanded="true" data-dd-group-toggle>
+      <DdIcon name="book-open" size="sm" />
+      <span class="dd-t-13-medium">Resources</span>
+      <DdIcon name="chevron-down" size="xs" class="dd-side-nav__chev" />
+    </button>
+    <ul class="dd-side-nav__links">
+      {resourceLinks.map((l) => <li><a class="dd-t-13" href="#">{l}</a></li>)}
+    </ul>
+  </section>
+</nav>
+
+<style>
+  .dd-side-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px 16px 120px;
+    background: var(--dd-chrome-sidebar-bg);
+    border-right: 1px solid var(--dd-chrome-sidebar-border);
+    color: var(--dd-chrome-sidebar-text);
+    min-height: 100%;
+  }
+  .dd-side-nav__brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0 16px 6px;
+    color: var(--dd-chrome-topbar-text);
+  }
+  .dd-side-nav__switcher {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 44px;
+    padding: 0 12px;
+    background: var(--dd-surface-raised);
+    border: 1px solid var(--dd-border-subtle);
+    border-radius: var(--radius-200, 8px);
+    color: var(--dd-text);
+  }
+  .dd-side-nav__switcher:hover { border-color: var(--dd-border); }
+  .dd-side-nav__switcher-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .dd-side-nav__switcher-text > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dd-side-nav__phases { display: flex; flex-direction: column; gap: 8px; padding-top: 14px; }
+  .dd-side-nav__phases[hidden] { display: none; }
+
+  .dd-phase {
+    background: var(--dd-chrome-sidebar-card);
+    border: 1px solid var(--dd-chrome-sidebar-card-border);
+    border-radius: 8px;
+    padding: 10px 10px 8px;
+  }
+  .dd-phase__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 0 0 10px;
+    color: var(--dd-text);
+    text-align: left;
+  }
+  .dd-phase__num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--dd-border);
+    border-radius: 4px;
+    color: var(--dd-text-subtle);
+  }
+  .dd-phase[data-active] .dd-phase__num { border-color: var(--dd-brand-border); color: var(--dd-brand-text); }
+  .dd-phase[data-quiet] .dd-phase__name { color: var(--dd-text-subtle); }
+  .dd-phase__name { flex: 1; }
+  :global(.dd-phase__chev) { color: var(--dd-text-subtle); transition: transform 120ms ease; }
+  .dd-phase__head[aria-expanded='false'] { padding-bottom: 2px; }
+  .dd-phase__head[aria-expanded='false'] :global(.dd-phase__chev) { transform: rotate(-90deg); }
+  .dd-phase__head[aria-expanded='false'] + .dd-phase__steps { display: none; }
+
+  .dd-phase__steps { list-style: none; margin: 0; padding: 0; }
+  .dd-step { display: flex; gap: 8px; align-items: stretch; }
+  .dd-step__rail { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 14px; padding-top: 3px; flex: none; }
+  .dd-step__node { position: relative; width: 14px; height: 14px; flex: none; color: var(--dd-border-strong); }
+  .dd-step__node :global(.dd-node) { position: absolute; inset: 0; display: none; }
+  .dd-step__line { flex: 1; width: 1.5px; min-height: 6px; background: var(--dd-chrome-sidebar-border); }
+  .dd-step[data-last] .dd-step__line { display: none; }
+
+  .dd-step__link {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+    padding: 1px 0 10px;
+    color: var(--dd-text-subtle);
+  }
+  .dd-step[data-last] .dd-step__link { padding-bottom: 2px; }
+  .dd-step__sub, .dd-step__reason { color: var(--dd-text-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dd-step__reason { display: none; }
+  .dd-step__run { color: var(--dd-brand-text); }
+  .dd-step__run:empty { display: none; }
+  .dd-parts > :global(span + span)::before { content: ''; display: inline-block; width: 2px; height: 2px; margin: 0 5px 3px; border-radius: 50%; background: currentColor; vertical-align: middle; }
+  .dd-step__link:hover .dd-step__label { text-decoration: underline; text-underline-offset: 2px; }
+
+  /* state: done */
+  .dd-step[data-state='done'] :global(.dd-node--done) { display: inline-flex; color: var(--dd-brand-text); }
+  .dd-step[data-state='done'] .dd-step__link { color: var(--dd-text); }
+  .dd-step[data-state='done'] .dd-step__line { background: var(--dd-brand-border); }
+  /* state: current */
+  .dd-step[data-state='current'] :global(.dd-node--current) { display: block; }
+  .dd-step[data-state='current'] .dd-step__label { color: var(--dd-chrome-sidebar-selected-text); font-weight: 500; }
+  .dd-step[data-state='current'][data-was-done] .dd-step__line { background: var(--dd-brand-border); }
+  /* state: upcoming */
+  .dd-step[data-state='upcoming'] :global(.dd-node--upcoming) { display: block; }
+  .dd-step[data-state='upcoming'] .dd-step__sub { display: none; }
+  /* state: locked */
+  .dd-step[data-state='locked'] :global(.dd-node--locked) { display: inline-flex; color: var(--dd-text-subtle); }
+  .dd-step[data-state='locked'] .dd-step__sub { display: none; }
+  .dd-step[data-state='locked'] .dd-step__reason { display: block; }
+  .dd-step[data-state='locked'] .dd-step__link { pointer-events: none; }
+
+  .dd-side-nav__group { display: flex; flex-direction: column; gap: 1px; padding-top: 16px; }
+  .dd-side-nav__group-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: 6px;
+    color: var(--dd-chrome-sidebar-text);
+    text-align: left;
+  }
+  .dd-side-nav__group-head > span:not(.dd-icon) { flex: 1; }
+  .dd-side-nav__group-head:hover { background: var(--dd-surface-hover); }
+  :global(.dd-side-nav__chev) { transition: transform 120ms ease; color: var(--dd-chrome-sidebar-text-muted); }
+  .dd-side-nav__group-head[aria-expanded='false'] :global(.dd-side-nav__chev) { transform: rotate(-90deg); }
+  .dd-side-nav__group-head[aria-expanded='false'] + .dd-side-nav__links { display: none; }
+  .dd-side-nav__links {
+    position: relative;
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 27px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .dd-side-nav__links::before {
+    content: '';
+    position: absolute;
+    left: 17px;
+    top: 2px;
+    bottom: 2px;
+    width: 1px;
+    background: var(--dd-chrome-sidebar-border);
+  }
+  .dd-side-nav__links a {
+    display: flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 6px;
+    color: var(--dd-chrome-sidebar-text-muted);
+  }
+  .dd-side-nav__links a:hover { background: var(--dd-surface-hover); color: var(--dd-chrome-sidebar-text); }
+  .dd-side-nav__links a[aria-current='page'] { background: var(--dd-chrome-sidebar-selected); color: var(--dd-chrome-sidebar-selected-text); }
+</style>
+
+<script>
+  import { getState, onState, lockReason, lockRedirect, runStatus, ringsLabel, type DdState, type StepNeeds } from '../../lib/dd-store';
+
+  const nav = document.querySelector<HTMLElement>('[data-dd-side-nav]');
+
+  function doneFor(step: string, s: DdState): boolean {
+    const status = runStatus(s);
+    switch (step) {
+      case 'project-details': return true;
+      case 'site-boundary': return s.boundary === 'defined';
+      case 'proximity': return s.boundary === 'defined' && status !== 'never';
+      case 'site-profile': return status === 'complete';
+      case 'geospatial': return status === 'complete' && sessionStorage.getItem('dd-visited-geospatial') === '1';
+      default: return false;
+    }
+  }
+
+  function render(s: DdState): void {
+    if (!nav) return;
+    const current = nav.dataset.current;
+    if (current === 'geospatial') { try { sessionStorage.setItem('dd-visited-geospatial', '1'); } catch { /* ignore */ } }
+    nav.querySelectorAll<HTMLElement>('.dd-step').forEach((li) => {
+      const step = li.dataset.step ?? '';
+      const needs = (li.dataset.needs ?? 'none') as StepNeeds;
+      const reason = lockReason(needs, s);
+      const done = doneFor(step, s);
+      let state = 'upcoming';
+      if (step === current) state = 'current';
+      else if (reason) state = 'locked';
+      else if (done) state = 'done';
+      li.dataset.state = state;
+      li.toggleAttribute('data-was-done', done);
+      const r = li.querySelector<HTMLElement>('[data-dd-reason]');
+      if (r) r.textContent = reason ?? '';
+      const link = li.querySelector<HTMLAnchorElement>('.dd-step__link');
+      if (link) {
+        if (state === 'locked') { link.setAttribute('aria-disabled', 'true'); link.tabIndex = -1; }
+        else { link.removeAttribute('aria-disabled'); link.removeAttribute('tabindex'); }
+      }
+      if (step === 'site-boundary') {
+        const sub = li.querySelector<HTMLElement>('[data-dd-sub]');
+        if (sub) {
+          const parts = s.boundary === 'defined' ? ['359 ac', 'Sacramento County, CA'] : ['Not Defined'];
+          sub.replaceChildren(...parts.map((t) => Object.assign(document.createElement('span'), { textContent: t })));
+        }
+        if (s.boundary !== 'defined' && state !== 'current') li.dataset.state = 'upcoming';
+      }
+      if (step === 'project-details') {
+        const sub = li.querySelector<HTMLElement>('[data-dd-sub]');
+        const type = s.details.projectType;
+        if (sub && type) sub.replaceChildren(Object.assign(document.createElement('span'), { textContent: type }));
+      }
+      if (step === 'site-profile') {
+        const run = li.querySelector<HTMLElement>('[data-dd-run]');
+        const status = runStatus(s);
+        if (run) run.textContent = status === 'queued' ? 'Queued' : status === 'running' ? 'Running' : '';
+      }
+      if (step === 'proximity') {
+        const sub = li.querySelector<HTMLElement>('[data-dd-sub]');
+        if (sub) sub.replaceChildren(Object.assign(document.createElement('span'), { textContent: ringsLabel(s.rings).replace(/ mi(?=,| and)/g, '') }));
+      }
+    });
+    const type = nav.querySelector<HTMLElement>('[data-dd-type]');
+    if (type && s.details.projectType) type.textContent = s.details.projectType;
+    nav.querySelectorAll<HTMLElement>('.dd-phase').forEach((ph) => {
+      const steps = [...ph.querySelectorAll<HTMLElement>('.dd-step')];
+      ph.toggleAttribute('data-active', steps.some((x) => x.dataset.state === 'current'));
+      ph.toggleAttribute('data-quiet', steps.every((x) => x.dataset.state === 'locked'));
+    });
+  }
+
+  nav?.querySelectorAll<HTMLButtonElement>('[data-dd-phase-toggle], [data-dd-group-toggle]').forEach((b) => {
+    b.addEventListener('click', () => b.setAttribute('aria-expanded', String(b.getAttribute('aria-expanded') !== 'true')));
+  });
+
+  // A locked step's URL sends you to the step that unlocks it, as QA does.
+  const here = nav?.querySelector<HTMLElement>(`.dd-step[data-step="${nav.dataset.current}"]`);
+  const to = here ? lockRedirect((here.dataset.needs ?? 'none') as StepNeeds) : null;
+  if (to) location.replace(import.meta.env.BASE_URL + to);
+
+  render(getState());
+  onState(render);
+  // Re-evaluate while a run is in flight so the Analysis locks lift on time.
+  window.setInterval(() => render(getState()), 1000);
+</script>
