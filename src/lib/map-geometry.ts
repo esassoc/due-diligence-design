@@ -88,4 +88,6 @@ export const VIEWS = {
   proximity: [-10600, -9100, 20400, 18200] as const,
   geospatial: [-4400, -2700, 8800, 5600] as const,
   thumb: [-1600, -1300, 3200, 2600] as const,
+  /** Site Profile's Proximity dropdown: the site and its 1 mi ring. */
+  mini: [-3400, -2400, 6800, 4800] as const,
 };

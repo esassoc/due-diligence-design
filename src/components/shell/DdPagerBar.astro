@@ -9,8 +9,10 @@
 // part of this component rather than a page-level snackbar.
 //
 // bcn-lego-checked: no esa- lego is a floating prev/next pager; esa-pagination
-// pages a list by number. The step menus ARE esa-dropdown-menu (position
-// above-start / above-end). For the toast, esa-snackbar-container is
+// pages a list by number. The step menus are not esa-dropdown-menu: they show
+// one phase group with a header and each step's state (done, current, locked
+// with its reason), on the pager's dark surface; esa-dropdown-menu items are
+// plain labels in the light body type with no group header or state. For the toast, esa-snackbar-container is
 // persistent-by-default and stacks in a screen corner with an action slot; the
 // approved toast is a one-word, transient confirmation anchored on the pager,
 // announced through a polite live region. dd-pager-bar is the reusable home.
@@ -38,9 +40,10 @@ const routes = Object.fromEntries(STEPS.map((s) => [s.key, withBase(stepRoute(s.
     <a class="dd-pager__btn dd-t-14-medium" href={prev ? routes[prev.key] : withBase('/app/')} data-dd-prev data-step={prev?.key ?? ''}>
       <DdIcon name="arrow-left" size="xs" />Prev
     </a>
-    <esa-dropdown-menu position="above-start" data-dd-menu="prev">
-      <button type="button" class="dd-pager__caret" aria-label="Go to Step"><DdIcon name="chevron-up" size="xs" /></button>
-    </esa-dropdown-menu>
+    <span class="dd-pager__menuwrap">
+      <button type="button" class="dd-pager__caret" aria-label="Previous Steps" aria-haspopup="menu" aria-expanded="false" data-dd-caret="prev"><DdIcon name="chevron-up" size="xs" /></button>
+      <div class="dd-pager__menu dd-pager__menu--start" role="menu" hidden data-dd-menu="prev"></div>
+    </span>
     <span class="dd-pager__div"></span>
     <a class="dd-pager__mark" href={withBase('/app/')} aria-label="Projects">
       <img src={`${import.meta.env.BASE_URL}brand/dd-mark-pager.svg`} width="22" height="22" alt="" />
@@ -49,9 +52,10 @@ const routes = Object.fromEntries(STEPS.map((s) => [s.key, withBase(stepRoute(s.
     <a class="dd-pager__btn dd-pager__btn--next dd-t-14-medium" href={next ? routes[next.key] : '#'} data-dd-next data-step={next?.key ?? ''} data-needs={next?.needs ?? 'none'}>
       Next<DdIcon name="arrow-right" size="xs" />
     </a>
-    <esa-dropdown-menu position="above-end" data-dd-menu="next">
-      <button type="button" class="dd-pager__caret" aria-label="Go to Step"><DdIcon name="chevron-up" size="xs" /></button>
-    </esa-dropdown-menu>
+    <span class="dd-pager__menuwrap">
+      <button type="button" class="dd-pager__caret" aria-label="Next Steps" aria-haspopup="menu" aria-expanded="false" data-dd-caret="next"><DdIcon name="chevron-up" size="xs" /></button>
+      <div class="dd-pager__menu dd-pager__menu--end" role="menu" hidden data-dd-menu="next"></div>
+    </span>
   </div>
 </div>
 
@@ -106,7 +110,43 @@ const routes = Object.fromEntries(STEPS.map((s) => [s.key, withBase(stepRoute(s.
   }
   .dd-pager__caret :global(svg) { width: 10px; height: 10px; }
   .dd-pager__mark { display: inline-flex; align-items: center; height: 36px; padding: 0 10px; border-radius: 8px; }
-  .dd-pager :global(esa-dropdown-menu) { --dropdown-menu-min-width: 200px; --dropdown-menu-max-height: none; color: var(--dd-text); }
+  .dd-pager__menuwrap { position: relative; display: inline-flex; }
+  .dd-pager__caret[aria-expanded='true'] { background: rgb(255 255 255 / 0.12); color: #fff; }
+  .dd-pager__menu {
+    position: absolute;
+    bottom: calc(100% + 14px);
+    width: 248px;
+    padding: 6px;
+    background: rgb(39 42 48 / 0.94);
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.3);
+    backdrop-filter: blur(7px);
+    color: rgb(255 255 255 / 0.92);
+  }
+  .dd-pager__menu[hidden] { display: none; }
+  .dd-pager__menu--start { left: -44px; }
+  .dd-pager__menu--end { right: -10px; }
+  .dd-pager__menu :global(.dd-pmenu__head) {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px 8px; color: rgb(255 255 255 / 0.55);
+  }
+  .dd-pager__menu :global(.dd-pmenu__num) {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; border: 1px solid rgb(255 255 255 / 0.3); border-radius: 4px;
+  }
+  .dd-pager__menu :global(.dd-pmenu__item) {
+    display: flex; align-items: flex-start; gap: 10px; width: 100%;
+    padding: 7px 8px; border-radius: 6px; color: inherit; text-align: left; text-decoration: none;
+  }
+  .dd-pager__menu :global(a.dd-pmenu__item:hover), .dd-pager__menu :global(a.dd-pmenu__item:focus-visible) { background: rgb(255 255 255 / 0.08); outline: none; }
+  .dd-pager__menu :global(.dd-pmenu__item[aria-current='page']) { background: rgb(255 255 255 / 0.1); }
+  .dd-pager__menu :global(.dd-pmenu__item[aria-disabled='true']) { color: rgb(255 255 255 / 0.45); }
+  .dd-pager__menu :global(.dd-pmenu__node) { flex: none; display: inline-flex; width: 14px; height: 14px; margin-top: 2px; color: rgb(255 255 255 / 0.5); }
+  .dd-pager__menu :global(.dd-pmenu__node--done) { color: #9db6f2; }
+  .dd-pager__menu :global(.dd-pmenu__node--current) { color: #fff; }
+  .dd-pager__menu :global(.dd-pmenu__text) { display: flex; flex-direction: column; gap: 1px; }
+  .dd-pager__menu :global(.dd-pmenu__sub) { color: rgb(255 255 255 / 0.5); }
 
   .dd-pager__toast {
     display: inline-flex;
@@ -129,49 +169,95 @@ const routes = Object.fromEntries(STEPS.map((s) => [s.key, withBase(stepRoute(s.
 </style>
 
 <script>
-  import '@esa/ecology/esa-dropdown-menu';
-  import { getState, onState, lockReason, type DdState, type StepNeeds } from '../../lib/dd-store';
+  import { getState, onState, lockReason, runStatus, type DdState, type StepNeeds } from '../../lib/dd-store';
+  import { iconSvg } from '../../lib/icons';
 
-  type Menu = HTMLElement & { items: { label: string; action: string; disabled?: boolean }[] };
   type Step = { key: string; label: string; phase: string; needs: StepNeeds };
 
   const root = document.querySelector<HTMLElement>('[data-dd-pager]');
   if (root) {
     const routes: Record<string, string> = JSON.parse(root.dataset.routes ?? '{}');
     const steps: Step[] = JSON.parse(root.dataset.steps ?? '[]');
-    const current = root.dataset.current;
+    const current = root.dataset.current ?? '';
+    const idx = steps.findIndex((s) => s.key === current);
+    const phases = [...new Set(steps.map((s) => s.phase))];
     const nextEl = root.querySelector<HTMLAnchorElement>('[data-dd-next]');
-    const menus = root.querySelectorAll<Menu>('[data-dd-menu]');
+
+    /** Each caret shows one phase group: the group holding the step it would go to. */
+    const groupFor = (dir: 'prev' | 'next'): string | null => {
+      const target = steps[dir === 'next' ? idx + 1 : idx - 1];
+      return target ? target.phase : null;
+    };
+
+    const done = (st: Step, s: DdState): boolean => {
+      const status = runStatus(s);
+      if (st.key === 'project-details') return true;
+      if (st.key === 'site-boundary') return s.boundary === 'defined';
+      if (st.key === 'proximity') return s.boundary === 'defined' && status !== 'never';
+      if (st.key === 'site-profile') return status === 'complete';
+      return false;
+    };
+
+    const esc = (t: string): string => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+
+    const renderMenu = (dir: 'prev' | 'next', s: DdState): void => {
+      const menu = root.querySelector<HTMLElement>(`[data-dd-menu="${dir}"]`);
+      const caret = root.querySelector<HTMLButtonElement>(`[data-dd-caret="${dir}"]`);
+      const phase = groupFor(dir);
+      if (!menu || !caret) return;
+      caret.disabled = !phase;
+      if (!phase) { menu.innerHTML = ''; return; }
+      const items = steps.filter((st) => st.phase === phase).map((st) => {
+        const reason = lockReason(st.needs, s);
+        const isCur = st.key === current;
+        const state = isCur ? 'current' : reason ? 'locked' : done(st, s) ? 'done' : 'upcoming';
+        const icon = state === 'locked' ? 'lock' : state === 'done' ? 'circle-check' : state === 'current' ? 'circle-dot' : 'circle';
+        const sub = state === 'locked' ? `<span class="dd-pmenu__sub dd-t-12">${esc(reason ?? '')}</span>` : '';
+        const inner = `<span class="dd-pmenu__node dd-pmenu__node--${state}">${iconSvg(icon, 14)}</span><span class="dd-pmenu__text"><span class="dd-t-13">${esc(st.label)}</span>${sub}</span>`;
+        if (state === 'locked') return `<span class="dd-pmenu__item" role="menuitem" aria-disabled="true">${inner}</span>`;
+        return `<a class="dd-pmenu__item" role="menuitem" href="${routes[st.key]}"${isCur ? ' aria-current="page"' : ''}>${inner}</a>`;
+      }).join('');
+      const n = phases.indexOf(phase) + 1;
+      menu.innerHTML = `<div class="dd-pmenu__head dd-t-12-strong"><span class="dd-pmenu__num dd-t-label-sm">${n}</span>${esc(phase)}</div>${items}`;
+    };
 
     const render = (s: DdState): void => {
-      const items = steps.map((st) => {
-        const reason = lockReason(st.needs, s);
-        return {
-          label: st.label,
-          action: st.key,
-          disabled: Boolean(reason) || st.key === current,
-        };
-      });
-      menus.forEach((m) => { m.items = items; });
+      renderMenu('prev', s);
+      renderMenu('next', s);
       if (nextEl) {
-        const needs = (nextEl.dataset.needs ?? 'none') as Step['needs'];
+        const needs = (nextEl.dataset.needs ?? 'none') as StepNeeds;
         const reason = nextEl.dataset.step ? lockReason(needs, s) : 'Last step';
-        nextEl.toggleAttribute('aria-disabled', Boolean(reason));
-        if (reason) nextEl.setAttribute('aria-disabled', 'true');
-        nextEl.title = reason ?? '';
-        // A disabled link still needs a hover target for its reason.
+        if (reason) nextEl.setAttribute('aria-disabled', 'true'); else nextEl.removeAttribute('aria-disabled');
         nextEl.parentElement?.setAttribute('title', reason ?? '');
       }
     };
 
-    menus.forEach((m) => m.addEventListener('menu-action', (e) => {
-      const key = (e as CustomEvent<string>).detail;
-      if (routes[key]) location.href = routes[key];
-    }));
+    const close = (): void => {
+      root.querySelectorAll<HTMLElement>('.dd-pager__menu').forEach((m) => { m.hidden = true; });
+      root.querySelectorAll<HTMLElement>('[data-dd-caret]').forEach((c) => c.setAttribute('aria-expanded', 'false'));
+    };
+    root.querySelectorAll<HTMLButtonElement>('[data-dd-caret]').forEach((caret) => {
+      caret.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const menu = root.querySelector<HTMLElement>(`[data-dd-menu="${caret.dataset.ddCaret}"]`);
+        const open = menu?.hidden ?? false;
+        close();
+        if (menu && open) {
+          menu.hidden = false;
+          caret.setAttribute('aria-expanded', 'true');
+          menu.querySelector<HTMLElement>('a.dd-pmenu__item:not([aria-current])')?.focus();
+        }
+      });
+    });
+    document.addEventListener('click', (e) => { if (!(e.target as Element).closest('.dd-pager__menu')) close(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
 
     render(getState());
     onState(render);
-    window.setInterval(() => render(getState()), 1000);
+    // Re-check while a run is in flight; never rebuild a menu that is open.
+    window.setInterval(() => {
+      if (!root.querySelector('.dd-pager__menu:not([hidden])')) render(getState());
+    }, 1000);
 
     // Toast
     const toast = root.querySelector<HTMLElement>('[data-dd-toast]');
